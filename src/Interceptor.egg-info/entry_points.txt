@@ -1,0 +1,8 @@
+[console_scripts]
+connector = zmq.zmq_connector:entry_point
+intxr = gui.intxr:entry_point
+
+[libtbx.dispatcher.script]
+connector = connector
+intxr = intxr
+

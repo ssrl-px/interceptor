@@ -1,0 +1,10 @@
+setup.py
+src/Interceptor.egg-info/PKG-INFO
+src/Interceptor.egg-info/SOURCES.txt
+src/Interceptor.egg-info/dependency_links.txt
+src/Interceptor.egg-info/entry_points.txt
+src/Interceptor.egg-info/top_level.txt
+src/gui/__init__.py
+src/gui/intxr.py
+src/zmq/__init__.py
+src/zmq/zmq_connector.py
