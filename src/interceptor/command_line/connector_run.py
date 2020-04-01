@@ -25,7 +25,7 @@ from connector.connector import Reader, Collector
 
 def parse_command_args():
   """ Parses command line arguments (only options for now) """
-  parser = argparse.ArgumentParser(prog = 'run.py',
+  parser = argparse.ArgumentParser(prog = 'connector_run.py',
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description=('ZMQ Stream Connector'),
             epilog=('\n{:-^70}\n'.format('')))

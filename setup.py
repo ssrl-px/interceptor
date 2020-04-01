@@ -10,19 +10,18 @@ setuptools.setup(
     author="Artem Y. Lyubimov",
     author_email="lyubimov@stanford.edu",
     version="0.1.0",
-    url="https://github.com/ssrl-px/sx/interceptor",
-    download_url="https://github.com/ssrl-px/sx/interceptor/releases",
+    url="https://github.com/alyubimov/interceptor",
     license="BSD",
     install_requires=[],
     package_dir={"": "src"},
-    packages=["gui", "connector", "testing"],
+    packages=["interceptor"],
     package_data={
       'gui':['*.png'],
     },
     entry_points={
         "console_scripts": [
-            "intxr = gui.ui_run:entry_point",
-            "connector = connector.run:entry_point",
+            "intxr = interceptor.command_line.ui_run:entry_point",
+            "connector = interceptor.command_line.connector_run:entry_point",
         ],
         "libtbx.dispatcher.script": [
             "intxr = intxr",
