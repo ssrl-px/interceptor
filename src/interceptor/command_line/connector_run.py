@@ -20,7 +20,7 @@ bl121proc00 --port 8121 --last_stage spotfinding --verbose
 '''
 
 import argparse
-from connector.connector import Reader, Collector
+from interceptor.connector.connector import Reader, Collector
 
 
 def parse_command_args():

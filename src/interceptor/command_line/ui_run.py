@@ -8,7 +8,7 @@ Description : Interceptor module
 '''
 
 import wx
-from gui.tracker import TrackerWindow
+from interceptor.gui.tracker import TrackerWindow
 
 
 class MainApp(wx.App):

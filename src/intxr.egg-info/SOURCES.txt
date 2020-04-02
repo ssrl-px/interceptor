@@ -1,0 +1,8 @@
+README.md
+setup.py
+src/interceptor/__init__.py
+src/intxr.egg-info/PKG-INFO
+src/intxr.egg-info/SOURCES.txt
+src/intxr.egg-info/dependency_links.txt
+src/intxr.egg-info/entry_points.txt
+src/intxr.egg-info/top_level.txt
