@@ -8,6 +8,7 @@ Description : Interceptor tracking module (GUI elements)
 '''
 
 import os
+import wx
 from interceptor.gui import receiver as rcv
 from iota.components.gui import controls as ct
 from wxtbx import bitmaps
