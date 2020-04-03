@@ -42,7 +42,7 @@ class FormatEigerStreamSSRL(FormatEigerStream.FormatEigerStream):
         pixel_y = configuration['y_pixel_size']
 
         material = configuration['sensor_material']
-        thickness = configuration['sensor_thickness']
+        thickness = configuration['sensor_thickness']*1000
 
         nx = configuration['x_pixels_in_detector']
         ny = configuration['y_pixels_in_detector']
