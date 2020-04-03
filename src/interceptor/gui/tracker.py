@@ -13,6 +13,13 @@ from interceptor.gui import receiver as rcv
 from iota.components.gui import controls as ct
 from wxtbx import bitmaps
 
+try:
+    import importlib.resources as pkg_resources
+except ImportError:
+    # Try backported to PY<37 `importlib_resources`.
+    import importlib_resources as pkg_resources
+from interceptor.gui.resources import icons
+
 bl_info = {
   'BL12-1': ('bl121proc00', '8121'),
   'BL12-2': ('pxproc24', '8122'),
@@ -23,15 +30,16 @@ bl_info = {
 class IconFinder(object):
   def __init__(self, lib_path):
     self.icon_cache = {}
-    self.lib_path = os.path.abspath(lib_path)
 
   def find_icon(self, icon_name, size=None, scale=None):
     if size:
       icon_fn = '{0}_{1}x{1}.png'.format(icon_name, size)
     else:
       icon_fn = '{}.png'.format(icon_name)
-    icon_path = os.path.join(self.lib_path, icon_fn)
-    bmp = self.load_png_as_bitmap(icon_path, scale)
+
+    with (pkg_resources.path(icons, icon_fn)) as icon_path:
+    # icon_path = os.path.join(self.lib_path, icon_fn)
+      bmp = self.load_png_as_bitmap(icon_path, scale)
     return bmp
 
   def load_png_as_bitmap(self, icon_path, scale=None):
