@@ -11,7 +11,7 @@ import time
 
 from interceptor.connector.processor import FastProcessor
 from interceptor.connector.stream import ZMQStream
-from dxtbx.format import FormatEigerStream as EigerStream
+from dxtbx.format import FormatEigerStreamSSRL as FormatStream
 from dxtbx.model.experiment_list import ExperimentListFactory
 
 
@@ -83,7 +83,7 @@ class Reader(ConnectorBase):
     self.initialize_process()
 
   def make_experiments(self, filename, data):
-    EigerStream.injected_data = data
+    FormatStream.injected_data = data
     exp = ExperimentListFactory.from_filenames([filename])
     return exp
 
