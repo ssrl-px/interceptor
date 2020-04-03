@@ -13,6 +13,10 @@ from interceptor.gui import receiver as rcv
 from iota.components.gui import controls as ct
 from wxtbx import bitmaps
 
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
+from matplotlib.figure import Figure
+from matplotlib.widgets import SpanSelector
+
 try:
     import importlib.resources as pkg_resources
 except ImportError:
