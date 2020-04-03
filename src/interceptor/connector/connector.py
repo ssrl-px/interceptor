@@ -7,12 +7,15 @@ Last Changed: 03/31/2020
 Description : Streaming stills processor for live data analysis
 '''
 
+import os
 import time
 
+from dxtbx.model.experiment_list import ExperimentListFactory
+
+from iota.components.iota_init import initialize_single_image
 from interceptor.connector.processor import FastProcessor
 from interceptor.connector.stream import ZMQStream
 from interceptor.format import FormatEigerStreamSSRL as FormatStream
-from dxtbx.model.experiment_list import ExperimentListFactory
 
 
 class ConnectorBase():
@@ -32,7 +35,14 @@ class ConnectorBase():
     self.args = args
 
   def generate_processor(self, args):
-    processor = FastProcessor(last_stage=args.last_stage)
+    if args.iota:
+      dummy_path = os.path.abspath(os.path.join(os.curdir, 'dummy_file.h5'))
+      info, iparams = initialize_single_image(
+        img=dummy_path,
+        paramfile=None)
+      processor = IOTAProcessor(info, iparams, last_stage=args.last_stage)
+    else:
+      processor = FastProcessor(last_stage=args.last_stage)
     return processor
 
   def initialize_process(self):

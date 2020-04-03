@@ -64,6 +64,56 @@ integration {
 '''
 
 
+class IOTAProcessor(object):
+  def __init__(self, info, params, last_stage):
+    self.importer = ImageImporter(info=info, write_output=False)
+    self.integrator = IOTAImageProcessor(
+      iparams=params,
+      write_pickle=False,
+      write_logs=False,
+      last_stage=last_stage)
+
+  def import_and_process(self, input_entry):
+    img_object = self.importer.run(input_entry)
+    if img_object.status == 'imported':
+      with Capturing() as junk_output:
+        img_object = self.integrator.run(img_object)
+    img_object.status = 'final'
+    return img_object
+
+  def process(self, experiments, info):
+    errors = []
+    input_entry = [
+      info['frame_idx'],
+      'dummy_file.h5',
+      info['frame_idx'],
+      experiments
+    ]
+    img_object = self.import_and_process(input_entry)
+    info['n_spots'] = img_object.final['spots']
+    info['n_indexed'] = img_object.final['indexed']
+    info['hres'] = img_object.final['res']
+    info['lres'] = img_object.final['lres']
+    info['sg'] = img_object.final['sg']
+    info['uc'] = ' '.join([
+      '{:.2f}'.format(img_object.final['a']),
+      '{:.2f}'.format(img_object.final['b']),
+      '{:.2f}'.format(img_object.final['c']),
+      '{:.2f}'.format(img_object.final['alpha']),
+      '{:.2f}'.format(img_object.final['beta']),
+      '{:.2f}'.format(img_object.final['gamma'])
+    ])
+    if img_object.fail:
+      errors = [img_object.fail]
+      errors.extend(img_object.errors)
+    info['prc_error'] = ';'.join(errors)
+    return info
+
+  def run(self, experiments, info):
+    return self.process(experiments, info)
+
+
+
 class FastProcessor(Processor):
   def __init__(self, last_stage='spotfinding', min_Bragg=10):
     self.last_stage = last_stage

@@ -49,8 +49,13 @@ def parse_command_args():
                       help='"Spotfinding", "indexing", or "integration" works')
   parser.add_argument('--header', action='store_true', default=False)
   parser.add_argument('--test', action='store_true', default=False)
-  parser.add_argument('--verbose', action='store_true', default=False)
-  parser.add_argument('--send', action='store_true', default=False)
+  parser.add_argument('--verbose', action='store_true', default=False,
+                      help='Print output to stdout')
+  parser.add_argument('--send', action='store_true', default=False,
+                      help='Forward results to GUI')
+  parser.add_argument('--iota', action='store_true', default=False,
+                      help='Use IOTA Processor')
+
   return parser
 
 
