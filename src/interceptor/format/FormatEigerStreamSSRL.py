@@ -1,20 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
-import json
-
-from scitbx import matrix
-from scitbx.array_family import flex
-
-import numpy as np
-from dxtbx import IncorrectFormatError
-
 from dxtbx.format import FormatEigerStream
-from dxtbx.format.FormatPilatusHelpers import get_vendortype_eiger
-from dxtbx.model.beam import BeamFactory
-from dxtbx.model.detector import DetectorFactory
-from dxtbx.model.goniometer import GoniometerFactory
-from dxtbx.model.scan import ScanFactory
-
 from cctbx.eltbx import attenuation_coefficient
 from dxtbx.model import ParallaxCorrectedPxMmStrategy
 from dxtbx.format.FormatPilatusHelpers import determine_eiger_mask
@@ -40,7 +26,7 @@ class FormatEigerStreamSSRL(FormatEigerStream.FormatEigerStream):
 
     @staticmethod
     def understand(image_file):
-        return bool(injected_data)
+        return True
 
     def _detector(self):
         ''' Create an Eiger detector profile (taken from FormatCBFMiniEiger) '''
@@ -101,89 +87,3 @@ class FormatEigerStreamSSRL(FormatEigerStream.FormatEigerStream):
             panel.set_mu(mu)
 
         return detector
-    def _beam(self):
-        """
-        Create the beam model
-        """
-        configuration = self.header["configuration"]
-        return BeamFactory.simple(configuration["wavelength"])
-
-    def _goniometer(self):
-        """
-        Create the goniometer model
-        """
-        return GoniometerFactory.single_axis()
-
-    def _scan(self):
-        """
-        Create the scan object
-        """
-        phi_start = 0
-        phi_increment = 0
-        nimages = 1
-        return ScanFactory.make_scan(
-            image_range=(1, nimages),
-            exposure_times=[0] * nimages,
-            oscillation=(phi_start, phi_increment),
-            epochs=[0] * nimages,
-        )
-
-    def get_raw_data(self, index=None):
-        """
-        Get the raw data from the image
-        """
-        info = self.header["info"]
-        data = injected_data["streamfile_3"]
-        if info["encoding"] == "lz4<":
-            data = self.readLZ4(data, info["shape"], info["type"], info["size"])
-        elif info["encoding"] == "bs16-lz4<":
-            data = self.readBS16LZ4(data, info["shape"], info["type"], info["size"])
-        elif info["encoding"] == "bs32-lz4<":
-            data = self.readBSLZ4(data, info["shape"], info["type"], info["size"])
-        else:
-            raise IOError("encoding %s is not implemented" % info["encoding"])
-
-        data = np.array(data, ndmin=3)  # handle data, must be 3 dim
-        data = data.reshape(data.shape[1:3]).astype("int32")
-
-        print("Get raw data")
-
-        if info["type"] == "uint16":
-            bad_sel = data == 2 ** 16 - 1
-            data[bad_sel] = -1
-
-        return flex.int(data)
-
-    def readBSLZ4(self, data, shape, dtype, size):
-        """
-        Unpack bitshuffle-lz4 compressed frame and return np array image data
-        """
-        assert bitshuffle is not None, "No bitshuffle module"
-        blob = np.fromstring(data[12:], dtype=np.uint8)
-        # blocksize is big endian uint32 starting at byte 8, divided by element size
-        blocksize = np.ndarray(shape=(), dtype=">u4", buffer=data[8:12]) / 4
-        imgData = bitshuffle.decompress_lz4(
-            blob, shape[::-1], np.dtype(dtype), blocksize
-        )
-        return imgData
-
-    def readBS16LZ4(self, data, shape, dtype, size):
-        """
-        Unpack bitshuffle-lz4 compressed 16 bit frame and return np array image data
-        """
-        assert bitshuffle is not None, "No bitshuffle module"
-        blob = np.fromstring(data[12:], dtype=np.uint8)
-        return bitshuffle.decompress_lz4(blob, shape[::-1], np.dtype(dtype))
-
-    def readLZ4(self, data, shape, dtype, size):
-        """
-        Unpack lz4 compressed frame and return np array image data
-        """
-        assert lz4 is not None, "No LZ4 module"
-        dtype = np.dtype(dtype)
-        data = lz4.loads(data)
-
-        return np.reshape(np.fromstring(data, dtype=dtype), shape[::-1])
-
-    def get_vendortype(self):
-        return get_vendortype_eiger(self.get_detector())
