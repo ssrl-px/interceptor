@@ -27,6 +27,7 @@ class MainApp(wx.App):
 
 
 def entry_point():
+  import platform
   from matplotlib import __version__ as mpl_v
   from zmq import (
     zmq_version as zmq_v,
