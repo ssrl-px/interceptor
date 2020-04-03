@@ -20,13 +20,15 @@ setuptools.setup(
     },
     entry_points={
         "console_scripts": [
-            "intxr = interceptor.command_line.ui_run:entry_point",
             "connector = interceptor.command_line.connector_run:entry_point",
         ],
-        "libtbx.dispatcher.script": [
-            "intxr = intxr",
-            "connector = connector",
-        ],
+        "gui_scripts": [
+            "intxr = interceptor.command_line.ui_run:entry_point",
+        ]
+        # "libtbx.dispatcher.script": [
+        #     "intxr = intxr",
+        #     "connector = connector",
+        # ],
     },
     scripts=[],
     tests_require=[],
