@@ -25,6 +25,10 @@ setuptools.setup(
         "gui_scripts": [
             "intxr = interceptor.command_line.ui_run:entry_point",
         ]
+        "dxtbx.format": [
+            "FormatEigerStreamSSRL:FormatEigerStream = "
+            "interceptor.format.FormatEigerStreamSSRL:FormatEigerStreamSSRL",
+        ],
         # "libtbx.dispatcher.script": [
         #     "intxr = intxr",
         #     "connector = connector",
