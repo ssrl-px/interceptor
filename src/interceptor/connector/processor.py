@@ -20,6 +20,8 @@ from dials.algorithms.indexing.bravais_settings import \
 from dials.algorithms.spot_finding import per_image_analysis
 from dials.array_family import flex
 
+from iota.components.iota_image import ImageImporter
+from iota.components.iota_processing import IOTAImageProcessor
 from iota.components.iota_utils import Capturing
 
 # Custom PHIL for processing with DIALS stills processor
