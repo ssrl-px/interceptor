@@ -39,7 +39,7 @@ class FormatEigerStreamSSRL(FormatEigerStream.FormatEigerStream):
 
     @staticmethod
     def understand(image_file):
-        return bool(injected_data)
+        return True
 
     def _detector(self):
         ''' Create an Eiger detector profile (taken from FormatCBFMiniEiger) '''
@@ -99,7 +99,7 @@ class FormatEigerStreamSSRL(FormatEigerStream.FormatEigerStream):
             panel.set_identifier(identifier)
             panel.set_mu(mu)
 
-        return detector 
+        return detector
     def _beam(self):
         """
         Create the beam model

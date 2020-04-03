@@ -83,7 +83,7 @@ class Reader(ConnectorBase):
     self.initialize_process()
 
   def make_experiments(self, filename, data):
-    FormatStream.injected_data = data
+    FormatStream.inject_data(data)
     exp = ExperimentListFactory.from_filenames([filename])
     return exp
 
