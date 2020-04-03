@@ -9,8 +9,8 @@ Description : Interceptor tracking module (GUI elements)
 
 import os
 import wx
-from interceptor.gui import receiver as rcv
-from iota.components.gui import controls as ct
+import numpy as np
+
 from wxtbx import bitmaps
 
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
@@ -22,6 +22,9 @@ try:
 except ImportError:
     # Try backported to PY<37 `importlib_resources`.
     import importlib_resources as pkg_resources
+
+from iota.components.gui import controls as ct
+from interceptor.gui import receiver as rcv
 from interceptor.gui.resources import icons
 
 bl_info = {
