@@ -11,7 +11,7 @@ import time
 
 from interceptor.connector.processor import FastProcessor
 from interceptor.connector.stream import ZMQStream
-from dxtbx.format import FormatEigerStreamSSRL as FormatStream
+from interceptor.format import FormatEigerStreamSSRL as FormatStream
 from dxtbx.model.experiment_list import ExperimentListFactory
 
 
