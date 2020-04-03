@@ -13,7 +13,7 @@ import time
 from dxtbx.model.experiment_list import ExperimentListFactory
 
 from iota.components.iota_init import initialize_single_image
-from interceptor.connector.processor import FastProcessor
+from interceptor.connector.processor import FastProcessor, IOTAProcessor
 from interceptor.connector.stream import ZMQStream
 from interceptor.format import FormatEigerStreamSSRL as FormatStream
 
