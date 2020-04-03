@@ -38,14 +38,12 @@ class IconFinder(object):
       icon_fn = '{}.png'.format(icon_name)
 
     with (pkg_resources.path(icons, icon_fn)) as icon_path:
-    # icon_path = os.path.join(self.lib_path, icon_fn)
       bmp = self.load_png_as_bitmap(str(icon_path), scale)
     return bmp
 
   def load_png_as_bitmap(self, icon_path, scale=None):
     bmp = self.icon_cache.get(icon_path, None)
     if bmp is None:
-      print (str(icon_path))
       img = wx.Image(icon_path, type=wx.BITMAP_TYPE_PNG, index=-1)
       if scale is not None:
         assert isinstance(scale, tuple)
