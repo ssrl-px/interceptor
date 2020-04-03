@@ -29,6 +29,7 @@ try:
 except (ImportError, ValueError):
     bitshuffle = None
 
+injected_data = {}
 def inject_data(data):
   FormatEigerStream.injected_data = data
 
@@ -39,7 +40,7 @@ class FormatEigerStreamSSRL(FormatEigerStream.FormatEigerStream):
 
     @staticmethod
     def understand(image_file):
-        return True
+        return bool(injected_data)
 
     def _detector(self):
         ''' Create an Eiger detector profile (taken from FormatCBFMiniEiger) '''
