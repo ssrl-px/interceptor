@@ -27,12 +27,14 @@ class MainApp(wx.App):
 
 
 def entry_point():
-  import platform.python_version as py_v
   from matplotlib import __version__ as mpl_v
-  from connector import zmq_version as zmq_v, pyzmq_version as pyzmq_v
+  from zmq import (
+    zmq_version as zmq_v,
+    pyzmq_version as  pyzmq_v
+  )
 
   print('Versions:')
-  print('  Python      : ', py_v())
+  print('  Python      : ', platform.python_version())
   print('  wxPython    : ', wx.__version__)
   print('  MatPlotLib  : ', mpl_v)
   print('  ZMQ / PyZMQ : ', '{} / {}'.format(zmq_v(), pyzmq_v()))
