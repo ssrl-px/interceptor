@@ -1,17 +1,17 @@
 from __future__ import absolute_import, division, print_function
 
-import os
-
-from gui import receiver as rcv
-from iota.components.gui import controls as ct
-from wxtbx import bitmaps
-
 '''
 Author      : Lyubimov, A.Y.
 Created     : 03/31/2020
 Last Changed: 03/31/2020
 Description : Interceptor tracking module (GUI elements)
 '''
+
+import os
+from interceptor.gui import receiver as rcv
+from iota.components.gui import controls as ct
+from wxtbx import bitmaps
+
 bl_info = {
   'BL12-1': ('bl121proc00', '8121'),
   'BL12-2': ('pxproc24', '8122'),

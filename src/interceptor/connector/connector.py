@@ -9,8 +9,8 @@ Description : Streaming stills processor for live data analysis
 
 import time
 
-from connector.processor import FastProcessor
-from connector.stream import ZMQStream
+from interceptor.connector.processor import FastProcessor
+from interceptor.connector.stream import ZMQStream
 from dxtbx.format import FormatEigerStream as EigerStream
 from dxtbx.model.experiment_list import ExperimentListFactory
 
