@@ -33,7 +33,8 @@ output {
   refined_experiments_filename = None
   integrated_experiments_filename = None
   integrated_filename = None
-  profile_filename = None  
+  profile_filename = None 
+  integration_pickle = None
 }
 spotfinder {
   threshold {
@@ -64,7 +65,7 @@ integration {
   }
 }
 significance_filter {
-  enable = False
+  enable = True
   d_min = None
   n_bins = 20
   isigi_cutoff = 1.0
