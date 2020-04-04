@@ -48,7 +48,7 @@ indexing {
   }
   stills {
     indexer = Auto *stills sequences
-    method_list = fft3d fft1d real_space_grid_search
+    method_list = fft1d real_space_grid_search fft3d
   }
   basis_vector_combinations {
     max_combinations = 10
@@ -62,6 +62,12 @@ integration {
       }
     }
   }
+}
+significance_filter {
+  enable = False
+  d_min = None
+  n_bins = 20
+  isigi_cutoff = 1.0
 }
 '''
 
@@ -84,6 +90,17 @@ class IOTAProcessor(object):
     return img_object
 
   def process(self, experiments, info):
+    # Get (and print) information from experiments
+    try:
+      imgset = experiments.imagesets()[0]
+      beam = imgset.get_beam()
+      s0 = beam.get_s0()
+      detector = imgset.get_detector()[0]
+      info['beamXY'] = detector.get_beam_centre_px(s0)
+      info['dist'] = detector.get_distance()
+    except Exception as err:
+      info['img_error'] = 'Could not get beam center coords: {}' \
+                          ''.format(str(err))
     errors = []
     input_entry = [
       info['frame_idx'],
@@ -290,3 +307,10 @@ class FastProcessor(Processor):
 
   def run(self, experiments, info):
     return self.process(experiments, info)
+
+
+if __name__ == '__main__':
+  proc = FastProcessor()
+  proc.dials_phil.show()
+
+# -- end
