@@ -9,6 +9,8 @@ Description : Interceptor module
 
 import wx
 from interceptor.gui.tracker import TrackerWindow
+from interceptor import __version__ as intxr_version
+from iota import iota_version
 
 
 class MainApp(wx.App):
@@ -17,7 +19,7 @@ class MainApp(wx.App):
   def OnInit(self):
     intx_version = '0.000.00'
     self.frame = TrackerWindow(None, -1, title='INTERCEPTOR v.{}'
-                                               ''.format(intx_version))
+                                               ''.format(intxr_version))
     self.frame.SetMinSize(self.frame.GetEffectiveMinSize())
     self.frame.SetPosition((150, 150))
     self.frame.Show(True)
@@ -31,14 +33,19 @@ def entry_point():
   from matplotlib import __version__ as mpl_v
   from zmq import (
     zmq_version as zmq_v,
-    pyzmq_version as  pyzmq_v
+    pyzmq_version as pyzmq_v
   )
+  print ("~~~ Interceptor ~~~")
+  print ("Versions: ")
+  print ("  Interceptor : ", format(intxr_version))
+  print ("  IOTA        : ", format(iota_version))
 
-  print('Versions:')
+  print('Python Package Versions:')
   print('  Python      : ', platform.python_version())
   print('  wxPython    : ', wx.__version__)
   print('  MatPlotLib  : ', mpl_v)
-  print('  ZMQ / PyZMQ : ', '{} / {}'.format(zmq_v(), pyzmq_v()))
+  print('  ZMQ         : ', zmq_v())
+  print('  PyZMQ       : ', pyzmq_v())
 
   app = MainApp(0)
   app.MainLoop()
