@@ -21,6 +21,7 @@ setuptools.setup(
     entry_points={
         "console_scripts": [
             "connector = interceptor.command_line.connector_run:entry_point",
+            "connect_mpi = interceptor.command_line.connector_run:entry_point",
         ],
         "gui_scripts": [
             "intxr = interceptor.command_line.ui_run:entry_point",
