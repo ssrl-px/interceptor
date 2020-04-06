@@ -1,7 +1,68 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="4062e2d3-3d94-4dd0-96cb-ffd3a3879a3b" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/src/interceptor/command_line/connector_run_mpi.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/interceptor/connector/presets/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/interceptor/connector/presets/beamlines.cfg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/interceptor/connector/presets/experiments.cfg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/interceptor/connector/presets/ui.cfg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/interceptor.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/interceptor.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="ProjectId" id="1a0TcNVWhdpi25k22A8CYRe7fpG" />
+  <component name="ProjectViewState">
+    <option name="autoscrollToSource" value="true" />
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
   <component name="PropertiesComponent">
-    <property name="settings.editor.selected.configurable" value="Errors" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="PyConsoleOptionsProvider">
+    <option name="myPythonConsoleState">
+      <console-settings>
+        <option name="useSoftWraps" value="true" />
+      </console-settings>
+    </option>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="4062e2d3-3d94-4dd0-96cb-ffd3a3879a3b" name="Default Changelist" comment="" />
+      <created>1586208765981</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1586208765981</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="869" y="591" key="FileChooserDialogImpl" timestamp="1586208820720">
+      <screen x="0" y="23" width="2560" height="1417" />
+    </state>
+    <state x="869" y="591" key="FileChooserDialogImpl/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586208820720" />
+    <state x="789" y="370" key="SettingsEditor" timestamp="1586208832244">
+      <screen x="0" y="23" width="2560" height="1417" />
+    </state>
+    <state x="789" y="370" key="SettingsEditor/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586208832244" />
   </component>
 </project>
