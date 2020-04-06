@@ -20,6 +20,8 @@ bl121proc00 --port 8121 --last_stage spotfinding --verbose
 '''
 
 import argparse
+
+from interceptor import __version__ as intxr_version
 from interceptor.connector.connector import Reader, Collector
 
 
@@ -55,6 +57,11 @@ def parse_command_args():
                       help='Forward results to GUI')
   parser.add_argument('--iota', action='store_true', default=False,
                       help='Use IOTA Processor')
+  parser.add_argument(
+    "--version", action="version",
+    version="Interceptor v. {}".format(intxr_version),
+    help="Prints version info of IOTA",
+  )
 
   return parser
 
