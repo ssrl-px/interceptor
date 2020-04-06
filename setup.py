@@ -9,7 +9,7 @@ setuptools.setup(
     long_description_content_type="text/x-rst",
     author="Artem Y. Lyubimov",
     author_email="lyubimov@stanford.edu",
-    version="0.4.2",
+    version="0.4.3",
     url="https://github.com/alyubimov/interceptor",
     license="BSD",
     install_requires=[],
@@ -30,10 +30,6 @@ setuptools.setup(
             "FormatEigerStreamSSRL:FormatEigerStream = "
             "interceptor.format.FormatEigerStreamSSRL:FormatEigerStreamSSRL",
         ],
-        # "libtbx.dispatcher.script": [
-        #     "intxr = intxr",
-        #     "connector = connector",
-        # ],
     },
     scripts=[],
     tests_require=[],
