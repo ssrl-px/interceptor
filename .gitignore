@@ -83,6 +83,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# IDE stuff
+.idea/
+
 _*.nb
 *.fdb_latexmk
 *.gz
@@ -94,3 +97,4 @@ _*.nb
 .git-notifier*
 git-notifier.log
 .gitversion
+*.profraw
