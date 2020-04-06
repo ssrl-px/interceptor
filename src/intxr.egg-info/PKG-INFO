@@ -1,0 +1,15 @@
+Metadata-Version: 2.1
+Name: intxr
+Version: 0.4.6
+Summary: Interceptor: live analysis of serial X-ray data
+Home-page: https://github.com/alyubimov/interceptor
+Author: Artem Y. Lyubimov
+Author-email: lyubimov@stanford.edu
+License: BSD
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Operating System :: POSIX :: Linux
+Description-Content-Type: text/x-rst
