@@ -118,21 +118,36 @@ def entry_point():
   else:
     ui_options = ''
 
-  # assemble launch command
+  etc_args = ''
+  for arg, value in vars(args).items():
+    if arg not in [
+      'beamline', 'host', 'port',
+      'experiment', 'n_proc', 'last_stage',
+      'ui', 'uihost', 'uiport',
+    ]:
+      if value:
+        if value is True:
+          etc_args += '--{} '.format(arg)
+        else:
+          etc_args += '--{} {} '.format(arg, value)
+
+  # mpi command
   mpi_cmd = 'mpirun --map-by core --bind-to core -np {}'.format(n_proc)
-  cmd = '{0} connector {1} {2} {3}'.format(
+
+  # assemble full command
+  cmd = '{0} connector {1} {2} {3} {4}'.format(
     mpi_cmd,
     connect_options,
     run_options,
-    ui_options)
+    ui_options,
+    etc_args,
+  )
 
   # run mpi
   print (cmd)
   if not args.dry_run:
-    # easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
-    job = CustomRun(command=str(cmd), join_stdout_stderr=True)
-    job.run()
-    job.show_stdout()
+    easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
+
 
 # ---------------------------------------------------------------------------- #
 
