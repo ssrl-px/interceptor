@@ -119,7 +119,7 @@ def entry_point():
 
   # assemble launch command
   mpi_cmd = 'mpirun --map-by core --bind-to core -np {}'.format(n_proc)
-  cmd = 'connector {0} {1} {2} {3}'.format(
+  cmd = '{0} connector {1} {2} {3}'.format(
     mpi_cmd,
     connect_options,
     run_options,
