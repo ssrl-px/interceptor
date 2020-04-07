@@ -104,63 +104,50 @@ def entry_point():
   args, _ = parse_command_args().parse_known_args()
 
   # parse presets if appropriate
+  connector_commands = []
   if args.beamline:
     host, port = parse_presets('beamlines', args.beamline)
   else:
     host = args.host
     port = args.port
-  connect_options = '--host {} --port {}'.format(host, port)
+  connector_commands.extend(['--host', host, '--port', port])
   if args.experiment:
     n_proc, last_stage = parse_presets('experiments', args.experiment)
   else:
     n_proc = args.n_proc
     last_stage = args.last_stage
-  run_options = '--last_stage {}'.format(last_stage)
+  connector_commands.extend(['--last_stage', last_stage])
   if args.ui:
     uihost, uiport = parse_presets('ui', args.ui)
-    ui_options = '--uihost {} --uiport {} --send'.format(uihost, uiport)
-  else:
-    ui_options = ''
+    connector_commands.extend(['--uihost', uihost, '--uiport', uiport])
 
-  etc_args = ''
   for arg, value in vars(args).items():
-    if arg not in [
-      'beamline', 'host', 'port',
-      'experiment', 'n_proc', 'last_stage',
-      'ui', 'uihost', 'uiport',
-    ]:
+    if '--{}}'.format(arg) not in connector_commands:
       if value:
         if value is True:
-          etc_args += '--{} '.format(arg)
+          cmd_list = ['--{}'.format(arg)]
         else:
-          etc_args += '--{} {} '.format(arg, value)
+          cmd_list = ['--{}'.format(arg), value]
+        connector_commands.extend(cmd_list)
 
   # mpi command
-  mpi_cmd = 'mpirun --map-by core --bind-to core -np {}'.format(n_proc)
+  mpi_cmd = ['--map-by', 'core', '--bind-to', 'core' '-np', n_proc]
 
   # assemble full command
-  cmd = [
-    mpi_cmd,
+  command = [
+    'mpirun',
+    *mpi_cmd,
     'connector',
-    connect_options,
-    run_options,
-    ui_options,
-    etc_args,
+    *connector_commands,
   ]
 
   # run mpi
-  print (cmd)
+  print (' '.join(command))
   if not args.dry_run:
     # easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
     result = procrunner.run(
-      [
-        mpi_cmd,
-        'connector',
-        connect_options,
-        run_options,
-        ui_options,
-        etc_args,
-      ],
+      command,
+      debug=True,
       working_directory=os.curdir)
 
 
