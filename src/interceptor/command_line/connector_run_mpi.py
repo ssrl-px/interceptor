@@ -77,6 +77,9 @@ def parse_command_args():
     help='UI preset (e.g. "gui") will select to which port and host the output '
          'is sent'
   )
+  parser.add_argument(
+    '--dry_run', action='store_true', default=False,
+    help='Print the full command-line and exit without running')
 
   return parser
 
@@ -124,7 +127,8 @@ def entry_point():
 
   # run mpi
   print (cmd)
-  easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
+  if not args.dry_run:
+    easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
 
 # ---------------------------------------------------------------------------- #
 
