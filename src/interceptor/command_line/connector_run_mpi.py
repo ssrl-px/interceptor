@@ -7,11 +7,12 @@ Last Changed: 04/06/2020
 Description : Launches multiple ZMQ Connector instances via MPI
 """
 
+import os
 import argparse
 from libtbx import easy_run
+import procrunner
 
 from interceptor.connector import presets
-from iota.components.iota_threads import CustomRun
 
 try:
   import importlib.resources as pkg_resources
@@ -149,7 +150,8 @@ def entry_point():
   # run mpi
   print (cmd)
   if not args.dry_run:
-    easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
+    # easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
+    procrunner.run(cmd, working_directory=os.curdir)
 
 
 # ---------------------------------------------------------------------------- #
