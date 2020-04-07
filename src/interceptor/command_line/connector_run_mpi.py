@@ -122,7 +122,7 @@ def entry_point():
     connector_commands.extend(['--uihost', uihost, '--uiport', uiport])
 
   for arg, value in vars(args).items():
-    if '--{}}'.format(arg) not in connector_commands:
+    if '--{}'.format(arg) not in connector_commands:
       if value:
         if value is True:
           cmd_list = ['--{}'.format(arg)]
