@@ -123,7 +123,8 @@ def entry_point():
     ui_options)
 
   # run mpi
-  easy_run.fully_buffered(cmd)
+  print (cmd)
+  easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
 
 # ---------------------------------------------------------------------------- #
 

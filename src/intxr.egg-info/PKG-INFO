@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: intxr
-Version: 0.4.8
+Version: 0.4.9
 Summary: Interceptor: live analysis of serial X-ray data
 Home-page: https://github.com/alyubimov/interceptor
 Author: Artem Y. Lyubimov

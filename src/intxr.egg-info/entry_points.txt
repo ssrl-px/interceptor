@@ -1,5 +1,5 @@
 [console_scripts]
-connect_mpi = interceptor.command_line.connector_run:entry_point
+connect_mpi = interceptor.command_line.connector_run_mpi:entry_point
 connector = interceptor.command_line.connector_run:entry_point
 
 [dxtbx.format]
