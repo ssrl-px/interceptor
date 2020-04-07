@@ -104,7 +104,7 @@ def entry_point():
   args, _ = parse_command_args().parse_known_args()
 
   # parse presets if appropriate
-  connector_commands = []
+  connector_commands = ['connector']
   if args.beamline:
     host, port = parse_presets('beamlines', args.beamline)
   else:
@@ -131,15 +131,10 @@ def entry_point():
         connector_commands.extend(cmd_list)
 
   # mpi command
-  mpi_cmd = ['--map-by', 'core', '--bind-to', 'core' '-np', n_proc]
+  command = ['mpirun', '--map-by', 'core', '--bind-to', 'core' '-np', n_proc]
 
   # assemble full command
-  command = [
-    'mpirun',
-    *mpi_cmd,
-    'connector',
-    *connector_commands,
-  ]
+  command.extend(connector_commands)
 
   # run mpi
   print (' '.join(command))
