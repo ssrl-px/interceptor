@@ -62,6 +62,9 @@ def parse_command_args():
     '--verbose', action='store_true', default=False,
     help='Print output to stdout')
   parser.add_argument(
+    '--send', action='store_true', default=False,
+    help='Forward results to GUI')
+  parser.add_argument(
     '--iota', action='store_true', default=False,
     help='Use IOTA Processor')
   parser.add_argument(
