@@ -122,7 +122,8 @@ def entry_point():
     connector_commands.extend(['--uihost', uihost, '--uiport', uiport])
 
   for arg, value in vars(args).items():
-    if '--{}'.format(arg) not in connector_commands:
+    if '--{}'.format(arg) not in connector_commands and \
+            arg not in ['beamline', 'experiment', 'ui']:
       if value:
         if value is True:
           cmd_list = ['--{}'.format(arg)]
@@ -131,21 +132,18 @@ def entry_point():
         connector_commands.extend(cmd_list)
 
   # mpi command
-  command = ['mpirun', '--map-by', 'core ', '--bind-to', 'core ' '-np', n_proc]
-
-  # assemble full command
-  command.extend(connector_commands)
-  command = list(map(str, command))
+  command = list(map(
+    str, ['mpirun',
+          '--map-by', 'core',
+          '--bind-to', 'core',
+          '--np', n_proc,
+          *connector_commands]
+  ))
 
   # run mpi
   print (' '.join(command))
   if not args.dry_run:
-    # easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
-    result = procrunner.run(
-      command,
-      debug=True,
-      working_directory=os.curdir)
-
+    result = procrunner.run(command, working_directory=os.curdir)
 
 # ---------------------------------------------------------------------------- #
 
