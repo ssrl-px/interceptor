@@ -11,6 +11,7 @@ import argparse
 from libtbx import easy_run
 
 from interceptor.connector import presets
+from iota.components.iota_threads import CustomRun
 
 try:
   import importlib.resources as pkg_resources
@@ -128,7 +129,10 @@ def entry_point():
   # run mpi
   print (cmd)
   if not args.dry_run:
-    easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
+    # easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
+    job = CustomRun(command=str(cmd), join_stdout_stderr=True)
+    job.run()
+    job.show_stdout()
 
 # ---------------------------------------------------------------------------- #
 
