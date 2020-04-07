@@ -1,2 +1,1 @@
-
-{"modules_required_for_use": ["xfel", "zmq"]}
+{"modules_required_for_use": ["xfel"]}
