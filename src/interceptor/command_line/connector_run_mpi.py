@@ -139,19 +139,29 @@ def entry_point():
   mpi_cmd = 'mpirun --map-by core --bind-to core -np {}'.format(n_proc)
 
   # assemble full command
-  cmd = '{0} connector {1} {2} {3} {4}'.format(
+  cmd = [
     mpi_cmd,
+    'connector',
     connect_options,
     run_options,
     ui_options,
     etc_args,
-  )
+  ]
 
   # run mpi
   print (cmd)
   if not args.dry_run:
     # easy_run.fully_buffered(cmd, join_stdout_stderr=True).show_stdout()
-    procrunner.run(cmd, working_directory=os.curdir)
+    result = procrunner.run(
+      [
+        mpi_cmd,
+        'connector',
+        connect_options,
+        run_options,
+        ui_options,
+        etc_args,
+      ],
+      working_directory=os.curdir)
 
 
 # ---------------------------------------------------------------------------- #
