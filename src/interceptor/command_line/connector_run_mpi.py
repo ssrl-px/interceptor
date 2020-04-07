@@ -135,6 +135,7 @@ def entry_point():
 
   # assemble full command
   command.extend(connector_commands)
+  command = list(map(str, command))
 
   # run mpi
   print (' '.join(command))
