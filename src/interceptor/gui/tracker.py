@@ -14,7 +14,6 @@ import wx
 from wx.lib import buttons as btn
 from wxtbx import bitmaps
 
-
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.widgets import SpanSelector
@@ -80,8 +79,8 @@ class ZoomCtrl(ct.CtrlBase):
 
     # Zoom checkbox
     zoom_bmp = icf.find_icon('tango_zoom')
-    self.btn_zoom = btn.GenBitmapToggleButton(
-      self, bitmap=zoom_bmp, size=(24, 24))
+    self.btn_zoom = ct.GradButton(
+      self, bmp=zoom_bmp, size=(24, 24))
     self.spn_zoom = ct.SpinCtrl(
       self,
       checkbox=False,
@@ -91,8 +90,8 @@ class ZoomCtrl(ct.CtrlBase):
       ctrl_step=10)
 
     back_bmp = icf.find_icon('tango_back')
-    self.btn_back = btn.GenBitmapButton(
-      self, bitmap=back_bmp, size=(24, 24))
+    self.btn_back = ct.GradButton(
+      self, bmp=back_bmp, size=(24, 24))
     self.spn_wide = ct.SpinCtrl(
       self,
       checkbox=False,
@@ -101,11 +100,11 @@ class ZoomCtrl(ct.CtrlBase):
       ctrl_min=10,
       ctrl_step=10)
     frwd_bmp = icf.find_icon('tango_forward')
-    self.btn_frwd = btn.GenBitmapButton(
-      self, bitmap=frwd_bmp, size=(24, 24))
+    self.btn_frwd = ct.GradButton(
+      self, bmp=frwd_bmp, size=(24, 24))
     xmax_bmp = icf.find_icon('tango_max')
-    self.btn_xmax = btn.GenBitmapButton(
-      self, bitmap=xmax_bmp, size=(24, 24))
+    self.btn_xmax = ct.GradButton(
+      self, bmp=xmax_bmp, size=(24, 24))
 
     main_sizer.Add(self.btn_zoom, wx.LEFT, border=5)
     main_sizer.Add(self.spn_zoom, wx.LEFT, border=5)
