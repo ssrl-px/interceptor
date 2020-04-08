@@ -7,7 +7,6 @@ Last Changed: 03/31/2020
 Description : Interceptor tracking module (GUI elements)
 '''
 
-import os
 import numpy as np
 
 import wx
@@ -26,94 +25,111 @@ except ImportError:
 
 from iota.components.gui import controls as ct
 from interceptor.gui import receiver as rcv
-from interceptor.gui.resources import icons
+from interceptor.resources.gui_resources import icons
+from interceptor import import_resources
 
-bl_info = {
-  'BL12-1': ('bl121proc00', '8121'),
-  'BL12-2': ('pxproc24', '8122'),
-  'MFX': ('localhost', '8001')
-}
+resources = import_resources('config')
+presets = resources['connector']
+
+itx_EVT_ZOOM = wx.NewEventType()
+EVT_ZOOM = wx.PyEventBinder(itx_EVT_ZOOM, 1)
+
+class EvtChartZoom(wx.PyCommandEvent):
+  """ Send event when any zoom event happens  """
+  def __init__(self, etype, eid):
+    wx.PyCommandEvent.__init__(self, etype, eid)
 
 
-class IconFinder(object):
-  def __init__(self, lib_path):
-    self.icon_cache = {}
 
-  def find_icon(self, icon_name, size=None, scale=None):
-    if size:
-      icon_fn = '{0}_{1}x{1}.png'.format(icon_name, size)
-    else:
-      icon_fn = '{}.png'.format(icon_name)
+icon_cache = {}
 
-    with (pkg_resources.path(icons, icon_fn)) as icon_path:
-      bmp = self.load_png_as_bitmap(str(icon_path), scale)
-    return bmp
+def find_icon(icon_name, size=None, scale=None):
+  if size:
+    icon_fn = '{0}_{1}x{1}.png'.format(icon_name, size)
+  else:
+    icon_fn = '{}.png'.format(icon_name)
 
-  def load_png_as_bitmap(self, icon_path, scale=None):
-    bmp = self.icon_cache.get(icon_path, None)
+  with (pkg_resources.path(icons, icon_fn)) as icon_path:
+    icon_path = str(icon_path)
+    bmp = icon_cache.get(icon_path, None)
     if bmp is None:
       img = wx.Image(icon_path, type=wx.BITMAP_TYPE_PNG, index=-1)
       if scale is not None:
         assert isinstance(scale, tuple)
         w, h = scale
-        img = img.Scale(w, h, wx.IMAGE_QUALITY_NORMAL)
+        img = img.Scale(w, h)
       bmp = img.ConvertToBitmap()
-      self.icon_cache[icon_path] = bmp
-    return bmp
-
-
-icf = IconFinder(lib_path=os.curdir)
+      icon_cache[icon_path] = bmp
+  return bmp
 
 
 class ZoomCtrl(ct.CtrlBase):
-  def __init__(self, parent):
+  def __init__(self, parent, main_window):
     self.parent = parent
+    self.main_window = main_window
     super(ZoomCtrl, self).__init__(parent)
 
     # Attributes
-    self.zoom = False
-    self.xmin = 0
-    self.width = 0
+    self.x_min = 0
+    self.x_max = 0
+    self.plot_zoom = True
+    self.max_lock = False
 
-    main_sizer = wx.BoxSizer()
+    main_sizer = wx.GridBagSizer(5, 5)
 
     # Zoom checkbox
-    zoom_bmp = icf.find_icon('tango_zoom')
-    self.btn_zoom = ct.GradButton(
-      self, bmp=zoom_bmp, size=(24, 24))
+    btn_size = (32, 32)
+    zoom_bmp = find_icon('tango_zoom')
+    self.btn_zoom = btn.GenBitmapToggleButton(
+      self, bitmap=zoom_bmp, size=btn_size)
     self.spn_zoom = ct.SpinCtrl(
       self,
-      checkbox=False,
       ctrl_size=(100, -1),
       ctrl_value=100,
       ctrl_min=10,
       ctrl_step=10)
+    back_bmp = find_icon('tango_back')
+    self.btn_back = btn.GenBitmapButton(
+      self, bitmap=back_bmp, size=btn_size)
+    frwd_bmp = find_icon('tango_forward')
+    self.btn_frwd = btn.GenBitmapButton(
+      self, bitmap=frwd_bmp, size=btn_size)
+    xmax_bmp = find_icon('tango_max')
+    self.btn_xmax = btn.GenBitmapButton(
+      self, bitmap=xmax_bmp, size=btn_size)
 
-    back_bmp = icf.find_icon('tango_back')
-    self.btn_back = ct.GradButton(
-      self, bmp=back_bmp, size=(24, 24))
-    self.spn_wide = ct.SpinCtrl(
-      self,
-      checkbox=False,
-      ctrl_size=(100, -1),
-      ctrl_value=100,
-      ctrl_min=10,
-      ctrl_step=10)
-    frwd_bmp = icf.find_icon('tango_forward')
-    self.btn_frwd = ct.GradButton(
-      self, bmp=frwd_bmp, size=(24, 24))
-    xmax_bmp = icf.find_icon('tango_max')
-    self.btn_xmax = ct.GradButton(
-      self, bmp=xmax_bmp, size=(24, 24))
-
-    main_sizer.Add(self.btn_zoom, wx.LEFT, border=5)
-    main_sizer.Add(self.spn_zoom, wx.LEFT, border=5)
-    main_sizer.Add(self.btn_back, wx.LEFT, border=5)
-    main_sizer.Add(self.spn_wide, wx.LEFT, border=5)
-    main_sizer.Add(self.btn_frwd, wx.LEFT, border=5)
-    main_sizer.Add(self.btn_xmax, wx.LEFT, border=5)
+    main_sizer.Add(self.btn_zoom, pos=(0, 0))
+    main_sizer.Add(self.spn_zoom, flag=wx.ALIGN_CENTER_VERTICAL, pos=(0, 1))
+    main_sizer.Add(self.btn_back, pos=(0, 2))
+    main_sizer.Add(self.btn_frwd, pos=(0, 3))
+    main_sizer.Add(self.btn_xmax, pos=(0, 4))
 
     self.SetSizer(main_sizer)
+
+    # button bindings
+    self.Bind(wx.EVT_TOGGLEBUTTON, self.onZoom, self.btn_zoom)
+    self.Bind(wx.EVT_BUTTON, self.onBack, self.btn_back)
+    self.Bind(wx.EVT_BUTTON, self.onFrwd, self.btn_frwd)
+    self.Bind(wx.EVT_BUTTON, self.onXmax, self.btn_xmax)
+
+  def onZoom(self, e):
+    self.plot_zoom = self.btn_zoom.GetValue()
+    self.chart_range = self.spn_zoom.ctr.GetValue()
+    if not self.plot_zoom:
+      self.max_lock = False
+
+  def onBack(self, e):
+    e.skip()
+
+  def onFrwd(self, e):
+    e.skip()
+
+  def onXmax(self, e):
+    e.skip()
+
+  def signal(self):
+    evt = EvtChartZoom(itx_EVT_ZOOM, -1)
+    wx.PostEvent(self.main_window, evt)
 
 class TrackStatusBar(wx.StatusBar):
   def __init__(self, parent):
@@ -124,7 +140,7 @@ class TrackStatusBar(wx.StatusBar):
     self.Bind(wx.EVT_SIZE, self.OnSize)
     self.Bind(wx.EVT_IDLE, self.OnIdle)
 
-    bmp = icf.find_icon('disconnected')
+    bmp = find_icon('disconnected')
     self.conn_icon = wx.StaticBitmap(self, bitmap=bmp)
 
     icon_width = self.conn_icon.GetSize()[0] + 10
@@ -142,9 +158,9 @@ class TrackStatusBar(wx.StatusBar):
 
   def SetStatusBitmap(self, connected=False):
     if connected:
-      bmp = icf.find_icon('connected')
+      bmp = find_icon('connected')
     else:
-      bmp = icf.find_icon('disconnected')
+      bmp = find_icon('disconnected')
     self.conn_icon.SetBitmap(bmp)
     self.position_icon()
 
@@ -161,6 +177,7 @@ class TrackChart(wx.Panel):
     wx.Panel.__init__(self, parent, size=(100, 100))
     self.main_window = main_window
     self.parent = parent
+    self.zoom_ctrl = self.main_window.tracker_panel.chart_zoom
 
     self.main_box = wx.StaticBox(self, label='Spotfinding Chart')
     self.main_fig_sizer = wx.StaticBoxSizer(self.main_box, wx.VERTICAL)
@@ -228,6 +245,9 @@ class TrackChart(wx.Panel):
       self.max_lock = True
     else:
       self.max_lock = False
+
+    # update zoom control
+
 
     self.draw_plot()
 
@@ -525,7 +545,7 @@ class TrackerPanel(wx.Panel):
     self.min_bragg = ct.SpinCtrl(self.graph_panel, label='Min. Bragg spots',
                                  ctrl_size=(100, -1), ctrl_value=10)
 
-    self.chart_zoom = ZoomCtrl(self.graph_panel)
+    self.chart_zoom = ZoomCtrl(self.graph_panel, main_window)
 
     self.graph_sizer.Add(self.chart, flag=wx.EXPAND, pos=(0, 0), span=(1, 3))
     self.graph_sizer.Add(self.min_bragg, flag=wx.ALIGN_LEFT, pos=(1, 0))
@@ -571,9 +591,6 @@ class TrackerWindow(wx.Frame):
     self.SetStatusBar(self.sb)
     self.sb.SetStatusText('DISCONNECTED', i=1)
 
-    # bmp_net = icf.find_icon('disconnected')
-    # self.bmp_network = wx.StaticBitmap(self.sb, bitmap=bmp_net)
-
     # Setup main sizer
     self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -585,7 +602,7 @@ class TrackerWindow(wx.Frame):
      # Beamline selection
     txt_bl = wx.StaticText(self.toolbar, label='Beamline: ')
     txt_spc = wx.StaticText(self.toolbar, label='   ')
-    choices = list(bl_info.keys())
+    choices = presets['beamlines'].original_keys
     chc_bl = wx.Choice(self.toolbar, choices=choices)
     self.toolbar.AddControl(txt_bl)
     self.tb_chc_bl = self.toolbar.AddControl(chc_bl)
@@ -604,7 +621,7 @@ class TrackerWindow(wx.Frame):
     self.tb_ctrl_port = self.toolbar.AddControl(control=ctr_port)
 
     # Connect toggle
-    sock_off_bmp = icf.find_icon('network', size=32)
+    sock_off_bmp = find_icon('network', size=32)
     self.tb_btn_conn = self.toolbar.AddTool(
       toolId=wx.ID_ANY,
       label='Connect',
@@ -647,35 +664,27 @@ class TrackerWindow(wx.Frame):
   def set_bl_choice(self):
     ctrl = self.tb_chc_bl.GetControl()
     selstring = ctrl.GetString(ctrl.GetSelection())
-    host, port = bl_info[selstring]
+    host, _ = presets['beamlines'].extract(selstring)
+    _, port = presets['ui'].extract('gui')
     self.tb_ctrl_host.GetControl().SetValue(host)
     self.tb_ctrl_port.GetControl().SetValue(port)
-
-  def onZoom(self, e):
-    if self.tb_btn_zoom.IsToggled():
-      self.toolbar.ToggleTool(self.tb_btn_view.GetId(), False)
-
-  def onList(self, e):
-    if self.tb_btn_view.IsToggled():
-      self.toolbar.ToggleTool(self.tb_btn_zoom.GetId(), False)
-
-  def onStop(self, e):
-    self.terminated = True
-    self.toolbar.EnableTool(self.tb_btn_conn.GetId(), False)
-    self.toolbar.EnableTool(self.tb_btn_stop.GetId(), False)
-    self.stop_run()
 
   def onMinBragg(self, e):
     self.tracker_panel.chart.draw_bragg_line()
 
   def onChartRange(self, e):
-    if self.tracker_panel.chart_window.toggle.GetValue():
-      chart_range = self.tracker_panel.chart_window.ctr.GetValue()
-      self.tracker_panel.chart.plot_zoom = True
-      self.tracker_panel.chart.chart_range = chart_range
-      self.tracker_panel.chart.max_lock = True
-    else:
-      self.tracker_panel.chart.plot_zoom = False
+    zoom_ctrl = self.tracker_panel.chart_zoom
+    self.tracker_panel.chart.plot_zoom = zoom_ctrl.zoom
+    self.tracker_panel.chart.chart_range = zoom_ctrl.chart_range
+    self.tracker_panel.chart.max_lock = zoom_ctrl.max_lock
+
+    # if self.tracker_panel.chart_zoom.plot_zoom:
+    #   chart_range = self.tracker_panel.chart_zoom.spn_zoom.ctr.GetValue()
+    #   self.tracker_panel.chart.plot_zoom = True
+    #   self.tracker_panel.chart.chart_range = chart_range
+    #   self.tracker_panel.chart.max_lock = True
+    # else:
+    #   self.tracker_panel.chart.plot_zoom = False
     self.tracker_panel.chart.draw_plot()
 
   def onConnect(self, e):
@@ -695,10 +704,7 @@ class TrackerWindow(wx.Frame):
     self.tracker_panel = self.track_nb.GetCurrentPage()
     self.Bind(wx.EVT_SPINCTRL, self.onMinBragg,
               self.tracker_panel.min_bragg.ctr)
-    self.Bind(wx.EVT_SPINCTRL, self.onChartRange,
-              self.tracker_panel.chart_window.ctr)
-    self.Bind(wx.EVT_CHECKBOX, self.onChartRange,
-              self.tracker_panel.chart_window.toggle)
+    self.Bind(EVT_ZOOM, self.onChartRange)
 
   def create_new_run(self, run_no=None):
     if run_no is None:
@@ -718,10 +724,10 @@ class TrackerWindow(wx.Frame):
 
     self.Bind(wx.EVT_SPINCTRL, self.onMinBragg,
               self.tracker_panel.min_bragg.ctr)
-    self.Bind(wx.EVT_SPINCTRL, self.onChartRange,
-              self.tracker_panel.chart_window.ctr)
-    self.Bind(wx.EVT_CHECKBOX, self.onChartRange,
-              self.tracker_panel.chart_window.toggle)
+    # self.Bind(wx.EVT_SPINCTRL, self.onChartRange,
+    #           self.tracker_panel.chart_window.ctr)
+    # self.Bind(wx.EVT_CHECKBOX, self.onChartRange,
+    #           self.tracker_panel.chart_window.toggle)
 
   def create_collector(self):
     self.ui_timer = wx.Timer(self)
@@ -794,3 +800,25 @@ class TrackerWindow(wx.Frame):
 
     # TODO: CLEANUP ON EXIT!
     self.stop_run()
+
+
+class MainTESTApp(wx.App):
+  ''' App for the main GUI window  '''
+
+  def OnInit(self):
+    from interceptor import __version__ as intxr_version
+    self.frame = TrackerWindow(None, -1, title='INTERCEPTOR TEST v.{}'
+                                               ''.format(intxr_version))
+    self.frame.SetMinSize(self.frame.GetEffectiveMinSize())
+    self.frame.SetPosition((150, 150))
+    self.frame.Show(True)
+
+    self.frame.create_new_run()
+
+    self.frame.Layout()
+    self.SetTopWindow(self.frame)
+    return True
+
+if __name__ == '__main__':
+  app = MainTESTApp(0)
+  app.MainLoop()

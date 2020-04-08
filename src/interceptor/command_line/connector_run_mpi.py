@@ -9,16 +9,11 @@ Description : Launches multiple ZMQ Connector instances via MPI
 
 import os
 import argparse
-from libtbx import easy_run
 import procrunner
 
-from interceptor.connector import presets
-
-try:
-  import importlib.resources as pkg_resources
-except ImportError:
-  # Try backported to PY<37 `importlib_resources`.
-  import importlib_resources as pkg_resources
+from interceptor import import_resources
+resources = import_resources(module='resources', package='config')
+presets = resources['connector']
 
 def parse_command_args():
   """ Parses command line arguments (only options for now) """
@@ -89,36 +84,25 @@ def parse_command_args():
   return parser
 
 
-def parse_presets(filename, value):
-  preset_string = pkg_resources.read_text(presets, filename + '.cfg')
-  preset = None
-  contents = None
-  for ln in preset_string.splitlines():
-    item, info = [i.strip().replace('-', '').lower() for i in ln.split('=')]
-    if item == value.strip().replace('-', '').lower():
-      settings = info.split(':')
-      break
-  return settings
-
 def entry_point():
   args, _ = parse_command_args().parse_known_args()
 
   # parse presets if appropriate
   connector_commands = ['connector']
   if args.beamline:
-    host, port = parse_presets('beamlines', args.beamline)
+    host, port = presets['beamlines'].extract[args.beamline]
   else:
     host = args.host
     port = args.port
   connector_commands.extend(['--host', host, '--port', port])
   if args.experiment:
-    n_proc, last_stage = parse_presets('experiments', args.experiment)
+    n_proc, last_stage = presets['beamlines'].extract[args.experiment]
   else:
     n_proc = args.n_proc
     last_stage = args.last_stage
   connector_commands.extend(['--last_stage', last_stage])
   if args.ui:
-    uihost, uiport = parse_presets('ui', args.ui)
+    uihost, uiport = presets['beamlines'].extract[args.ui]
     connector_commands.extend(['--uihost', uihost, '--uiport', uiport])
 
   for arg, value in vars(args).items():
