@@ -80,7 +80,8 @@ class ZoomCtrl(ct.CtrlBase):
 
     # Zoom checkbox
     zoom_bmp = icf.find_icon('tango_zoom')
-    self.btn_zoom = btn.GenBitmapToggleButton(self, bitmap=zoom_bmp)
+    self.btn_zoom = btn.GenBitmapToggleButton(
+      self, bitmap=zoom_bmp, size=(24, 24))
     self.spn_zoom = ct.SpinCtrl(
       self,
       checkbox=False,
@@ -90,7 +91,8 @@ class ZoomCtrl(ct.CtrlBase):
       ctrl_step=10)
 
     back_bmp = icf.find_icon('tango_back')
-    self.btn_back = btn.GenBitmapButton(self, bitmap=back_bmp)
+    self.btn_back = btn.GenBitmapButton(
+      self, bitmap=back_bmp, size=(24, 24))
     self.spn_wide = ct.SpinCtrl(
       self,
       checkbox=False,
@@ -99,9 +101,11 @@ class ZoomCtrl(ct.CtrlBase):
       ctrl_min=10,
       ctrl_step=10)
     frwd_bmp = icf.find_icon('tango_forward')
-    self.btn_frwd = btn.GenBitmapButton(self, bitmap=frwd_bmp)
+    self.btn_frwd = btn.GenBitmapButton(
+      self, bitmap=frwd_bmp, size=(24, 24))
     xmax_bmp = icf.find_icon('tango_max')
-    self.btn_xmax = btn.GenBitmapButton(self, bitmap=xmax_bmp)
+    self.btn_xmax = btn.GenBitmapButton(
+      self, bitmap=xmax_bmp, size=(24, 24))
 
     main_sizer.Add(self.btn_zoom, wx.LEFT, border=5)
     main_sizer.Add(self.spn_zoom, wx.LEFT, border=5)
