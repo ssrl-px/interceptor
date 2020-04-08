@@ -1,26 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="4062e2d3-3d94-4dd0-96cb-ffd3a3879a3b" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango_back.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango_forward.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango_max.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango_zoom.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/command_line/connector_run_mpi.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/command_line/connector_run_mpi.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/connector/presets/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/resources/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/connector/presets/beamlines.cfg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/connector/presets/experiments.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/resources/config/connector.cfg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/connector/presets/ui.cfg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/gui/resources/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/resources/config/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/gui/resources/icons/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/gui/resources/icons/connected.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/connected.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/gui/resources/icons/disconnected.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/disconnected.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/gui/resources/icons/network_32x32.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/network_32x32.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" afterDir="false" />
-    </list>
+    <list default="true" id="4062e2d3-3d94-4dd0-96cb-ffd3a3879a3b" name="Default Changelist" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

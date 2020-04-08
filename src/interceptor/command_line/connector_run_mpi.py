@@ -90,7 +90,7 @@ def entry_point():
   # parse presets if appropriate
   connector_commands = ['connector']
   if args.beamline:
-    host, port = presets['beamlines'].extract[args.beamline]
+    host, port = presets['beamlines'].extract(args.beamline)
   else:
     host = args.host
     port = args.port
