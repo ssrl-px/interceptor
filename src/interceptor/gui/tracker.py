@@ -177,7 +177,6 @@ class TrackChart(wx.Panel):
     wx.Panel.__init__(self, parent, size=(100, 100))
     self.main_window = main_window
     self.parent = parent
-    self.zoom_ctrl = self.main_window.tracker_panel.chart_zoom
 
     self.main_box = wx.StaticBox(self, label='Spotfinding Chart')
     self.main_fig_sizer = wx.StaticBoxSizer(self.main_box, wx.VERTICAL)
