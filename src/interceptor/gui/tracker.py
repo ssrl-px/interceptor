@@ -8,10 +8,12 @@ Description : Interceptor tracking module (GUI elements)
 '''
 
 import os
-import wx
 import numpy as np
 
+import wx
+from wx.lib import buttons as btn
 from wxtbx import bitmaps
+
 
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -63,6 +65,52 @@ class IconFinder(object):
 
 icf = IconFinder(lib_path=os.curdir)
 
+
+class ZoomCtrl(ct.CtrlBase):
+  def __init__(self, parent):
+    self.parent = parent
+    super(ZoomCtrl, self).__init__(parent)
+
+    # Attributes
+    self.zoom = False
+    self.xmin = 0
+    self.width = 0
+
+    main_sizer = wx.BoxSizer()
+
+    # Zoom checkbox
+    zoom_bmp = icf.find_icon('tango_zoom')
+    self.btn_zoom = btn.GenBitmapToggleButton(self, bitmap=zoom_bmp)
+    self.spn_zoom = ct.SpinCtrl(
+      self,
+      checkbox=False,
+      ctrl_size=(100, -1),
+      ctrl_value=100,
+      ctrl_min=10,
+      ctrl_step=10)
+
+    back_bmp = icf.find_icon('tango_back')
+    self.btn_back = btn.GenBitmapButton(self, bitmap=back_bmp)
+    self.spn_wide = ct.SpinCtrl(
+      self,
+      checkbox=False,
+      ctrl_size=(100, -1),
+      ctrl_value=100,
+      ctrl_min=10,
+      ctrl_step=10)
+    frwd_bmp = icf.find_icon('tango_forward')
+    self.btn_frwd = btn.GenBitmapButton(self, bitmap=frwd_bmp)
+    xmax_bmp = icf.find_icon('tango_max')
+    self.btn_xmax = btn.GenBitmapButton(self, bitmap=xmax_bmp)
+
+    main_sizer.Add(self.btn_zoom, wx.LEFT, border=5)
+    main_sizer.Add(self.spn_zoom, wx.LEFT, border=5)
+    main_sizer.Add(self.btn_back, wx.LEFT, border=5)
+    main_sizer.Add(self.spn_wide, wx.LEFT, border=5)
+    main_sizer.Add(self.btn_frwd, wx.LEFT, border=5)
+    main_sizer.Add(self.btn_xmax, wx.LEFT, border=5)
+
+    self.SetSizer(main_sizer)
 
 class TrackStatusBar(wx.StatusBar):
   def __init__(self, parent):
@@ -473,14 +521,12 @@ class TrackerPanel(wx.Panel):
     self.chart = TrackChart(self.graph_panel, main_window=self.main_window)
     self.min_bragg = ct.SpinCtrl(self.graph_panel, label='Min. Bragg spots',
                                  ctrl_size=(100, -1), ctrl_value=10)
-    self.chart_window = ct.SpinCtrl(self.graph_panel, checkbox=True,
-                                    checkbox_label='Finite chart window',
-                                    ctrl_size=(100, -1), ctrl_value=100,
-                                    ctrl_min=10, ctrl_step=10)
+
+    self.chart_zoom = ZoomCtrl(self.graph_panel)
 
     self.graph_sizer.Add(self.chart, flag=wx.EXPAND, pos=(0, 0), span=(1, 3))
     self.graph_sizer.Add(self.min_bragg, flag=wx.ALIGN_LEFT, pos=(1, 0))
-    self.graph_sizer.Add(self.chart_window, flag=wx.ALIGN_CENTER, pos=(1, 1))
+    self.graph_sizer.Add(self.chart_zoom, flag=wx.ALIGN_CENTER, pos=(1, 1))
 
     self.graph_sizer.AddGrowableRow(0)
     self.graph_sizer.AddGrowableCol(1)
