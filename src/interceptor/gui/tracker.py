@@ -107,11 +107,11 @@ class ZoomCtrl(ct.CtrlBase):
     self.SetSizer(main_sizer)
 
     # button bindings
-    self.Bind(wx.EVT_TOGGLEBUTTON, self.onZoom, self.btn_zoom)
-    self.Bind(wx.EVT_SPINCTRL, self.onZoom, self.spn_zoom.ctr)
-    self.Bind(wx.EVT_BUTTON, self.onBack, self.btn_back)
-    self.Bind(wx.EVT_BUTTON, self.onFrwd, self.btn_frwd)
-    self.Bind(wx.EVT_BUTTON, self.onXmax, self.btn_xmax)
+    self.btn_zoom.Bind(wx.EVT_TOGGLEBUTTON, self.onZoom,)
+    self.spn_zoom.Bind(wx.EVT_SPINCTRL, self.onZoom)
+    self.btn_zoom.Bind(wx.EVT_BUTTON, self.onBack)
+    self.btn_frwd.Bind(wx.EVT_BUTTON, self.onFrwd)
+    self.btn_xmax.Bind(wx.EVT_BUTTON, self.onXmax)
 
   def onZoom(self, e):
     self.plot_zoom = self.btn_zoom.GetValue()
@@ -135,6 +135,7 @@ class ZoomCtrl(ct.CtrlBase):
       self.spn_zoom.ctr.SetValue(value=chart_range)
 
   def signal(self):
+    print ('should be signaling!')
     evt = EvtChartZoom(itx_EVT_ZOOM, -1)
     wx.PostEvent(self.main_window, evt)
 
@@ -683,17 +684,9 @@ class TrackerWindow(wx.Frame):
 
   def onChartRange(self, e):
     zoom_ctrl = self.tracker_panel.chart_zoom
-    self.tracker_panel.chart.plot_zoom = zoom_ctrl.zoom
+    self.tracker_panel.chart.plot_zoom = zoom_ctrl.plot_zoom
     self.tracker_panel.chart.chart_range = zoom_ctrl.chart_range
     self.tracker_panel.chart.max_lock = zoom_ctrl.max_lock
-
-    # if self.tracker_panel.chart_zoom.plot_zoom:
-    #   chart_range = self.tracker_panel.chart_zoom.spn_zoom.ctr.GetValue()
-    #   self.tracker_panel.chart.plot_zoom = True
-    #   self.tracker_panel.chart.chart_range = chart_range
-    #   self.tracker_panel.chart.max_lock = True
-    # else:
-    #   self.tracker_panel.chart.plot_zoom = False
     self.tracker_panel.chart.draw_plot()
 
   def onConnect(self, e):
