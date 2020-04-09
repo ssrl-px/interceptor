@@ -2,6 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="4062e2d3-3d94-4dd0-96cb-ffd3a3879a3b" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.bumpversion.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.bumpversion.cfg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interceptor/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -20,6 +23,11 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProjectId" id="1a0TcNVWhdpi25k22A8CYRe7fpG" />
