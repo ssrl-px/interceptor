@@ -147,13 +147,24 @@ class ZoomCtrl(ct.CtrlBase):
     if chart_range:
       self.spn_zoom.ctr.SetValue(value=chart_range)
 
-  def set_control(self):
+  def set_control(self,
+                  plot_zoom=None,
+                  max_lock=None,
+                  x_min=None,
+                  x_max=None,
+                  chart_range=None):
+    args_dict = locals().copy()
+    for arg, value in args_dict.items():
+      if arg is not 'self' and value is not None:
+        setattr(self, arg, value)
+
     # change control settings depending on situation
     self.btn_lock.SetValue(self.max_lock)
     self.btn_zoom.SetValue(self.plot_zoom)
     self.btn_lock.Enable(enable=self.plot_zoom)
     self.btn_back.Enable(enable=self.plot_zoom)
     self.spn_zoom.Enable(enable=self.plot_zoom)
+    self.spn_zoom.ctr.SetValue(self.chart_range)
     if self.plot_zoom:
       self.btn_frwd.Enable(enable=not self.max_lock)
     else:
@@ -521,11 +532,13 @@ class TrackChart(wx.Panel):
       )
 
       # Update Zoom control
-      self.zoom_ctrl.x_min = self.x_min
-      self.zoom_ctrl.x_max = self.x_max
-      self.zoom_ctrl.max_lock = self.max_lock
-      self.zoom_ctrl.plot_zoom = self.plot_zoom
-      self.zoom_ctrl.chart_range = self.chart_range
+      self.zoom_ctrl.set_control(
+        x_min=self.x_min,
+        x_max=self.x_min,
+        max_lock=self.max_lock,
+        plot_zoom=self.plot_zoom,
+        chart_range=self.chart_range,
+      )
 
     # Redraw canvas
     self._update_canvas(self.track_canvas)
