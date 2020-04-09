@@ -1,4 +1,4 @@
-__version__ = '0.9.15'
+__version__ = '0.9.16'
 
 try:
   import importlib.resources as pkg_resources

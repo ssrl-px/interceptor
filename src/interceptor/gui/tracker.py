@@ -127,13 +127,14 @@ class ZoomCtrl(ct.CtrlBase):
     self.set_and_signal()
 
   def onBack(self, e):
-    self.x_max -= self.chart_range
-    self.x_min -= self.chart_range
+    self.max_lock = False
+    self.x_max -= self.chart_range / 10
+    self.x_min -= self.chart_range / 10
     self.set_and_signal()
 
   def onFrwd(self, e):
-    self.x_max += self.chart_range
-    self.x_min += self.chart_range
+    self.x_max += self.chart_range / 10
+    self.x_min += self.chart_range / 10
     self.set_and_signal()
 
   def onLock(self, e):
@@ -339,9 +340,9 @@ class TrackChart(wx.Panel):
     self.track_figure.patch.set_visible(False)
     self.track_axes.patch.set_visible(False)
 
-    self.xdata = []
-    self.ydata = []
-    self.idata = []
+    self.xdata = np.array([]).astype(np.double)
+    self.ydata = np.array([]).astype(np.double)
+    self.idata = np.array([]).astype(np.double)
     self.rdata = []
     self.x_min = 0
     self.x_max = 1
