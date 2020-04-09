@@ -130,11 +130,19 @@ class ZoomCtrl(ct.CtrlBase):
     self.max_lock = False
     self.x_max -= self.chart_range / 10
     self.x_min -= self.chart_range / 10
+
+    print ('onBack debug: x_max = {}', 'x_min = {}'
+           .format(self.x_max, self.x_min))
+
     self.set_and_signal()
 
   def onFrwd(self, e):
     self.x_max += self.chart_range / 10
     self.x_min += self.chart_range / 10
+
+    print ('onBack debug: x_max = {}', 'x_min = {}'
+           .format(self.x_max, self.x_min))
+
     self.set_and_signal()
 
   def onLock(self, e):
@@ -158,6 +166,9 @@ class ZoomCtrl(ct.CtrlBase):
     for arg, value in args_dict.items():
       if arg is not 'self' and value is not None:
         setattr(self, arg, value)
+
+    print ('set debug: x_max = {}', 'x_min = {}'
+           .format(self.x_max, self.x_min))
 
     # change control settings depending on situation
     self.btn_lock.SetValue(self.max_lock)
