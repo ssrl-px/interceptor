@@ -30,17 +30,20 @@ from interceptor import import_resources
 
 resources = import_resources('connector')
 presets = resources['connector']
+icon_cache = {}
 
 itx_EVT_ZOOM = wx.NewEventType()
 EVT_ZOOM = wx.PyEventBinder(itx_EVT_ZOOM, 1)
 
+
 class EvtChartZoom(wx.PyCommandEvent):
   """ Send event when any zoom event happens  """
-  def __init__(self, etype, eid):
+  def __init__(self, etype, eid, info):
     wx.PyCommandEvent.__init__(self, etype, eid)
+    self.info = info
 
-
-icon_cache = {}
+  def GetInfo(self, e):
+    return self.info
 
 
 def find_icon(icon_name, size=None, scale=None):
@@ -96,14 +99,14 @@ class ZoomCtrl(ct.CtrlBase):
     self.btn_frwd = wx.BitmapButton(
       self, bitmap=frwd_bmp, size=btn_size)
     xmax_bmp = find_icon('tango_max')
-    self.btn_xmax = wx.BitmapToggleButton(
+    self.btn_lock = wx.BitmapToggleButton(
       self, label=xmax_bmp, size=btn_size)
 
     main_sizer.Add(self.btn_zoom, pos=(0, 0))
     main_sizer.Add(self.spn_zoom, flag=wx.ALIGN_CENTER_VERTICAL, pos=(0, 1))
     main_sizer.Add(self.btn_back, pos=(0, 2))
     main_sizer.Add(self.btn_frwd, pos=(0, 3))
-    main_sizer.Add(self.btn_xmax, pos=(0, 4))
+    main_sizer.Add(self.btn_lock, pos=(0, 4))
 
     self.SetSizer(main_sizer)
 
@@ -112,44 +115,52 @@ class ZoomCtrl(ct.CtrlBase):
     self.spn_zoom.Bind(wx.EVT_SPINCTRL, self.onZoom)
     self.btn_zoom.Bind(wx.EVT_BUTTON, self.onBack)
     self.btn_frwd.Bind(wx.EVT_BUTTON, self.onFrwd)
-    self.btn_xmax.Bind(wx.EVT_TOGGLEBUTTON, self.onXmax)
+    self.btn_lock.Bind(wx.EVT_TOGGLEBUTTON, self.onXmax)
 
   def onZoom(self, e):
     self.plot_zoom = self.btn_zoom.GetValue()
     self.chart_range = self.spn_zoom.ctr.GetValue()
     self.max_lock = self.plot_zoom
-    self.btn_xmax.SetValue(self.max_lock)
-    self.signal()
+    self.btn_lock.SetValue(self.plot_zoom)
+    self.set_and_signal()
 
   def onBack(self, e):
-    step = self.main_window.tracker_panel.chart.plot_sb.GetThumbSize()
-    self.x_max -= step
-    self.x_min -= step
-    self.signal()
+    self.x_max -= self.chart_range
+    self.x_min -= self.chart_range
+    self.set_and_signal()
 
   def onFrwd(self, e):
     if not self.max_lock:
-      step = self.main_window.tracker_panel.chart.plot_sb.GetThumbSize()
-      self.x_max += step
-      self.x_min += step
-      self.signal()
+      self.x_max += self.chart_range
+      self.x_min += self.chart_range
+      self.set_and_signal()
 
   def onXmax(self, e):
-    self.max_lock = self.btn_xmax.GetValue()
-    if not self.max_lock:
-      # step one back since maximum x_max re-engages max lock
-      self.x_max -= 1
-      self.x_min -=1
-    self.signal()
+    self.max_lock = self.btn_lock.GetValue()
+    self.set_and_signal()
 
   def set_zoom(self, plot_zoom=False, chart_range=None):
     self.btn_zoom.SetValue(state=plot_zoom)
     if chart_range:
       self.spn_zoom.ctr.SetValue(value=chart_range)
 
-  def signal(self):
-    evt = EvtChartZoom(itx_EVT_ZOOM, -1)
-    wx.PostEvent(self.main_window, evt)
+  def set_control(self):
+    # change control settings depending on situation
+    self.btn_lock.Enable(enable=self.plot_zoom)
+    self.btn_back.Enable(enable=self.plot_zoom)
+    self.spn_zoom.Enable(enable=self.plot_zoom)
+    self.btn_frwd.Enable(enable=(not self.max_lock or self.plot_zoom))
+
+  def set_and_signal(self):
+    self.set_control()
+    info = {
+      'x_min'       : self.x_min,
+      'x_max'       : self.x_max,
+      'max_lock'    : self.max_lock,
+      'chart_range' : self.chart_range,
+    }
+    evt = EvtChartZoom(itx_EVT_ZOOM, -1, info)
+    wx.PostEvent(self.parent.chart, evt)
 
 class TrackStatusBar(wx.StatusBar):
   def __init__(self, parent):
@@ -220,6 +231,9 @@ class TrackChart(wx.Panel):
     # Scroll bar binding
     self.Bind(wx.EVT_SCROLL, self.onScroll, self.plot_sb)
 
+    # Zoom control binding
+    self.Bind(itx_EVT_ZOOM, self.onZoomControl, self.parent.chart_zoom)
+
     # Plot bindings
     self.track_figure.canvas.mpl_connect('button_press_event', self.onPress)
 
@@ -251,6 +265,28 @@ class TrackChart(wx.Panel):
       )
       self.plot_sb.Show()
       self.draw_plot()
+
+  def onZoomControl(self, e):
+    print ('zoomin!')
+    self.x_min, self.x_max, self.max_lock, self.chart_range, self.plot_zoom = \
+      e.GetInfo()
+    try:
+      assert self.chart_range == int(self.x_max - self.x_min)
+    except AssertionError:
+      self.x_min = int(self.x_max - self.chart_range)
+
+    if self.plot_zoom is False:
+      self.plot_sb.Hide()
+    else:
+      self.plot_sb.Show()
+      sb_center = self.x_min + self.chart_range / 2
+      self.plot_sb.SetScrollbar(
+        position=sb_center,
+        thumbSize=self.chart_range,
+        range=np.max(self.xdata),
+        pageSize=self.chart_range
+      )
+    self.draw_plot()
 
   def onScroll(self, e):
     sb_center = self.plot_sb.GetThumbPosition()
@@ -732,7 +768,7 @@ class TrackerWindow(wx.Frame):
     self.tracker_panel = self.track_nb.GetCurrentPage()
     self.Bind(wx.EVT_SPINCTRL, self.onMinBragg,
               self.tracker_panel.min_bragg.ctr)
-    self.Bind(EVT_ZOOM, self.onChartRange)
+    # self.Bind(EVT_ZOOM, self.onChartRange)
 
   def create_new_run(self, run_no=None):
     if run_no is None:
@@ -752,7 +788,7 @@ class TrackerWindow(wx.Frame):
 
     self.Bind(wx.EVT_SPINCTRL, self.onMinBragg,
               self.tracker_panel.min_bragg.ctr)
-    self.Bind(EVT_ZOOM, self.onChartRange)
+    # self.Bind(EVT_ZOOM, self.onChartRange)
 
   def create_collector(self):
     self.ui_timer = wx.Timer(self)

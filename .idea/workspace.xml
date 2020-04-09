@@ -3,12 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="4062e2d3-3d94-4dd0-96cb-ffd3a3879a3b" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/command_line/connector_run_mpi.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/command_line/connector_run_mpi.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/resources/config/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/resources/connector/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/resources/config/connector.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/resources/connector/connector.cfg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/intxr.egg-info/PKG-INFO" beforeDir="false" afterPath="$PROJECT_DIR$/src/intxr.egg-info/PKG-INFO" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
