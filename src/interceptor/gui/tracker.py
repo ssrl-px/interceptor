@@ -42,7 +42,7 @@ class EvtChartZoom(wx.PyCommandEvent):
     wx.PyCommandEvent.__init__(self, etype, eid)
     self.info = info
 
-  def GetInfo(self, e):
+  def GetInfo(self):
     return self.info
 
 
@@ -70,13 +70,14 @@ class ZoomCtrl(ct.CtrlBase):
   def __init__(self, parent, main_window):
     self.parent = parent
     self.main_window = main_window
+    self.tracker_panel = self.parent.GetParent()
     super(ZoomCtrl, self).__init__(parent)
 
     # Attributes
     self.x_min = 0
     self.x_max = 0
     self.chart_range = 100
-    self.plot_zoom = True
+    self.plot_zoom = False
     self.max_lock = False
 
     main_sizer = wx.GridBagSizer(5, 5)
@@ -109,11 +110,12 @@ class ZoomCtrl(ct.CtrlBase):
     main_sizer.Add(self.btn_lock, pos=(0, 4))
 
     self.SetSizer(main_sizer)
+    self.set_control()
 
     # button bindings
     self.btn_zoom.Bind(wx.EVT_TOGGLEBUTTON, self.onZoom,)
     self.spn_zoom.Bind(wx.EVT_SPINCTRL, self.onZoom)
-    self.btn_zoom.Bind(wx.EVT_BUTTON, self.onBack)
+    self.btn_back.Bind(wx.EVT_BUTTON, self.onBack)
     self.btn_frwd.Bind(wx.EVT_BUTTON, self.onFrwd)
     self.btn_lock.Bind(wx.EVT_TOGGLEBUTTON, self.onXmax)
 
@@ -130,10 +132,9 @@ class ZoomCtrl(ct.CtrlBase):
     self.set_and_signal()
 
   def onFrwd(self, e):
-    if not self.max_lock:
-      self.x_max += self.chart_range
-      self.x_min += self.chart_range
-      self.set_and_signal()
+    self.x_max += self.chart_range
+    self.x_min += self.chart_range
+    self.set_and_signal()
 
   def onXmax(self, e):
     self.max_lock = self.btn_lock.GetValue()
@@ -146,10 +147,15 @@ class ZoomCtrl(ct.CtrlBase):
 
   def set_control(self):
     # change control settings depending on situation
+    self.btn_lock.SetValue(self.max_lock)
+    self.btn_zoom.SetValue(self.plot_zoom)
     self.btn_lock.Enable(enable=self.plot_zoom)
     self.btn_back.Enable(enable=self.plot_zoom)
     self.spn_zoom.Enable(enable=self.plot_zoom)
-    self.btn_frwd.Enable(enable=(not self.max_lock or self.plot_zoom))
+    if self.plot_zoom:
+      self.btn_frwd.Enable(enable=not self.max_lock)
+    else:
+      self.btn_frwd.Enable(False)
 
   def set_and_signal(self):
     self.set_control()
@@ -158,9 +164,10 @@ class ZoomCtrl(ct.CtrlBase):
       'x_max'       : self.x_max,
       'max_lock'    : self.max_lock,
       'chart_range' : self.chart_range,
+      'plot_zoom'   : self.plot_zoom,
     }
     evt = EvtChartZoom(itx_EVT_ZOOM, -1, info)
-    wx.PostEvent(self.parent.chart, evt)
+    wx.PostEvent(self.tracker_panel.chart, evt)
 
 class TrackStatusBar(wx.StatusBar):
   def __init__(self, parent):
@@ -208,7 +215,6 @@ class TrackChart(wx.Panel):
     wx.Panel.__init__(self, parent, size=(100, 100))
     self.main_window = main_window
     self.parent = parent
-    self.tracker_panel = parent.GetParent()
 
     self.main_box = wx.StaticBox(self, label='Spotfinding Chart')
     self.main_fig_sizer = wx.StaticBoxSizer(self.main_box, wx.VERTICAL)
@@ -233,7 +239,7 @@ class TrackChart(wx.Panel):
     self.Bind(wx.EVT_SCROLL, self.onScroll, self.plot_sb)
 
     # Zoom control binding
-    self.Bind(itx_EVT_ZOOM, self.onZoomControl, self.tracker_panel.chart_zoom)
+    self.Bind(EVT_ZOOM, self.onZoomControl)
 
     # Plot bindings
     self.track_figure.canvas.mpl_connect('button_press_event', self.onPress)
@@ -269,8 +275,9 @@ class TrackChart(wx.Panel):
 
   def onZoomControl(self, e):
     print ('zoomin!')
-    self.x_min, self.x_max, self.max_lock, self.chart_range, self.plot_zoom = \
-      e.GetInfo()
+    zoom_dict = e.GetInfo()
+    for key, value in zoom_dict.items():
+      setattr(self, key, value)
     try:
       assert self.chart_range == int(self.x_max - self.x_min)
     except AssertionError:
@@ -281,10 +288,11 @@ class TrackChart(wx.Panel):
     else:
       self.plot_sb.Show()
       sb_center = self.x_min + self.chart_range / 2
+      range = np.max(self.xdata) if self.xdata else self.chart_range
       self.plot_sb.SetScrollbar(
         position=sb_center,
         thumbSize=self.chart_range,
-        range=np.max(self.xdata),
+        range=range,
         pageSize=self.chart_range
       )
     self.draw_plot()
@@ -608,11 +616,10 @@ class TrackerPanel(wx.Panel):
     self.graph_panel = wx.Panel(self)
     self.graph_sizer = wx.GridBagSizer(5, 5)
 
+    self.chart_zoom = ZoomCtrl(self.graph_panel, main_window)
     self.chart = TrackChart(self.graph_panel, main_window=self.main_window)
     self.min_bragg = ct.SpinCtrl(self.graph_panel, label='Min. Bragg spots',
                                  ctrl_size=(100, -1), ctrl_value=10)
-
-    self.chart_zoom = ZoomCtrl(self.graph_panel, main_window)
 
     self.graph_sizer.Add(self.chart, flag=wx.EXPAND, pos=(0, 0), span=(1, 3))
     self.graph_sizer.Add(self.min_bragg, flag=wx.ALIGN_LEFT, pos=(1, 0))
