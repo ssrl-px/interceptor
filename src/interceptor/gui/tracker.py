@@ -117,15 +117,16 @@ class ZoomCtrl(ct.CtrlBase):
     self.chart_range = self.spn_zoom.ctr.GetValue()
     if not self.plot_zoom:
       self.max_lock = False
+    self.signal()
 
   def onBack(self, e):
-    e.skip()
+    self.signal()
 
   def onFrwd(self, e):
-    e.skip()
+    self.signal()
 
   def onXmax(self, e):
-    e.skip()
+    self.signal()
 
   def signal(self):
     evt = EvtChartZoom(itx_EVT_ZOOM, -1)
