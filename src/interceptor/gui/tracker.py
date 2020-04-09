@@ -118,7 +118,7 @@ class ZoomCtrl(ct.CtrlBase):
     self.plot_zoom = self.btn_zoom.GetValue()
     self.chart_range = self.spn_zoom.ctr.GetValue()
     if not self.plot_zoom:
-      self.max_lock = False
+      self.max_lock = True
     self.signal()
 
   def onBack(self, e):
@@ -131,15 +131,11 @@ class ZoomCtrl(ct.CtrlBase):
     self.signal()
 
   def set_zoom(self, plot_zoom=False, chart_range=None):
-    self.btn_zoom.SetToggle(flag=plot_zoom)
+    self.btn_zoom.SetValue(state=plot_zoom)
     if chart_range:
       self.spn_zoom.ctr.SetValue(value=chart_range)
 
   def signal(self):
-    print ('should be signaling!',
-           self.plot_zoom,
-           self.max_lock,
-           self.chart_range)
     evt = EvtChartZoom(itx_EVT_ZOOM, -1)
     wx.PostEvent(self.main_window, evt)
 
