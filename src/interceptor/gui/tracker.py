@@ -288,7 +288,7 @@ class TrackChart(wx.Panel):
     else:
       self.plot_sb.Show()
       sb_center = self.x_min + self.chart_range / 2
-      range = np.max(self.xdata) if self.xdata else self.chart_range
+      range = np.max(self.xdata) if self.xdata.size else self.chart_range
       self.plot_sb.SetScrollbar(
         position=sb_center,
         thumbSize=self.chart_range,
