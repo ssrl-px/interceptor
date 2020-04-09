@@ -96,8 +96,8 @@ class ZoomCtrl(ct.CtrlBase):
     self.btn_frwd = wx.BitmapButton(
       self, bitmap=frwd_bmp, size=btn_size)
     xmax_bmp = find_icon('tango_max')
-    self.btn_xmax = wx.BitmapButton(
-      self, bitmap=xmax_bmp, size=btn_size)
+    self.btn_xmax = wx.BitmapToggleButton(
+      self, label=xmax_bmp, size=btn_size)
 
     main_sizer.Add(self.btn_zoom, pos=(0, 0))
     main_sizer.Add(self.spn_zoom, flag=wx.ALIGN_CENTER_VERTICAL, pos=(0, 1))
@@ -112,22 +112,29 @@ class ZoomCtrl(ct.CtrlBase):
     self.spn_zoom.Bind(wx.EVT_SPINCTRL, self.onZoom)
     self.btn_zoom.Bind(wx.EVT_BUTTON, self.onBack)
     self.btn_frwd.Bind(wx.EVT_BUTTON, self.onFrwd)
-    self.btn_xmax.Bind(wx.EVT_BUTTON, self.onXmax)
+    self.btn_xmax.Bind(wx.EVT_TOGGLEBUTTON, self.onXmax)
 
   def onZoom(self, e):
     self.plot_zoom = self.btn_zoom.GetValue()
     self.chart_range = self.spn_zoom.ctr.GetValue()
-    if not self.plot_zoom:
-      self.max_lock = True
+    self.max_lock = self.plot_zoom
+    self.btn_xmax.SetValue(self.max_lock)
     self.signal()
 
   def onBack(self, e):
+    step = self.main_window.tracker_panel.chart.plot_sb.GetThumbSize()
+    self.x_max -= step
+    self.x_min -= step
     self.signal()
 
   def onFrwd(self, e):
+    step = self.main_window.tracker_panel.chart.plot_sb.GetThumbSize()
+    self.x_max += step
+    self.x_min += step
     self.signal()
 
   def onXmax(self, e):
+    self.max_lock = self.btn_xmax.GetValue()
     self.signal()
 
   def set_zoom(self, plot_zoom=False, chart_range=None):
@@ -377,6 +384,14 @@ class TrackChart(wx.Panel):
         if self.max_lock:
           self.x_max = np.max(nref_x)
           self.x_min = self.x_max - self.chart_range
+        else:
+          if self.x_max >=np.max(nref_x):
+            self.x_max = np.max(nref_x)
+            self.max_lock = True
+          else:
+            self.max_lock = False
+          if self.xmin <= 0:
+            self.x_min = 0
       else:
         self.x_min = 0
         self.x_max = np.max(nref_x) + 1
@@ -451,7 +466,6 @@ class TrackChart(wx.Panel):
     self.track_axes.draw_artist(self.rej_plot)
 
     # Adjust scrollbar
-    print ('debug: self.chart_range = ', self.chart_range)
     if self.chart_range:
       rng = np.max(self.xdata)
       pos = rng if self.max_lock else self.plot_sb.GetThumbPosition()
@@ -688,6 +702,12 @@ class TrackerWindow(wx.Frame):
     self.tracker_panel.chart.plot_zoom = zoom_ctrl.plot_zoom
     self.tracker_panel.chart.chart_range = zoom_ctrl.chart_range
     self.tracker_panel.chart.max_lock = zoom_ctrl.max_lock
+    self.tracker_panel.chart.x_min = zoom_ctrl.x_min
+    self.tracker_panel.chart.x_max = zoom_ctrl.x_max
+    if zoom_ctrl.plot_zoom:
+      self.tracker_panel.chart.plot_sb.Show()
+    else:
+      self.tracker_panel.chart.plot_sb.Hide()
     self.tracker_panel.chart.draw_plot()
 
   def onConnect(self, e):
