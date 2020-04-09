@@ -208,6 +208,7 @@ class TrackChart(wx.Panel):
     wx.Panel.__init__(self, parent, size=(100, 100))
     self.main_window = main_window
     self.parent = parent
+    self.tracker_panel = parent.GetParent()
 
     self.main_box = wx.StaticBox(self, label='Spotfinding Chart')
     self.main_fig_sizer = wx.StaticBoxSizer(self.main_box, wx.VERTICAL)
@@ -232,7 +233,7 @@ class TrackChart(wx.Panel):
     self.Bind(wx.EVT_SCROLL, self.onScroll, self.plot_sb)
 
     # Zoom control binding
-    self.Bind(itx_EVT_ZOOM, self.onZoomControl, self.parent.chart_zoom)
+    self.Bind(itx_EVT_ZOOM, self.onZoomControl, self.tracker_panel.chart_zoom)
 
     # Plot bindings
     self.track_figure.canvas.mpl_connect('button_press_event', self.onPress)
