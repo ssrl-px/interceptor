@@ -372,11 +372,6 @@ class TrackChart(wx.Panel):
     nref_xy = list(zip(nref_x, nref_y))
 
     # identify plotted data boundaries
-    print ('debug: zoom => ',
-           self.plot_zoom,
-           self.max_lock,
-           self.chart_range)
-
     if nref_x != [] and nref_y != []:
       if self.plot_zoom:
         if self.max_lock:
@@ -456,6 +451,7 @@ class TrackChart(wx.Panel):
     self.track_axes.draw_artist(self.rej_plot)
 
     # Adjust scrollbar
+    print ('debug: self.chart_range = ', self.chart_range)
     if self.chart_range:
       rng = np.max(self.xdata)
       pos = rng if self.max_lock else self.plot_sb.GetThumbPosition()
