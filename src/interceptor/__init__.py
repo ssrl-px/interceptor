@@ -1,4 +1,4 @@
-__version__ = '0.9.8'
+__version__ = '0.9.9'
 
 try:
   import importlib.resources as pkg_resources
@@ -65,7 +65,7 @@ def read_package_file(package, filename):
 
 def import_resources(package, module='resources', resource=None):
   if not package:
-    from interceptor.resources import config as package
+    from interceptor.resources import connector as package
   else:
     if not module.startswith('interceptor'):
       module = 'interceptor.{}'.format(module)
@@ -87,3 +87,5 @@ def import_resources(package, module='resources', resource=None):
   if resource and resource in resources:
       return resources[resource]
   return resources
+
+# -- end

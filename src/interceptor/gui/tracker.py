@@ -28,7 +28,7 @@ from interceptor.gui import receiver as rcv
 from interceptor.resources.gui_resources import icons
 from interceptor import import_resources
 
-resources = import_resources('config')
+resources = import_resources('connector')
 presets = resources['connector']
 
 itx_EVT_ZOOM = wx.NewEventType()
@@ -40,8 +40,8 @@ class EvtChartZoom(wx.PyCommandEvent):
     wx.PyCommandEvent.__init__(self, etype, eid)
 
 
-
 icon_cache = {}
+
 
 def find_icon(icon_name, size=None, scale=None):
   if size:
@@ -128,13 +128,18 @@ class ZoomCtrl(ct.CtrlBase):
     self.signal()
 
   def onFrwd(self, e):
-    step = self.main_window.tracker_panel.chart.plot_sb.GetThumbSize()
-    self.x_max += step
-    self.x_min += step
-    self.signal()
+    if not self.max_lock:
+      step = self.main_window.tracker_panel.chart.plot_sb.GetThumbSize()
+      self.x_max += step
+      self.x_min += step
+      self.signal()
 
   def onXmax(self, e):
     self.max_lock = self.btn_xmax.GetValue()
+    if not self.max_lock:
+      # step one back since maximum x_max re-engages max lock
+      self.x_max -= 1
+      self.x_min -=1
     self.signal()
 
   def set_zoom(self, plot_zoom=False, chart_range=None):

@@ -12,7 +12,7 @@ import argparse
 import procrunner
 
 from interceptor import import_resources
-resources = import_resources(module='resources', package='config')
+resources = import_resources(module='resources', package='connector')
 presets = resources['connector']
 
 
