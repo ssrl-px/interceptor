@@ -72,6 +72,7 @@ class ZoomCtrl(ct.CtrlBase):
     # Attributes
     self.x_min = 0
     self.x_max = 0
+    self.chart_range = 100
     self.plot_zoom = True
     self.max_lock = False
 
@@ -80,8 +81,8 @@ class ZoomCtrl(ct.CtrlBase):
     # Zoom checkbox
     btn_size = (32, 32)
     zoom_bmp = find_icon('tango_zoom')
-    self.btn_zoom = btn.GenBitmapToggleButton(
-      self, bitmap=zoom_bmp, size=btn_size)
+    self.btn_zoom = wx.BitmapToggleButton(
+      self, label=zoom_bmp, size=btn_size)
     self.spn_zoom = ct.SpinCtrl(
       self,
       ctrl_size=(100, -1),
@@ -89,13 +90,13 @@ class ZoomCtrl(ct.CtrlBase):
       ctrl_min=10,
       ctrl_step=10)
     back_bmp = find_icon('tango_back')
-    self.btn_back = btn.GenBitmapButton(
+    self.btn_back = wx.BitmapButton(
       self, bitmap=back_bmp, size=btn_size)
     frwd_bmp = find_icon('tango_forward')
-    self.btn_frwd = btn.GenBitmapButton(
+    self.btn_frwd = wx.BitmapButton(
       self, bitmap=frwd_bmp, size=btn_size)
     xmax_bmp = find_icon('tango_max')
-    self.btn_xmax = btn.GenBitmapButton(
+    self.btn_xmax = wx.BitmapButton(
       self, bitmap=xmax_bmp, size=btn_size)
 
     main_sizer.Add(self.btn_zoom, pos=(0, 0))
@@ -135,7 +136,10 @@ class ZoomCtrl(ct.CtrlBase):
       self.spn_zoom.ctr.SetValue(value=chart_range)
 
   def signal(self):
-    print ('should be signaling!')
+    print ('should be signaling!',
+           self.plot_zoom,
+           self.max_lock,
+           self.chart_range)
     evt = EvtChartZoom(itx_EVT_ZOOM, -1)
     wx.PostEvent(self.main_window, evt)
 
@@ -372,6 +376,11 @@ class TrackChart(wx.Panel):
     nref_xy = list(zip(nref_x, nref_y))
 
     # identify plotted data boundaries
+    print ('debug: zoom => ',
+           self.plot_zoom,
+           self.max_lock,
+           self.chart_range)
+
     if nref_x != [] and nref_y != []:
       if self.plot_zoom:
         if self.max_lock:
