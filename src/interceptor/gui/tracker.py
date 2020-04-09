@@ -75,7 +75,7 @@ class ZoomCtrl(ct.CtrlBase):
 
     # Attributes
     self.x_min = 0
-    self.x_max = 0
+    self.x_max = 100
     self.chart_range = 100
     self.plot_zoom = False
     self.max_lock = False
@@ -131,7 +131,7 @@ class ZoomCtrl(ct.CtrlBase):
     self.x_max -= self.chart_range / 10
     self.x_min -= self.chart_range / 10
 
-    print ('onBack debug: x_max = {}', 'x_min = {}'
+    print ('onBack debug: x_max = {}, x_min = {}'
            .format(self.x_max, self.x_min))
 
     self.set_and_signal()
@@ -140,7 +140,7 @@ class ZoomCtrl(ct.CtrlBase):
     self.x_max += self.chart_range / 10
     self.x_min += self.chart_range / 10
 
-    print ('onBack debug: x_max = {}', 'x_min = {}'
+    print ('onForward debug: x_max = {}, x_min = {}'
            .format(self.x_max, self.x_min))
 
     self.set_and_signal()
@@ -167,7 +167,10 @@ class ZoomCtrl(ct.CtrlBase):
       if arg is not 'self' and value is not None:
         setattr(self, arg, value)
 
-    print ('set debug: x_max = {}', 'x_min = {}'
+    for arg in ['x_min', 'x_max', 'max_lock', 'plot_zoom', 'chart_range']:
+      print ('self.{} = {}'.format(arg, getattr(self, arg)))
+
+    print ('set_control debug: x_max = {}, x_min = {}'
            .format(self.x_max, self.x_min))
 
     # change control settings depending on situation
