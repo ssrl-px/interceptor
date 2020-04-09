@@ -138,6 +138,8 @@ class ZoomCtrl(ct.CtrlBase):
 
   def onLock(self, e):
     self.max_lock = self.btn_lock.GetValue()
+    self.x_min -= 1
+    self.x_max -= 1
     self.set_and_signal()
 
   def set_zoom(self, plot_zoom=False, chart_range=None):
