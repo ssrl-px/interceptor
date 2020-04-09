@@ -108,6 +108,7 @@ class ZoomCtrl(ct.CtrlBase):
 
     # button bindings
     self.Bind(wx.EVT_TOGGLEBUTTON, self.onZoom, self.btn_zoom)
+    self.Bind(wx.EVT_SPINCTRL, self.onZoom, self.spn_zoom.ctr)
     self.Bind(wx.EVT_BUTTON, self.onBack, self.btn_back)
     self.Bind(wx.EVT_BUTTON, self.onFrwd, self.btn_frwd)
     self.Bind(wx.EVT_BUTTON, self.onXmax, self.btn_xmax)
@@ -127,6 +128,11 @@ class ZoomCtrl(ct.CtrlBase):
 
   def onXmax(self, e):
     self.signal()
+
+  def set_zoom(self, plot_zoom=False, chart_range=None):
+    self.btn_zoom.SetToggle(flag=plot_zoom)
+    if chart_range:
+      self.spn_zoom.ctr.SetValue(value=chart_range)
 
   def signal(self):
     evt = EvtChartZoom(itx_EVT_ZOOM, -1)
@@ -216,9 +222,12 @@ class TrackChart(wx.Panel):
       self.plot_zoom = True
       self.max_lock = False
       self.chart_range = int(self.x_max - self.x_min)
-      self.main_window.tracker_panel.chart_window.toggle.SetValue(True)
-      self.main_window.tracker_panel.chart_window.toggle_boxes(flag_on=True)
-      self.main_window.tracker_panel.chart_window.ctr.SetValue(self.chart_range)
+      # self.main_window.tracker_panel.chart_window.toggle.SetValue(True)
+      # self.main_window.tracker_panel.chart_window.toggle_boxes(flag_on=True)
+      self.main_window.tracker_panel.chart_zoom.set_zoom(
+        plot_zoom=True,
+        chart_range=self.chart_range
+      )
       sb_center = self.x_min + self.chart_range / 2
 
       self.plot_sb.SetScrollbar(
@@ -724,10 +733,7 @@ class TrackerWindow(wx.Frame):
 
     self.Bind(wx.EVT_SPINCTRL, self.onMinBragg,
               self.tracker_panel.min_bragg.ctr)
-    # self.Bind(wx.EVT_SPINCTRL, self.onChartRange,
-    #           self.tracker_panel.chart_window.ctr)
-    # self.Bind(wx.EVT_CHECKBOX, self.onChartRange,
-    #           self.tracker_panel.chart_window.toggle)
+    self.Bind(EVT_ZOOM, self.onChartRange)
 
   def create_collector(self):
     self.ui_timer = wx.Timer(self)
