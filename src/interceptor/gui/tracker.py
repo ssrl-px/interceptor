@@ -390,7 +390,7 @@ class TrackChart(wx.Panel):
             self.max_lock = True
           else:
             self.max_lock = False
-          if self.xmin <= 0:
+          if self.x_min <= 0:
             self.x_min = 0
       else:
         self.x_min = 0
