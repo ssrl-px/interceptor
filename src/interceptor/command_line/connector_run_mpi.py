@@ -15,6 +15,7 @@ from interceptor import import_resources
 resources = import_resources(module='resources', package='config')
 presets = resources['connector']
 
+
 def parse_command_args():
   """ Parses command line arguments (only options for now) """
   parser = argparse.ArgumentParser(
@@ -96,13 +97,13 @@ def entry_point():
     port = args.port
   connector_commands.extend(['--host', host, '--port', port])
   if args.experiment:
-    n_proc, last_stage = presets['beamlines'].extract(args.experiment)
+    n_proc, last_stage = presets['experiments'].extract(args.experiment)
   else:
     n_proc = args.n_proc
     last_stage = args.last_stage
   connector_commands.extend(['--last_stage', last_stage])
   if args.ui:
-    uihost, uiport = presets['beamlines'].extract(args.ui)
+    uihost, uiport = presets['ui'].extract(args.ui)
     connector_commands.extend(['--uihost', uihost, '--uiport', uiport])
 
   for arg, value in vars(args).items():
