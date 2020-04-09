@@ -117,7 +117,7 @@ class ZoomCtrl(ct.CtrlBase):
     self.spn_zoom.Bind(wx.EVT_SPINCTRL, self.onZoom)
     self.btn_back.Bind(wx.EVT_BUTTON, self.onBack)
     self.btn_frwd.Bind(wx.EVT_BUTTON, self.onFrwd)
-    self.btn_lock.Bind(wx.EVT_TOGGLEBUTTON, self.onXmax)
+    self.btn_lock.Bind(wx.EVT_TOGGLEBUTTON, self.onLock)
 
   def onZoom(self, e):
     self.plot_zoom = self.btn_zoom.GetValue()
@@ -136,7 +136,7 @@ class ZoomCtrl(ct.CtrlBase):
     self.x_min += self.chart_range
     self.set_and_signal()
 
-  def onXmax(self, e):
+  def onLock(self, e):
     self.max_lock = self.btn_lock.GetValue()
     self.set_and_signal()
 
@@ -215,6 +215,7 @@ class TrackChart(wx.Panel):
     wx.Panel.__init__(self, parent, size=(100, 100))
     self.main_window = main_window
     self.parent = parent
+    self.zoom_ctrl = self.parent.GetParent().chart_zoom
 
     self.main_box = wx.StaticBox(self, label='Spotfinding Chart')
     self.main_fig_sizer = wx.StaticBoxSizer(self.main_box, wx.VERTICAL)
@@ -256,12 +257,6 @@ class TrackChart(wx.Panel):
       self.plot_zoom = True
       self.max_lock = False
       self.chart_range = int(self.x_max - self.x_min)
-      # self.main_window.tracker_panel.chart_window.toggle.SetValue(True)
-      # self.main_window.tracker_panel.chart_window.toggle_boxes(flag_on=True)
-      self.main_window.tracker_panel.chart_zoom.set_zoom(
-        plot_zoom=True,
-        chart_range=self.chart_range
-      )
       sb_center = self.x_min + self.chart_range / 2
 
       self.plot_sb.SetScrollbar(
@@ -312,10 +307,6 @@ class TrackChart(wx.Panel):
       self.max_lock = True
     else:
       self.max_lock = False
-
-    # update zoom control
-
-
     self.draw_plot()
 
   def onPress(self, e):
@@ -515,8 +506,9 @@ class TrackChart(wx.Panel):
     self.track_axes.draw_artist(self.acc_plot)
     self.track_axes.draw_artist(self.rej_plot)
 
-    # Adjust scrollbar
+    # If zoomed update navigation tools
     if self.chart_range:
+      # Adjust scrollbar
       rng = np.max(self.xdata)
       pos = rng if self.max_lock else self.plot_sb.GetThumbPosition()
       self.plot_sb.SetScrollbar(
@@ -525,6 +517,13 @@ class TrackChart(wx.Panel):
         range=rng,
         pageSize=self.chart_range
       )
+
+      # Update Zoom control
+      self.zoom_ctrl.x_min = self.x_min
+      self.zoom_ctrl.x_max = self.x_max
+      self.zoom_ctrl.max_lock = self.max_lock
+      self.zoom_ctrl.plot_zoom = self.plot_zoom
+      self.zoom_ctrl.chart_range = self.chart_range
 
     # Redraw canvas
     self._update_canvas(self.track_canvas)
