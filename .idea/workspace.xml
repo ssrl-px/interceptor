@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="4062e2d3-3d94-4dd0-96cb-ffd3a3879a3b" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,7 +31,6 @@
   <component name="ProjectViewState">
     <option name="autoscrollToSource" value="true" />
     <option name="hideEmptyMiddlePackages" value="true" />
-    <option name="showExcludedFiles" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
@@ -70,6 +68,10 @@
     <servers />
   </component>
   <component name="WindowStateProjectService">
+    <state x="968" y="475" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog" timestamp="1586472978782">
+      <screen x="0" y="23" width="2560" height="1417" />
+    </state>
+    <state x="968" y="475" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586472978782" />
     <state x="928" y="332" key="CommitChangelistDialog2" timestamp="1586215002466">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>

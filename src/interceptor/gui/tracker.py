@@ -274,7 +274,7 @@ class TrackChart(wx.Panel):
         pageSize=self.chart_range
       )
       self.plot_sb.Show()
-      self.zoom_ctrl.update(
+      self.zoom_ctrl.set_control(
         max_lock=False,
         plot_zoom=True,
         chart_range=self.chart_range
@@ -333,7 +333,7 @@ class TrackChart(wx.Panel):
       self.bracket_set = False
       self.plot_zoom = False
       self.plot_sb.Hide()
-      self.zoom_ctrl.update(
+      self.zoom_ctrl.set_control(
         max_lock=False,
         plot_zoom=False,
       )
