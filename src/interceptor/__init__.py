@@ -1,10 +1,56 @@
 __version__ = '0.9.20'
 
-try:
+import os
+import platform
+ver = platform.python_version_tuple()
+
+if int(ver[0]) >= 3 and int(ver[1]) >= 7:
   import importlib.resources as pkg_resources
-except ImportError:
-  # Try backported to PY<37 `importlib_resources`.
+else:
   import importlib_resources as pkg_resources
+
+
+class PackageFinderException(Exception):
+  def __init__(self, msg):
+    Exception.__init__(self, msg)
+
+
+def packagefinder(filename, package, read_config=False, return_text=False):
+  if isinstance(package, list) or isinstance(package, tuple):
+    submodule = '.'.join(package[:-1])
+    module = 'interceptor.resources.{}'.format(submodule)
+    package = package[-1]
+  else:
+    module = 'interceptor.resources'
+
+  try:
+    imported = getattr(__import__(module, fromlist=[package]), package)
+  except AttributeError:
+    msg = 'ERROR: Could not find package "{}"'.format(package)
+    raise PackageFinderException(msg)
+  except ModuleNotFoundError:
+    msg = 'ERROR: Could not find module "{}"'.format(module)
+    raise PackageFinderException(msg)
+
+  if read_config:
+    return read_package_file(imported, filename)
+  elif return_text:
+    try:
+      return pkg_resources.read_text(imported, filename)
+    except FileNotFoundError as e:
+      raise e
+  else:
+    with (pkg_resources.path(imported, filename)) as rpath:
+      resource_filepath = str(rpath)
+
+    if not os.path.isfile(resource_filepath):
+      msg = 'ERROR: file {} not found in {}'.format(
+        filename,
+        os.path.dirname(resource_filepath)
+      )
+      raise PackageFinderException(msg)
+
+    return resource_filepath
 
 
 class ResourceDict(dict):
@@ -63,29 +109,22 @@ def read_package_file(package, filename):
   return pdict
 
 
-def import_resources(package, module='resources', resource=None):
-  if not package:
-    from interceptor.resources import connector as package
-  else:
-    if not module.startswith('interceptor'):
-      module = 'interceptor.{}'.format(module)
-    package = getattr(__import__(module, fromlist=[package]), package)
+def import_resources(configs, package):
+  def check_extension(fn):
+    fn_extension = os.path.splitext(fn)
+    if fn_extension[-1] == '':
+      fn += '.cfg'
+    return fn
 
-  resources = ResourceDict()
-  try:
-    filenames = [
-      p for p in pkg_resources.contents(package) if not p.startswith('__')
-    ]
-  except Exception:
-    return None
+  if isinstance(configs, list) or isinstance(configs, tuple):
+    resources = ResourceDict()
+    for config in configs:
+      filename = check_extension(config)
+      config_dict = packagefinder(filename, package=package, read_config=True)
+      resources[config] = config_dict
+    return resources
   else:
-    for filename in filenames:
-      pkey = filename.split('.')[0]
-      pdict = read_package_file(package, filename)
-      resources[pkey] = pdict
-
-  if resource and resource in resources:
-      return resources[resource]
-  return resources
+    filename = check_extension(configs)
+    return packagefinder(filename, package=package, read_config=True)
 
 # -- end

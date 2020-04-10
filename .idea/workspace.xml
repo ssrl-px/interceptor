@@ -9,9 +9,6 @@
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="FavoritesManager">
-    <favorites_list name="intxr" />
-  </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
@@ -46,9 +43,11 @@
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/src/interceptor/resources/config" />
-      <recent name="$PROJECT_DIR$/src/interceptor/resources/gui_resources" />
-      <recent name="$PROJECT_DIR$/src/interceptor/resources" />
+      <recent name="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/custom" />
+      <recent name="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32" />
+      <recent name="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango" />
+      <recent name="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/custom/32x32" />
+      <recent name="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons" />
     </key>
   </component>
   <component name="StructureViewFactory">
@@ -76,6 +75,10 @@
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
     <state x="928" y="332" key="CommitChangelistDialog2/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586215002466" />
+    <state x="100" y="123" width="2360" height="1217" key="DiffContextDialog" timestamp="1586478714508">
+      <screen x="0" y="23" width="2560" height="1417" />
+    </state>
+    <state x="100" y="123" width="2360" height="1217" key="DiffContextDialog/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586478714508" />
     <state x="869" y="591" key="FileChooserDialogImpl" timestamp="1586208820720">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
@@ -84,10 +87,10 @@
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
     <state x="789" y="370" key="SettingsEditor/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586208832244" />
-    <state x="961" y="495" width="637" height="472" key="find.popup" timestamp="1586392072004">
+    <state x="961" y="495" width="637" height="472" key="find.popup" timestamp="1586551494708">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
-    <state x="961" y="495" width="637" height="472" key="find.popup/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586392072004" />
+    <state x="961" y="495" width="637" height="472" key="find.popup/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586551494708" />
     <state x="945" y="348" width="670" height="676" key="search.everywhere.popup" timestamp="1586463738645">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
