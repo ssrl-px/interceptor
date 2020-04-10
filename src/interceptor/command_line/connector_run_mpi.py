@@ -113,7 +113,7 @@ def entry_point():
 
   for arg, value in vars(args).items():
     if '--{}'.format(arg) not in connector_commands and \
-            arg not in ['beamline', 'experiment', 'ui']:
+            arg not in ['beamline', 'experiment', 'ui', 'n_proc']:
       if value:
         if value is True:
           cmd_list = ['--{}'.format(arg)]

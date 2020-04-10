@@ -7,6 +7,7 @@ Last Changed: 03/31/2020
 Description : Streaming stills processor for live data analysis
 '''
 
+import numpy as np
 import copy
 from cctbx import sgtbx
 from iotbx import phil as ip
@@ -38,6 +39,7 @@ output {
 }
 spotfinder {
   threshold {
+    algorithm = *dispersion dispersion_extended
     dispersion {
       gain = 1
     }
@@ -133,16 +135,12 @@ class IOTAProcessor(object):
     return self.process(experiments, info)
 
 
-
 class FastProcessor(Processor):
   def __init__(self, last_stage='spotfinding', min_Bragg=10):
     self.last_stage = last_stage
     self.min_Bragg = min_Bragg
     params, self.dials_phil = self.generate_params()
     Processor.__init__(self, params=params)
-
-    # diff_phil = dials_scope.fetch_diff(source=self.dials_phil)
-    # diff_phil.show()
 
     self.params.indexing.stills.method_list = [
       # 'fft3d',
