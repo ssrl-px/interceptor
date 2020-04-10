@@ -10,22 +10,13 @@ Description : Interceptor tracking module (GUI elements)
 import numpy as np
 
 import wx
-from wx.lib import buttons as btn
-from wxtbx import bitmaps
 
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.widgets import SpanSelector
 
-try:
-    import importlib.resources as pkg_resources
-except ImportError:
-    # Try backported to PY<37 `importlib_resources`.
-    import importlib_resources as pkg_resources
-
 from iota.components.gui import controls as ct
-from interceptor.gui import receiver as rcv
-from interceptor.resources.gui_resources import icons
+from interceptor.gui import receiver as rcv, find_icon
 from interceptor import import_resources
 
 resources = import_resources('connector')
@@ -34,6 +25,27 @@ icon_cache = {}
 
 itx_EVT_ZOOM = wx.NewEventType()
 EVT_ZOOM = wx.PyEventBinder(itx_EVT_ZOOM, 1)
+
+# def find_icon(icon_name, package=None, scale=None, verbose=False):
+#   if not package:
+#     module = 'interceptor.resources.gui_resources.icons'
+#     package = getattr(__import__(module, fromlist=['custom']), 'custom')
+#
+#   icon_fn = '{}.png'.format(icon_name)
+#   with (pkg_resources.path(package, icon_fn)) as icon_path:
+#     icon_path = str(icon_path)
+#     bmp = icon_cache.get(icon_path, None)
+#     if bmp is None:
+#       img = wx.Image(icon_path, type=wx.BITMAP_TYPE_PNG, index=-1)
+#       if scale is not None:
+#         assert isinstance(scale, tuple)
+#         w, h = scale
+#         img = img.Scale(w, h)
+#       bmp = img.ConvertToBitmap()
+#       icon_cache[icon_path] = bmp
+#     if verbose:
+#       print ('found ', icon_path)
+#   return bmp
 
 
 class EvtChartZoom(wx.PyCommandEvent):
@@ -44,26 +56,6 @@ class EvtChartZoom(wx.PyCommandEvent):
 
   def GetInfo(self):
     return self.info
-
-
-def find_icon(icon_name, size=None, scale=None):
-  if size:
-    icon_fn = '{0}_{1}x{1}.png'.format(icon_name, size)
-  else:
-    icon_fn = '{}.png'.format(icon_name)
-
-  with (pkg_resources.path(icons, icon_fn)) as icon_path:
-    icon_path = str(icon_path)
-    bmp = icon_cache.get(icon_path, None)
-    if bmp is None:
-      img = wx.Image(icon_path, type=wx.BITMAP_TYPE_PNG, index=-1)
-      if scale is not None:
-        assert isinstance(scale, tuple)
-        w, h = scale
-        img = img.Scale(w, h)
-      bmp = img.ConvertToBitmap()
-      icon_cache[icon_path] = bmp
-  return bmp
 
 
 class ZoomCtrl(ct.CtrlBase):
@@ -84,7 +76,7 @@ class ZoomCtrl(ct.CtrlBase):
 
     # Zoom checkbox
     btn_size = (32, 32)
-    zoom_bmp = find_icon('tango_zoom')
+    zoom_bmp = find_icon('zoom', size=24)
     self.btn_zoom = wx.BitmapToggleButton(
       self, label=zoom_bmp, size=btn_size)
     self.spn_zoom = ct.SpinCtrl(
@@ -93,13 +85,13 @@ class ZoomCtrl(ct.CtrlBase):
       ctrl_value=100,
       ctrl_min=10,
       ctrl_step=10)
-    back_bmp = find_icon('tango_back')
+    back_bmp = find_icon('back', size=24)
     self.btn_back = wx.BitmapButton(
       self, bitmap=back_bmp, size=btn_size)
-    frwd_bmp = find_icon('tango_forward')
+    frwd_bmp = find_icon('forward', size=24)
     self.btn_frwd = wx.BitmapButton(
       self, bitmap=frwd_bmp, size=btn_size)
-    xmax_bmp = find_icon('tango_max')
+    xmax_bmp = find_icon('max', size=24)
     self.btn_lock = wx.BitmapToggleButton(
       self, label=xmax_bmp, size=btn_size)
 
@@ -130,19 +122,11 @@ class ZoomCtrl(ct.CtrlBase):
     self.max_lock = False
     self.x_max -= self.chart_range / 10
     self.x_min -= self.chart_range / 10
-
-    print ('onBack debug: x_max = {}, x_min = {}'
-           .format(self.x_max, self.x_min))
-
     self.set_and_signal()
 
   def onFrwd(self, e):
     self.x_max += self.chart_range / 10
     self.x_min += self.chart_range / 10
-
-    print ('onForward debug: x_max = {}, x_min = {}'
-           .format(self.x_max, self.x_min))
-
     self.set_and_signal()
 
   def onLock(self, e):
@@ -206,7 +190,7 @@ class TrackStatusBar(wx.StatusBar):
     self.Bind(wx.EVT_SIZE, self.OnSize)
     self.Bind(wx.EVT_IDLE, self.OnIdle)
 
-    bmp = find_icon('disconnected')
+    bmp = find_icon('disconnected', library='custom')
     self.conn_icon = wx.StaticBitmap(self, bitmap=bmp)
 
     icon_width = self.conn_icon.GetSize()[0] + 10
@@ -224,9 +208,9 @@ class TrackStatusBar(wx.StatusBar):
 
   def SetStatusBitmap(self, connected=False):
     if connected:
-      bmp = find_icon('connected')
+      bmp = find_icon('connected', library='custom')
     else:
-      bmp = find_icon('disconnected')
+      bmp = find_icon('disconnected', library='custom')
     self.conn_icon.SetBitmap(bmp)
     self.position_icon()
 
@@ -734,7 +718,7 @@ class TrackerWindow(wx.Frame):
 
     # Quit button
     self.toolbar.AddStretchableSpace()
-    quit_bmp = bitmaps.fetch_icon_bitmap('actions', 'exit')
+    quit_bmp = find_icon('exit', size=32)
     self.tb_btn_quit = self.toolbar.AddTool(
       toolId=wx.ID_EXIT,
       label='Quit',

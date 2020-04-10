@@ -1,10 +1,56 @@
-__version__ = '0.9.16'
+__version__ = '0.9.17'
 
-try:
+import os
+import platform
+ver = platform.python_version_tuple()
+
+if int(ver[0]) >= 3 and int(ver[1]) >= 7:
   import importlib.resources as pkg_resources
-except ImportError:
-  # Try backported to PY<37 `importlib_resources`.
+else:
   import importlib_resources as pkg_resources
+
+
+class PackageFinderException(Exception):
+  def __init__(self, msg):
+    Exception.__init__(self, msg)
+
+
+def packagefinder(filename, package, read_config=False, return_text=False):
+  if isinstance(package, list) or isinstance(package, tuple):
+    submodule = '.'.join(package[:-1])
+    module = 'interceptor.resources.{}'.format(submodule)
+    package = package[-1]
+  else:
+    module = 'interceptor.resources'
+
+  try:
+    imported = getattr(__import__(module, fromlist=[package]), package)
+  except AttributeError:
+    msg = 'ERROR: Could not find package "{}"'.format(package)
+    raise PackageFinderException(msg)
+  except ModuleNotFoundError:
+    msg = 'ERROR: Could not find module "{}"'.format(module)
+    raise PackageFinderException(msg)
+
+  if read_config:
+    return read_package_file(imported, filename)
+  elif return_text:
+    try:
+      return pkg_resources.read_text(imported, filename)
+    except FileNotFoundError as e:
+      raise e
+  else:
+    with (pkg_resources.path(imported, filename)) as rpath:
+      resource_filepath = str(rpath)
+
+    if not os.path.isfile(resource_filepath):
+      msg = 'ERROR: file {} not found in {}'.format(
+        filename,
+        os.path.dirname(resource_filepath)
+      )
+      raise PackageFinderException(msg)
+
+    return resource_filepath
 
 
 class ResourceDict(dict):
