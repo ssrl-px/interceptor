@@ -139,14 +139,16 @@ def entry_point():
     except KeyboardInterrupt:
       print ('\n*** Terminated with KeyboardInterrupt')
       print ('*** Total runtime: {:.2f} sec'.format(time.time()-start))
-      print ('*** Total processing time: {:.2f} sec'.format(np.sum(times)))
+      print ('*** Total processing time: {:.2f} sec'.format(times[-1]))
 
 
 def get_total_time(ln):
   if 'TIME' in ln:
-    total_time_str = ln.split(',')[2].split(' ')[3]
-    total_time = float(total_time_str)
-    times.append(total_time)
+    if times:
+      delta = time.time()-times[0]
+      times.append(delta)
+    else:
+      times.append(time.time())
 
 # ---------------------------------------------------------------------------- #
 
