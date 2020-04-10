@@ -3,8 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="4062e2d3-3d94-4dd0-96cb-ffd3a3879a3b" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -85,10 +83,10 @@
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
     <state x="789" y="370" key="SettingsEditor/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586208832244" />
-    <state x="961" y="495" width="637" height="472" key="find.popup" timestamp="1586392072004">
+    <state x="961" y="495" width="637" height="472" key="find.popup" timestamp="1586551494708">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
-    <state x="961" y="495" width="637" height="472" key="find.popup/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586392072004" />
+    <state x="961" y="495" width="637" height="472" key="find.popup/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586551494708" />
     <state x="945" y="348" width="670" height="676" key="search.everywhere.popup" timestamp="1586463738645">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
