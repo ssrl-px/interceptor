@@ -133,7 +133,7 @@ def entry_point():
       result = procrunner.run(command, working_directory=os.curdir)
     except KeyboardInterrupt:
       print ('\n *** Terminated with KeyboardInterrupt')
-      print ('*** Total runtime: {.2f} sec'.format(time.time()-start))
+      print ('*** Total runtime: {:.2f} sec'.format(time.time()-start))
 
 # ---------------------------------------------------------------------------- #
 
