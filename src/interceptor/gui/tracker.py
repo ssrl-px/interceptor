@@ -74,8 +74,7 @@ class ZoomCtrl(ct.CtrlBase):
     super(ZoomCtrl, self).__init__(parent)
 
     # Attributes
-    self.x_min = 0
-    self.x_max = 100
+    self.move = 0
     self.chart_range = 100
     self.plot_zoom = False
     self.max_lock = False
@@ -128,27 +127,16 @@ class ZoomCtrl(ct.CtrlBase):
 
   def onBack(self, e):
     self.max_lock = False
-    self.x_max -= self.chart_range / 10
-    self.x_min -= self.chart_range / 10
-
-    print ('onBack debug: x_max = {}, x_min = {}'
-           .format(self.x_max, self.x_min))
-
+    self.move = -(self.chart_range / 10)
     self.set_and_signal()
 
   def onFrwd(self, e):
-    self.x_max += self.chart_range / 10
-    self.x_min += self.chart_range / 10
-
-    print ('onForward debug: x_max = {}, x_min = {}'
-           .format(self.x_max, self.x_min))
-
+    self.move = self.chart_range / 10
     self.set_and_signal()
 
   def onLock(self, e):
     self.max_lock = self.btn_lock.GetValue()
-    self.x_min -= 1
-    self.x_max -= 1
+    self.move = -1
     self.set_and_signal()
 
   def set_zoom(self, plot_zoom=False, chart_range=None):
@@ -157,21 +145,12 @@ class ZoomCtrl(ct.CtrlBase):
       self.spn_zoom.ctr.SetValue(value=chart_range)
 
   def set_control(self,
-                  plot_zoom=None,
                   max_lock=None,
-                  x_min=None,
-                  x_max=None,
+                  plot_zoom=None,
                   chart_range=None):
-    args_dict = locals().copy()
-    for arg, value in args_dict.items():
-      if arg is not 'self' and value is not None:
+    for arg, value in locals().items():
+      if arg != 'self' and value is not None:
         setattr(self, arg, value)
-
-    for arg in ['x_min', 'x_max', 'max_lock', 'plot_zoom', 'chart_range']:
-      print ('self.{} = {}'.format(arg, getattr(self, arg)))
-
-    print ('set_control debug: x_max = {}, x_min = {}'
-           .format(self.x_max, self.x_min))
 
     # change control settings depending on situation
     self.btn_lock.SetValue(self.max_lock)
@@ -188,14 +167,15 @@ class ZoomCtrl(ct.CtrlBase):
   def set_and_signal(self):
     self.set_control()
     info = {
-      'x_min'       : self.x_min,
-      'x_max'       : self.x_max,
+      'move'        : self.move,
       'max_lock'    : self.max_lock,
       'chart_range' : self.chart_range,
       'plot_zoom'   : self.plot_zoom,
     }
     evt = EvtChartZoom(itx_EVT_ZOOM, -1, info)
     wx.PostEvent(self.tracker_panel.chart, evt)
+    self.move_cache = []
+
 
 class TrackStatusBar(wx.StatusBar):
   def __init__(self, parent):
@@ -294,13 +274,21 @@ class TrackChart(wx.Panel):
         pageSize=self.chart_range
       )
       self.plot_sb.Show()
+      self.zoom_ctrl.set_control(
+        max_lock=False,
+        plot_zoom=True,
+        chart_range=self.chart_range
+      )
       self.draw_plot()
 
   def onZoomControl(self, e):
-    print ('zoomin!')
     zoom_dict = e.GetInfo()
-    for key, value in zoom_dict.items():
-      setattr(self, key, value)
+    self.max_lock = zoom_dict['max_lock']
+    self.plot_zoom = zoom_dict['plot_zoom']
+    self.chart_range = zoom_dict['chart_range']
+    self.x_max += zoom_dict['move']
+    self.x_min += zoom_dict['move']
+
     try:
       assert self.chart_range == int(self.x_max - self.x_min)
     except AssertionError:
@@ -345,6 +333,10 @@ class TrackChart(wx.Panel):
       self.bracket_set = False
       self.plot_zoom = False
       self.plot_sb.Hide()
+      self.zoom_ctrl.set_control(
+        max_lock=False,
+        plot_zoom=False,
+      )
       self.draw_plot()
     else:
       self.zoom_span.set_visible(True)
@@ -548,11 +540,7 @@ class TrackChart(wx.Panel):
 
       # Update Zoom control
       self.zoom_ctrl.set_control(
-        x_min=self.x_min,
-        x_max=self.x_min,
         max_lock=self.max_lock,
-        plot_zoom=self.plot_zoom,
-        chart_range=self.chart_range,
       )
 
     # Redraw canvas
