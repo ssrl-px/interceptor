@@ -9,6 +9,7 @@ Description : Launches multiple ZMQ Connector instances via MPI
 
 import os
 import argparse
+import time
 import procrunner
 
 from interceptor import import_resources
@@ -127,10 +128,12 @@ def entry_point():
   # run mpi
   print (' '.join(command))
   if not args.dry_run:
+    start = time.time()
     try:
       result = procrunner.run(command, working_directory=os.curdir)
     except KeyboardInterrupt:
-      print ('exited with KeyboardInterrupt')
+      print ('\n *** Terminated with KeyboardInterrupt')
+      print ('*** Total runtime: {.2f} sec'.format(time.time()-start))
 
 # ---------------------------------------------------------------------------- #
 
