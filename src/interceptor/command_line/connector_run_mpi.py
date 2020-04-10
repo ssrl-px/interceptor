@@ -11,7 +11,6 @@ import os
 import argparse
 import time
 import procrunner
-import numpy as np
 
 from interceptor import import_resources
 presets = import_resources(configs='connector', package='connector')
@@ -100,7 +99,13 @@ def entry_point():
   else:
     host = args.host
     port = args.port
-  connector_commands.extend(['--host', host, '--port', port])
+  connector_commands.extend(
+    [
+      '--host', host,
+      '--port', port,
+      '--stype', 'req',
+    ]
+  )
   if args.experiment:
     n_proc, last_stage = presets['experiments'].extract(args.experiment)
   else:
@@ -109,7 +114,12 @@ def entry_point():
   connector_commands.extend(['--last_stage', last_stage])
   if args.ui:
     uihost, uiport = presets['ui'].extract(args.ui)
-    connector_commands.extend(['--uihost', uihost, '--uiport', uiport])
+    connector_commands.extend(
+      [
+        '--uihost', uihost,
+        '--uiport', uiport,
+        '--uistype', 'push',
+      ])
 
   for arg, value in vars(args).items():
     if '--{}'.format(arg) not in connector_commands and \
