@@ -128,6 +128,7 @@ def entry_point():
   print (' '.join(command))
   if not args.dry_run:
     result = procrunner.run(command, working_directory=os.curdir)
+    print ('exited with exitcode = ', result['exitcode'])
 
 # ---------------------------------------------------------------------------- #
 
