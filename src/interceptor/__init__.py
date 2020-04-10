@@ -109,29 +109,22 @@ def read_package_file(package, filename):
   return pdict
 
 
-def import_resources(package, module='resources', resource=None):
-  if not package:
-    from interceptor.resources import connector as package
-  else:
-    if not module.startswith('interceptor'):
-      module = 'interceptor.{}'.format(module)
-    package = getattr(__import__(module, fromlist=[package]), package)
+def import_resources(configs, package):
+  def check_extension(fn):
+    fn_extension = os.path.splitext(fn)
+    if fn_extension[-1] == '':
+      fn += '.cfg'
+    return fn
 
-  resources = ResourceDict()
-  try:
-    filenames = [
-      p for p in pkg_resources.contents(package) if not p.startswith('__')
-    ]
-  except Exception:
-    return None
+  if isinstance(configs, list) or isinstance(configs, tuple):
+    resources = ResourceDict()
+    for config in configs:
+      filename = check_extension(config)
+      config_dict = packagefinder(filename, package=package, read_config=True)
+      resources[config] = config_dict
+    return resources
   else:
-    for filename in filenames:
-      pkey = filename.split('.')[0]
-      pdict = read_package_file(package, filename)
-      resources[pkey] = pdict
-
-  if resource and resource in resources:
-      return resources[resource]
-  return resources
+    filename = check_extension(configs)
+    return packagefinder(filename, package=package, read_config=True)
 
 # -- end

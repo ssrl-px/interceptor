@@ -8,7 +8,6 @@ Description : Interceptor tracking module (GUI elements)
 '''
 
 import numpy as np
-
 import wx
 
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
@@ -19,33 +18,11 @@ from iota.components.gui import controls as ct
 from interceptor.gui import receiver as rcv, find_icon
 from interceptor import import_resources
 
-resources = import_resources('connector')
-presets = resources['connector']
+presets = import_resources(configs='connector', package='connector')
 icon_cache = {}
 
 itx_EVT_ZOOM = wx.NewEventType()
 EVT_ZOOM = wx.PyEventBinder(itx_EVT_ZOOM, 1)
-
-# def find_icon(icon_name, package=None, scale=None, verbose=False):
-#   if not package:
-#     module = 'interceptor.resources.gui_resources.icons'
-#     package = getattr(__import__(module, fromlist=['custom']), 'custom')
-#
-#   icon_fn = '{}.png'.format(icon_name)
-#   with (pkg_resources.path(package, icon_fn)) as icon_path:
-#     icon_path = str(icon_path)
-#     bmp = icon_cache.get(icon_path, None)
-#     if bmp is None:
-#       img = wx.Image(icon_path, type=wx.BITMAP_TYPE_PNG, index=-1)
-#       if scale is not None:
-#         assert isinstance(scale, tuple)
-#         w, h = scale
-#         img = img.Scale(w, h)
-#       bmp = img.ConvertToBitmap()
-#       icon_cache[icon_path] = bmp
-#     if verbose:
-#       print ('found ', icon_path)
-#   return bmp
 
 
 class EvtChartZoom(wx.PyCommandEvent):
@@ -180,6 +157,7 @@ class ZoomCtrl(ct.CtrlBase):
     }
     evt = EvtChartZoom(itx_EVT_ZOOM, -1, info)
     wx.PostEvent(self.tracker_panel.chart, evt)
+
 
 class TrackStatusBar(wx.StatusBar):
   def __init__(self, parent):

@@ -12,8 +12,7 @@ import argparse
 import procrunner
 
 from interceptor import import_resources
-resources = import_resources(module='resources', package='connector')
-presets = resources['connector']
+presets = import_resources(configs='connector', package='connector')
 
 
 def parse_command_args():

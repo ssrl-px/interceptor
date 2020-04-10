@@ -2,36 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="4062e2d3-3d94-4dd0-96cb-ffd3a3879a3b" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/custom/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/24x24/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/24x24/back.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/24x24/forward.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/24x24/max.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/24x24/network.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/24x24/zoom.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32/back.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32/exit.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32/forward.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32/max.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32/network.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32/open.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32/options.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32/run.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32/save.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32/stop.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/interceptor/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/gui/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/gui/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/connected.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/custom/connected.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/disconnected.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/custom/disconnected.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/network_32x32.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/custom/network.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango_back.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango_forward.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango_max.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango_zoom.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32/zoom.png" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
