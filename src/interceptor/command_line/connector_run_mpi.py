@@ -11,10 +11,12 @@ import os
 import argparse
 import time
 import procrunner
+import numpy as np
 
 from interceptor import import_resources
 presets = import_resources(configs='connector', package='connector')
 
+times = []
 
 def parse_command_args():
   """ Parses command line arguments (only options for now) """
@@ -130,10 +132,21 @@ def entry_point():
   if not args.dry_run:
     start = time.time()
     try:
-      result = procrunner.run(command, working_directory=os.curdir)
+      result = procrunner.run(
+        command,
+        callback_stdout=get_total_time,
+        working_directory=os.curdir)
     except KeyboardInterrupt:
-      print ('\n *** Terminated with KeyboardInterrupt')
+      print ('\n*** Terminated with KeyboardInterrupt')
       print ('*** Total runtime: {:.2f} sec'.format(time.time()-start))
+      print ('*** Total processing time: {:.2f} sec'.format(np.sum(times)))
+
+
+def get_total_time(ln):
+  if 'TIME' in ln:
+    total_time_str = ln.split(',')[2].split(' ')[3]
+    total_time = float(total_time_str)
+    times.append(total_time)
 
 # ---------------------------------------------------------------------------- #
 
