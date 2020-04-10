@@ -138,8 +138,9 @@ def entry_point():
         working_directory=os.curdir)
     except KeyboardInterrupt:
       print ('\n*** Terminated with KeyboardInterrupt')
-      print ('*** Total runtime: {:.2f} sec'.format(time.time()-start))
       print ('*** Total processing time: {:.2f} sec'.format(times[-1]))
+      print ('*** Rate : {:.2f} Hz'.format(len(times)/times[-1]))
+      print ('*** Total runtime: {:.2f} sec'.format(time.time()-start))
 
 
 def get_total_time(ln):
