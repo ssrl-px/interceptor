@@ -83,6 +83,9 @@ def parse_command_args():
   parser.add_argument(
     '--dry_run', action='store_true', default=False,
     help='Print the full command-line and exit without running')
+  parser.add_argument(
+    '--time', action='store_true', default=False,
+    help='Measure time per frame and output when run is terminated')
 
   return parser
 
@@ -132,15 +135,20 @@ def entry_point():
   if not args.dry_run:
     start = time.time()
     try:
+      if args.time:
+        callback = get_total_time
+      else:
+        callback = None
       result = procrunner.run(
         command,
-        callback_stdout=get_total_time,
+        callback_stdout=callback,
         working_directory=os.curdir)
     except KeyboardInterrupt:
       print ('\n*** Terminated with KeyboardInterrupt')
-      print ('*** Total processing time: {:.2f} sec'.format(times[-1]))
-      print ('*** Rate ({} images): {:.2f} Hz'.format(
-        len(times), len(times)/times[-1]))
+      if args.time:
+        print ('*** Total processing time: {:.2f} sec'.format(times[-1]))
+        print ('*** Rate ({} images): {:.2f} Hz'.format(
+          len(times), len(times)/times[-1]))
       print ('*** Total runtime: {:.2f} sec'.format(time.time()-start))
 
 
