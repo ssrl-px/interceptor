@@ -403,6 +403,60 @@ class TestReader(Reader):
       print (key, ' = ', value)
 
 
+def test_file_reader(args):
+  processor = FastProcessor(last_stage=args.last_stage, test=args.test)
+  data = {}
+  zdir = '/home/lyubimov/EigerStreaming/eiger2cbf_test/zmq_h1'
+  zmq = {
+      "header1"      : 'zmq_000001_01.zmq',
+      "header2"      : 'zmq_000001_02.zmq',
+      "streamfile_1" : 'zmq_000001_03.zmq',
+      "streamfile_2" : 'zmq_000001_04.zmq',
+      "streamfile_3" : 'zmq_000001_05.zmq',
+      "streamfile_4" : 'zmq_000001_06.zmq'
+  }
+
+  filename = 'eiger_test_0.stream'
+  with open(filename, "w") as fh:
+    fh.write('EIGERSTREAM')
+
+  for key in zmq:
+    fpath = os.path.join(zdir, zmq[key])
+    with open(fpath, "rb") as fh:
+      item = fh.read()
+    if key != 'streamfile_3':
+      data[key] = item[:-1]
+    else:
+      data[key] = item
+
+  info = {
+    'proc_name': 'zmq_test',
+    'run_no': 0,
+    'frame_idx': 0,
+    'beamXY': (0, 0),
+    'dist': 0,
+    'n_spots': 0,
+    'hres': 99.0,
+    'n_indexed': 0,
+    'sg': 'NA',
+    'uc': 'NA',
+    'spf_error': '',
+    'idx_error': '',
+    'rix_error': '',
+    'img_error': '',
+    'prc_error': '',
+    'comment': '',
+  }
+
+  FormatStream.inject_data(data)
+  exp = ExperimentListFactory.from_filenames([filename])
+
+  info = processor.run(exp, info)
+
+  for key, item in info.items():
+    print (key, ' --> ', item)
+
+
 # Unit test for ZMQ Reader
 if __name__ == '__main__':
   print('*** TESTING ZMQ READER ***')
@@ -410,8 +464,4 @@ if __name__ == '__main__':
   from interceptor.command_line.connector_run import parse_command_args
   args, _ = parse_command_args().parse_known_args()
 
-  print ('host = ', args.host)
-  print ('port = ', args.port)
-
-  reader = TestReader(args=args)
-  reader.run()
+  test_file_reader(args)
