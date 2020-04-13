@@ -34,6 +34,7 @@ from dials.command_line.find_spots import phil_scope as spf_scope
 spf_params_string = '''
 spotfinder {
   threshold {
+    use_trusted_range = False
     algorithm = *dispersion dispersion_extended
     dispersion {
       gain = 1
@@ -163,7 +164,7 @@ class FastProcessor(Processor):
     Processor.__init__(self, params=params)
 
     self.params.indexing.stills.method_list = [
-      # 'fft3d',
+      'fft3d',
       'fft1d',
       'real_space_grid_search']
     self.params.significance_filter.enable = True
