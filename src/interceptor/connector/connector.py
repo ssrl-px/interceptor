@@ -359,48 +359,48 @@ class TestReader(Reader):
       socket_type=self.args.stype)
 
     print ('listening...')
-    while True:
-      start = time.time()
-      try:
-        fstart = time.time()
-        if self.args.stype.lower() == 'req':
-          self.stream.send(b"Hello")
-        frames = self.stream.receive()
-        fel = time.time() - fstart
-      except Exception as exp:
-        print ('DEBUG: {} CONNECT FAILED! {}'.format(self.name, exp))
-        exit()
-      data = self.make_data_dict(frames)
-      info = {
-        'proc_name' : self.name,
-        'run_no'    : data[0],
-        'frame_idx' : data[1],
-        'beamXY'    : (0, 0),
-        'dist'      : 0,
-        'n_spots': 0,
-        'hres': 99.0,
-        'n_indexed': 0,
-        'sg': 'NA',
-        'uc': 'NA',
-        'spf_error': '',
-        'idx_error': '',
-        'rix_error': '',
-        'img_error': '',
-        'prc_error': '',
-        'comment'  : '',
-      }
-      if data[1] == -1:
-        info['img_error'] = data[3]
-      else:
-        info = self.process(info, frame=data[2], filename=filename)
-      elapsed = time.time() - start
-      time_info = {
-        'total_time'   : elapsed,
-        'receive_time' : fel
-      }
-      info.update(time_info)
-      for key, value in info.items():
-        print (key, ' = ', value)
+
+    start = time.time()
+    try:
+      fstart = time.time()
+      if self.args.stype.lower() == 'req':
+        self.stream.send(b"Hello")
+      frames = self.stream.receive()
+      fel = time.time() - fstart
+    except Exception as exp:
+      print ('DEBUG: {} CONNECT FAILED! {}'.format(self.name, exp))
+      exit()
+    data = self.make_data_dict(frames)
+    info = {
+      'proc_name' : self.name,
+      'run_no'    : data[0],
+      'frame_idx' : data[1],
+      'beamXY'    : (0, 0),
+      'dist'      : 0,
+      'n_spots': 0,
+      'hres': 99.0,
+      'n_indexed': 0,
+      'sg': 'NA',
+      'uc': 'NA',
+      'spf_error': '',
+      'idx_error': '',
+      'rix_error': '',
+      'img_error': '',
+      'prc_error': '',
+      'comment'  : '',
+    }
+    if data[1] == -1:
+      info['img_error'] = data[3]
+    else:
+      info = self.process(info, frame=data[2], filename=filename)
+    elapsed = time.time() - start
+    time_info = {
+      'total_time'   : elapsed,
+      'receive_time' : fel
+    }
+    info.update(time_info)
+    for key, value in info.items():
+      print (key, ' = ', value)
 
 
 # Unit test for ZMQ Reader
