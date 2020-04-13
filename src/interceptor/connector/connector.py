@@ -28,8 +28,11 @@ class ConnectorBase():
     '''
     self.name = name
     self.comm = comm
-    self.rank = comm.Get_rank()  # each process in MPI has a unique id
-    self.size = comm.Get_size()  # number of processes running in this job
+
+    if comm:
+      self.rank = comm.Get_rank()  # each process in MPI has a unique id
+      self.size = comm.Get_size()  # number of processes running in this job
+
     self.stop = False
     self.timeout_start = None
     self.args = args
