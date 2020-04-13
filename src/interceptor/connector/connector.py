@@ -313,8 +313,8 @@ class Collector(ConnectorBase):
             # ))
             print (
               '  TIME: recv = {:.2f} sec,'
-              ' exp = {:.2f},'
-              ' proc = {:.2f} ,'
+              ' exp = {:.4f},'
+              ' proc = {:.4f} ,'
               ' total = {:.2f} sec'.format(
                 info['receive_time'],
                 info['exp_time'],

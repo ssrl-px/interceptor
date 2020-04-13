@@ -9,6 +9,9 @@ Description : Streaming stills processor for live data analysis
 
 import numpy as np
 import copy
+import time
+assert time # for testing; this eliminates unused import error
+
 from cctbx import sgtbx
 from iotbx import phil as ip
 
@@ -263,9 +266,11 @@ class FastProcessor(Processor):
     with Capturing() as spf_output:
       try:
         if self.test:
+          spf_start = time.time()
           observed = flex.reflection_table.from_observations(
             experiments, spf_params)
-          info['comment'] = 'Testing spotfinding...'
+          spf_time = time.time() - spf_start
+          info['comment'] = 'Spf time: {:.2f} sec'.format(spf_time)
         else:
           observed = self.find_spots(experiments)
         if len(observed) == 0:
