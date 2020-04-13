@@ -399,7 +399,7 @@ class TestReader(Reader):
         'receive_time' : fel
       }
       info.update(time_info)
-      for key, value in info:
+      for key, value in info.items():
         print (key, ' = ', value)
 
 
