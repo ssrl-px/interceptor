@@ -150,5 +150,4 @@ if __name__ == '__main__':
   print('*** TESTING ZMQ READER ***')
 
   args, _ = parse_test_args().parse_known_args()
-  for i in range(args.repeat):
-    test_file_reader(args)
+  test_file_reader(args)
