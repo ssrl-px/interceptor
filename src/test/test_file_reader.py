@@ -54,7 +54,7 @@ def parse_test_args():
     help='Perform spotfinding with flex'
   )
   parser.add_argument(
-    '--repeat', type=int, nargs='?', default=0,
+    '--repeat', type=int, nargs='?', default=5,
     help='Number of times to repeat the trial (average time will be reported)')
   return parser
 
@@ -138,10 +138,10 @@ def test_file_reader(args):
       info = processor.run(exp, info)
       proc_time = time.time() - t_start
       n_spots = info['n_spots']
+    print("{} spots found".format(n_spots))
     print ('trial {}: {:.2f} sec'.format(i, proc_time))
     times.append(proc_time)
 
-  print ("{} spots found".format(n_spots))
   print('Proc time: {:.4f} sec'.format(np.mean(times)))
 
 
