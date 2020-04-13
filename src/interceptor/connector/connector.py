@@ -150,15 +150,16 @@ class Reader(ConnectorBase):
       print ("CONNECTOR ERROR: Could not create ExperimentList object.\n  {}"
              "".format(exp))
       experiments = None
-    time_exp = float(time.time() - s_exp)
+    time_exp = time.time() - s_exp
     s_proc = time.time()
     if experiments:
       info = self.processor.run(experiments=experiments, info=info)
     else:
       info['prc_error'] = 'EXPERIMENT ERROR: ExperimentList a NoneType object'
-    time_proc = float(time.time() - s_proc)
-    info['proc_time'] = time_proc
-    info['expr_time'] = time_exp
+    time_proc = time.time() - s_proc
+    info['proc_time'] = time.time() - s_exp
+    info['exp_time'] = time_exp
+    info['prc_time'] = time_proc
     return info
 
   def run(self):
@@ -213,8 +214,6 @@ class Reader(ConnectorBase):
         'img_error': '',
         'prc_error': '',
         'comment'  : '',
-        'time_proc': 0,
-        'time_expr': 0,
       }
       if data[1] == -1:
         info['img_error'] = data[3]
@@ -313,10 +312,11 @@ class Collector(ConnectorBase):
             #   info['beamXY'][0], info['beamXY'][1], info['dist']
             # ))
             print (
-              '  TIME: recv = {:.2f} sec, exp = {:.2f}, proc = {:.2f} ,'
+              '  TIME: recv = {:.2f} sec,'
+              ' proc = {:.2f} ,'
               ' total = {:.2f} sec'.format(
                 info['receive_time'],
-                info['expr_time'],
+                # info['expr_time'],
                 info['proc_time'],
                 info['total_time'],
               ),
