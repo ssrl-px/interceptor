@@ -330,3 +330,80 @@ class Collector(ConnectorBase):
               ui_stream.send_string(ui_msg)
             except Exception as exp:
               pass
+
+
+class TestReader(Reader):
+
+  def initialize_process(self):
+    # Generate params, args, etc. if process rank id = 0
+    processor  = self.generate_processor(self.args)
+    info = dict(processor=processor,
+                args=self.args,
+                host=self.args.host,
+                port=self.args.port)
+
+  def run(self):
+    # Write eiger_#.stream file
+    eiger_idx = self.rank
+    filename = 'eiger_test_0.stream'.format(eiger_idx)
+    self.name = 'ZMQ_TEST'
+    with open(filename, "w") as fh:
+      fh.write('EIGERSTREAM')
+
+    # Initialize ZMQ stream listener
+    self.stream = ZMQStream(
+      name = self.name,
+      host=self.host,
+      port=self.port,
+      socket_type=self.args.stype)
+
+
+    start = time.time()
+    try:
+      fstart = time.time()
+      if self.args.stype.lower() == 'req':
+        self.stream.send(b"Hello")
+      frames = self.stream.receive()
+      fel = time.time() - fstart
+    except Exception as exp:
+      print ('DEBUG: {} CONNECT FAILED! {}'.format(self.name, exp))
+      continue
+    data = self.make_data_dict(frames)
+    info = {
+      'proc_name' : self.name,
+      'run_no'    : data[0],
+      'frame_idx' : data[1],
+      'beamXY'    : (0, 0),
+      'dist'      : 0,
+      'n_spots': 0,
+      'hres': 99.0,
+      'n_indexed': 0,
+      'sg': 'NA',
+      'uc': 'NA',
+      'spf_error': '',
+      'idx_error': '',
+      'rix_error': '',
+      'img_error': '',
+      'prc_error': '',
+      'comment'  : '',
+    }
+    if data[1] == -1:
+      info['img_error'] = data[3]
+    else:
+      info = self.process(info, frame=data[2], filename=filename)
+    elapsed = time.time() - start
+    time_info = {
+      'total_time'   : elapsed,
+      'receive_time' : fel
+    }
+    info.update(time_info)
+    print ('*** TESTING ZMQ READER ***')
+    for key, value in info:
+      print (key, ' = ', value)
+
+# Unit test for ZMQ Reader
+if __name__ == '__main__':
+  from interceptor.command_line.connector_run_mpi import parse_command_args
+  args, _ = parse_command_args().parse_known_args()
+  reader = TestReader(args=args)
+  reader.run()

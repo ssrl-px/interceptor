@@ -71,7 +71,7 @@ indexing {
   }
   stills {
     indexer = Auto *stills sequences
-    method_list = fft1d real_space_grid_search fft3d
+    method_list = fft1d real_space_grid_search
   }
   basis_vector_combinations {
     max_combinations = 10
@@ -271,7 +271,7 @@ class FastProcessor(Processor):
           observed = flex.reflection_table.from_observations(
             experiments, spf_params)
           spf_time = time.time() - spf_start
-          info['comment'] = 'Spf time: {:.2f} sec'.format(spf_time)
+          info['comment'] = 'Spf time: {:.4f} sec'.format(spf_time)
         else:
           observed = self.find_spots(experiments)
         if len(observed) == 0:
