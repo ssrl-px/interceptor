@@ -342,22 +342,23 @@ class TestReader(Reader):
     self.port      = self.args.port
 
   def run(self):
-    # Write eiger_#.stream file
+    print('*** TESTING ZMQ READER ***')
+
+    print ('Writing eiger_#.stream file')
     eiger_idx = self.rank
     filename = 'eiger_test_0.stream'.format(eiger_idx)
     self.name = 'ZMQ_TEST'
     with open(filename, "w") as fh:
       fh.write('EIGERSTREAM')
 
-    # Initialize ZMQ stream listener
+    print ('initializing ZMQStream listener')
     self.stream = ZMQStream(
       name = self.name,
       host=self.host,
       port=self.port,
       socket_type=self.args.stype)
 
-    print('*** TESTING ZMQ READER ***')
-
+    print ('listening...')
     while True:
       start = time.time()
       try:
