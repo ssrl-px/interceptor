@@ -312,7 +312,7 @@ class Collector(ConnectorBase):
             # print ("  DEBUG: BEAM X = {:.2f}, Y = {:.2f}, DIST = {:.2f}".format(
             #   info['beamXY'][0], info['beamXY'][1], info['dist']
             # ))
-            print ('  TIME: recv = {:.2f} sec, proc = {:.2f} sec,'
+            print ('  TIME: recv = {:.2f} sec, proc = {} ,'
                    ' total = {:.2f} sec'.format(
               info['receive_time'], info['proc_time'], info['total_time']))
             print ('***\n')
