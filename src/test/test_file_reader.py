@@ -2,11 +2,27 @@ import os
 import time
 import argparse
 
+from iotbx.phil import parse as ip
 from dxtbx.model.experiment_list import ExperimentListFactory
+from dials.array_family import flex
 
 from interceptor.format import FormatEigerStreamSSRL
 from interceptor.connector.processor import FastProcessor
 
+
+# Custom PHIL for spotfinding only
+from dials.command_line.find_spots import phil_scope as spf_scope
+spf_params_string = '''
+spotfinder {
+  threshold {
+    use_trusted_range = False
+    algorithm = *dispersion dispersion_extended
+    dispersion {
+      gain = 1
+    }
+  }
+}
+'''
 
 def parse_test_args():
   """ Parses command line arguments (only options for now) """
@@ -17,6 +33,9 @@ def parse_test_args():
   parser.add_argument(
     'path', type=str, nargs='?',
     help='Path to test files')
+  parser.add_argument(
+    '--phil', type=str, nargs='?', default=None,
+    help='Processing parameter file (for flex only)')
   parser.add_argument(
     '--prefix', type=str, nargs='?', default='zmq',
     help='Filename prefix (as in <prefix>_<number>_<part>')
@@ -36,10 +55,23 @@ def parse_test_args():
   return parser
 
 
+def make_phil(phil_file=None):
+  if phil_file:
+    with open(phil_file, 'r') as pf:
+      spf_phil = ip.parse(pf.read())
+  else:
+    spf_phil = ip.parse(spf_params_string)
+  spf_params = spf_scope.fetch(source=spf_phil).extract()
+
+  diff_phil = spf_scope.fetch_diff(source=spf_phil).show()
+
+  return spf_params
+
+
 def test_file_reader(args):
   processor = FastProcessor(
     last_stage=args.last_stage,
-    test=args.flex
+    # test=args.flex
   )
   data = {}
   filepath = '{}_{}'.format(args.prefix, args.number)
@@ -87,14 +119,22 @@ def test_file_reader(args):
   FormatEigerStreamSSRL.inject_data(data)
   exp = ExperimentListFactory.from_filenames([filename])
 
-  start = time.time()
-  info = processor.run(exp, info)
-  proc_time = time.time() - start
-
-  for key, item in info.items():
-    print (key, ' --> ', item)
-
-  print ("PROCESSOR TIME = {:.4f} seconds".format(proc_time))
+  if args.flex:
+    print ("Flex testing")
+    spf_params = make_phil(args.phil)
+    spf_start = time.time()
+    observed = flex.reflection_table.from_observations(
+      exp, spf_params)
+    spf_time = time.time() - spf_start
+    print ("{} reflections found".format(len(observed)))
+    print('Spf time: {:.4f} sec'.format(spf_time))
+  else:
+    print ('FastProcessor testing')
+    prc_start = time.time()
+    info = processor.run(exp, info)
+    proc_time = time.time() - prc_start
+    print ("{} reflections found".format(info['n_spots']))
+    print('Proc time: {:.4f} sec'.format(proc_time))
 
 
 # Unit test for ZMQ Reader
