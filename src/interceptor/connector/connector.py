@@ -342,8 +342,6 @@ class TestReader(Reader):
     self.port      = self.args.port
 
   def run(self):
-    print('*** TESTING ZMQ READER ***')
-
     print ('Writing eiger_#.stream file')
     eiger_idx = self.rank
     filename = 'eiger_test_0.stream'.format(eiger_idx)
@@ -402,8 +400,11 @@ class TestReader(Reader):
       for key, value in info:
         print (key, ' = ', value)
 
+
 # Unit test for ZMQ Reader
 if __name__ == '__main__':
+  print('*** TESTING ZMQ READER ***')
+
   from interceptor.command_line.connector_run_mpi import parse_command_args
   args, _ = parse_command_args().parse_known_args()
   reader = TestReader(args=args)
