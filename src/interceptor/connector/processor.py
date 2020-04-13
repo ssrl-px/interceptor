@@ -265,6 +265,7 @@ class FastProcessor(Processor):
         if self.test:
           observed = flex.reflection_table.from_observations(
             experiments, spf_params)
+          info['spf_error'] = 'Testing spotfinding...'
         else:
           observed = self.find_spots(experiments)
         if len(observed) == 0:
