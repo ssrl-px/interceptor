@@ -42,7 +42,7 @@ class ConnectorBase():
         paramfile=None)
       processor = IOTAProcessor(info, iparams, last_stage=args.last_stage)
     else:
-      processor = FastProcessor(last_stage=args.last_stage)
+      processor = FastProcessor(last_stage=args.last_stage, test=args.test)
     return processor
 
   def initialize_process(self):

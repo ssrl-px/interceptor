@@ -25,6 +25,22 @@ from iota.components.iota_image import ImageImporter
 from iota.components.iota_processing import IOTAImageProcessor
 from iota.components.iota_utils import Capturing
 
+# For debugging purposes
+# Custom PHIL for spotfinding only
+from dials.command_line.find_spots import phil_scope as spf_scope
+spf_params_string = '''
+spotfinder {
+  threshold {
+    algorithm = *dispersion dispersion_extended
+    dispersion {
+      gain = 1
+    }
+  }
+}
+'''
+spf_phil = ip.parse(spf_params_string)
+spf_params = spf_scope.fetch(source=spf_phil).extract()
+
 # Custom PHIL for processing with DIALS stills processor
 custom_params = '''
 output {
@@ -136,9 +152,10 @@ class IOTAProcessor(object):
 
 
 class FastProcessor(Processor):
-  def __init__(self, last_stage='spotfinding', min_Bragg=10):
+  def __init__(self, last_stage='spotfinding', min_Bragg=10, test=False):
     self.last_stage = last_stage
     self.min_Bragg = min_Bragg
+    self.test = test
     params, self.dials_phil = self.generate_params()
     Processor.__init__(self, params=params)
 
@@ -245,7 +262,11 @@ class FastProcessor(Processor):
     # Spotfinding
     with Capturing() as spf_output:
       try:
-        observed = self.find_spots(experiments)
+        if self.test:
+          observed = flex.reflection_table.from_observations(
+            experiments, spf_params)
+        else:
+          observed = self.find_spots(experiments)
         if len(observed) == 0:
           info['spf_error'] = 'spotfinding error: no spots found!'
       except Exception as err:

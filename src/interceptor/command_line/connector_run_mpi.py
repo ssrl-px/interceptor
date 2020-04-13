@@ -155,7 +155,7 @@ def entry_point():
         working_directory=os.curdir)
     except KeyboardInterrupt:
       print ('\n*** Terminated with KeyboardInterrupt')
-      if args.time:
+      if args.time and times:
         print ('*** Total processing time: {:.2f} sec'.format(times[-1]))
         print ('*** Rate ({} images): {:.2f} Hz'.format(
           len(times), len(times)/times[-1]))
