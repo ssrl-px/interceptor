@@ -333,14 +333,13 @@ class Collector(ConnectorBase):
 
 
 class TestReader(Reader):
+  def __init__(self, args, comm=None):
+    super(TestReader, self).__init__(name='zmq_test', comm=comm, args=args)
 
   def initialize_process(self):
-    # Generate params, args, etc. if process rank id = 0
-    processor  = self.generate_processor(self.args)
-    info = dict(processor=processor,
-                args=self.args,
-                host=self.args.host,
-                port=self.args.port)
+    self.processor = self.generate_processor(self.args)
+    self.host      = self.args.host
+    self.port      = self.args.port
 
   def run(self):
     # Write eiger_#.stream file
