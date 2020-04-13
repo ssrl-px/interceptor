@@ -265,7 +265,7 @@ class FastProcessor(Processor):
         if self.test:
           observed = flex.reflection_table.from_observations(
             experiments, spf_params)
-          info['spf_error'] = 'Testing spotfinding...'
+          info['comment'] = 'Testing spotfinding...'
         else:
           observed = self.find_spots(experiments)
         if len(observed) == 0:
@@ -274,25 +274,31 @@ class FastProcessor(Processor):
         info['spf_error'] = 'spotfinding error: {}'.format(str(err))
         return info
       else:
-        experiment = experiments[0]
-        refl = observed.select(observed["id"] == 0)
-        refl.centroid_px_to_mm([experiment])
-        refl.map_centroids_to_reciprocal_space([experiment])
-        stats = per_image_analysis.stats_per_image(experiment, refl)
-        info['n_spots'] = stats.n_spots_no_ice[0]
-        info['hres'] = stats.estimated_d_min[0]
+        info['n_spots'] = len(observed)
+        info['hres'] = self.calculate_resolution_from_spotfinding(
+          observed=observed,
+          experiments=experiments
+        )
 
-        # Get (and print) information from experiments
-        try:
-          imgset = experiments.imagesets()[0]
-          beam = imgset.get_beam()
-          s0 = beam.get_s0()
-          detector = imgset.get_detector()[0]
-          info['beamXY'] = detector.get_beam_centre_px(s0)
-          info['dist'] = detector.get_distance()
-        except Exception as err:
-          info['img_error'] = 'Could not get beam center coords: {}' \
-                              ''.format(str(err))
+        # experiment = experiments[0]
+        # refl = observed.select(observed["id"] == 0)
+        # refl.centroid_px_to_mm([experiment])
+        # refl.map_centroids_to_reciprocal_space([experiment])
+        # stats = per_image_analysis.stats_per_image(experiment, refl)
+        # info['n_spots'] = stats.n_spots_no_ice[0]
+        # info['hres'] = stats.estimated_d_min[0]
+        #
+        # # Get (and print) information from experiments
+        # try:
+        #   imgset = experiments.imagesets()[0]
+        #   beam = imgset.get_beam()
+        #   s0 = beam.get_s0()
+        #   detector = imgset.get_detector()[0]
+        #   info['beamXY'] = detector.get_beam_centre_px(s0)
+        #   info['dist'] = detector.get_distance()
+        # except Exception as err:
+        #   info['img_error'] = 'Could not get beam center coords: {}' \
+        #                       ''.format(str(err))
 
     # if last stage was selected to be "spotfinding", stop here
     if self.last_stage == 'spotfinding' or info['n_spots'] <= self.min_Bragg:

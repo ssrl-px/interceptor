@@ -145,16 +145,22 @@ class Reader(ConnectorBase):
   def process(self, info, frame, filename):
     start = time.time()
     try:
+      s_exp = time.time()
       experiments = self.make_experiments(filename, frame)
+      time_exp = time.time() - s_exp
     except Exception as exp:
       print ("CONNECTOR ERROR: Could not create ExperimentList object.\n  {}"
              "".format(exp))
       experiments = None
     if experiments:
+      s_proc = time.time()
       info = self.processor.run(experiments=experiments, info=info)
+      time_proc = time.time() - s_proc
     else:
       info['prc_error'] = 'EXPERIMENT ERROR: ExperimentList a NoneType object'
-    info['proc_time'] = time.time() - start
+    info['proc_time'] = 'exp. = {:.2f} sec, proc. = {:.2f} sec'.format(
+      time_exp, time_proc
+    )
     return info
 
   def run(self):
@@ -191,41 +197,36 @@ class Reader(ConnectorBase):
       except Exception as exp:
         print ('DEBUG: {} CONNECT FAILED! {}'.format(self.name, exp))
         continue
-      if False:
-      # if self.args.test:
-        for idx, frame in enumerate(frames):
-          if len(frame.bytes) < 10000:
-            print ('debug: {}: {}'.format(idx, frame.bytes))
+      data = self.make_data_dict(frames)
+      info = {
+        'proc_name' : self.name,
+        'run_no'    : data[0],
+        'frame_idx' : data[1],
+        'beamXY'    : (0, 0),
+        'dist'      : 0,
+        'n_spots': 0,
+        'hres': 99.0,
+        'n_indexed': 0,
+        'sg': 'NA',
+        'uc': 'NA',
+        'spf_error': '',
+        'idx_error': '',
+        'rix_error': '',
+        'img_error': '',
+        'prc_error': '',
+        'comment'  : '',
+      }
+      if data[1] == -1:
+        info['img_error'] = data[3]
       else:
-        data = self.make_data_dict(frames)
-        info = {
-          'proc_name' : self.name,
-          'run_no'    : data[0],
-          'frame_idx' : data[1],
-          'beamXY'    : (0, 0),
-          'dist'      : 0,
-          'n_spots': 0,
-          'hres': 99.0,
-          'n_indexed': 0,
-          'sg': 'NA',
-          'uc': 'NA',
-          'spf_error': '',
-          'idx_error': '',
-          'rix_error': '',
-          'img_error': '',
-          'prc_error': ''
-        }
-        if data[1] == -1:
-          info['img_error'] = data[3]
-        else:
-          info = self.process(info, frame=data[2], filename=filename)
-        elapsed = time.time() - start
-        time_info = {
-          'total_time'   : elapsed,
-          'receive_time' : fel
-        }
-        info.update(time_info)
-        uplink.send_json(info)
+        info = self.process(info, frame=data[2], filename=filename)
+      elapsed = time.time() - start
+      time_info = {
+        'total_time'   : elapsed,
+        'receive_time' : fel
+      }
+      info.update(time_info)
+      uplink.send_json(info)
 
       # If frame processing fits within specified interval, sleep for the
       # remainder of that interval; otherwise (or if args.interval == 0) don't
@@ -282,7 +283,8 @@ class Collector(ConnectorBase):
             info['spf_error'],
             info['idx_error'],
             info['rix_error'],
-            info['prc_error']
+            info['prc_error'],
+            info['comment'],
           ]
           errors = ';'.join([i for i in err_list if i != ''])
           ui_msg = '{0} {1} {2} {3} {4} ' \
@@ -307,9 +309,9 @@ class Collector(ConnectorBase):
             print ('*** ({}) RUN {}, FRAME {}:'.format(
               info['proc_name'], info['run_no'], info['frame_idx']))
             print ("  {}".format(ui_msg))
-            print ("  DEBUG: BEAM X = {:.2f}, Y = {:.2f}, DIST = {:.2f}".format(
-              info['beamXY'][0], info['beamXY'][1], info['dist']
-            ))
+            # print ("  DEBUG: BEAM X = {:.2f}, Y = {:.2f}, DIST = {:.2f}".format(
+            #   info['beamXY'][0], info['beamXY'][1], info['dist']
+            # ))
             print ('  TIME: recv = {:.2f} sec, proc = {:.2f} sec,'
                    ' total = {:.2f} sec'.format(
               info['receive_time'], info['proc_time'], info['total_time']))
