@@ -124,10 +124,12 @@ def test_file_reader(args):
   FormatEigerStreamSSRL.inject_data(data)
   exp = ExperimentListFactory.from_filenames([filename])
 
+  if args.flex:
+    spf_params = make_phil(args.phil)
+
   times = []
   for i in range(args.repeat):
     if args.flex:
-      spf_params = make_phil(args.phil)
       t_start = time.time()
       observed = flex.reflection_table.from_observations(
         exp, spf_params)
