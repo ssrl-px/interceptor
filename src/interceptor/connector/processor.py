@@ -280,19 +280,19 @@ class FastProcessor(Processor):
         info['spf_error'] = 'spotfinding error: {}'.format(str(err))
         return info
       else:
-        info['n_spots'] = len(observed)
-        info['hres'] = self.calculate_resolution_from_spotfinding(
-          observed=observed,
-          experiments=experiments
-        )[1]
+        # info['n_spots'] = len(observed)
+        # info['hres'] = self.calculate_resolution_from_spotfinding(
+        #   observed=observed,
+        #   experiments=experiments
+        # )[1]
 
-        # experiment = experiments[0]
-        # refl = observed.select(observed["id"] == 0)
-        # refl.centroid_px_to_mm([experiment])
-        # refl.map_centroids_to_reciprocal_space([experiment])
-        # stats = per_image_analysis.stats_per_image(experiment, refl)
-        # info['n_spots'] = stats.n_spots_no_ice[0]
-        # info['hres'] = stats.estimated_d_min[0]
+        experiment = experiments[0]
+        refl = observed.select(observed["id"] == 0)
+        refl.centroid_px_to_mm([experiment])
+        refl.map_centroids_to_reciprocal_space([experiment])
+        stats = per_image_analysis.stats_per_image(experiment, refl)
+        info['n_spots'] = stats.n_spots_no_ice[0]
+        info['hres'] = stats.estimated_d_min[0]
         #
         # # Get (and print) information from experiments
         # try:
