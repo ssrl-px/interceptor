@@ -2,7 +2,7 @@ import os
 import time
 import argparse
 
-from iotbx.phil import parse as ip
+from iotbx import phil as ip
 from dxtbx.model.experiment_list import ExperimentListFactory
 from dials.array_family import flex
 
