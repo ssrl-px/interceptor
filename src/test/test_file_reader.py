@@ -126,12 +126,12 @@ def test_file_reader(args):
 
   if args.flex:
     spf_params = make_phil(args.phil)
-    t_start = time.time()
+    s_start = time.time()
     observed = flex.reflection_table.from_observations(
       exp, spf_params)
-    proc_time = time.time() - t_start
+    spf_time = time.time() - s_start
     print("{} spots found".format(len(observed)))
-    print("Processing time: {:.2f} seconds".format(proc_time))
+    print("Processing time: {:.2f} seconds".format(spf_time))
   else:
     t_start = time.time()
     info = processor.run(exp, info)
