@@ -451,10 +451,14 @@ def test_file_reader(args):
   FormatStream.inject_data(data)
   exp = ExperimentListFactory.from_filenames([filename])
 
+  start = time.time()
   info = processor.run(exp, info)
+  proc_time = time.time() - start
 
   for key, item in info.items():
     print (key, ' --> ', item)
+
+  print ("PROCESSOR TIME = {:.4f} seconds".format(proc_time))
 
 
 # Unit test for ZMQ Reader
