@@ -1,7 +1,6 @@
 import os
 import time
 import argparse
-import numpy as np
 
 from iotbx import phil as ip
 from dxtbx.model.experiment_list import ExperimentListFactory
@@ -66,8 +65,6 @@ def make_phil(phil_file=None):
       diff_phil = spf_scope.fetch_diff(source=spf_phil).show()
   else:
     spf_phil = ip.parse(spf_params_string)
-    diff_phil = spf_scope.fetch(source=spf_phil).show()
-
   spf_params = spf_scope.fetch(source=spf_phil).extract()
 
   return spf_params
