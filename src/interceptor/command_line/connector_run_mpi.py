@@ -89,49 +89,74 @@ def parse_command_args():
   return parser
 
 
-def entry_point():
-  args, _ = parse_command_args().parse_known_args()
-
+def understand_args(args, as_text=True):
   # parse presets if appropriate
-  connector_commands = ['connector']
+  if as_text:
+    connector_commands = ['connector']
   if args.beamline:
     host, port = presets['beamlines'].extract(args.beamline)
   else:
     host = args.host
     port = args.port
-  connector_commands.extend(
-    [
-      '--host', host,
-      '--port', port,
-      '--stype', 'req',
-    ]
-  )
+  if as_text:
+    connector_commands.extend(
+      [
+        '--host', host,
+        '--port', port,
+        '--stype', 'req',
+      ]
+    )
+  else:
+    args.host = host
+    args.port = port
+    args.stype = 'req'
+
   if args.experiment:
     n_proc, last_stage = presets['experiments'].extract(args.experiment)
   else:
     n_proc = args.n_proc
     last_stage = args.last_stage
-  connector_commands.extend(['--last_stage', last_stage])
+  if as_text:
+    connector_commands.extend(['--last_stage', last_stage])
+  else:
+    args.n_proc = n_proc
+    args.last_stage = last_stage
+
   if args.ui:
     uihost, uiport = presets['ui'].extract(args.ui)
-    connector_commands.extend(
-      [
-        '--uihost', uihost,
-        '--uiport', uiport,
-        '--uistype', 'push',
-      ])
+    if as_text:
+      connector_commands.extend(
+        [
+          '--uihost', uihost,
+          '--uiport', uiport,
+          '--uistype', 'push',
+        ])
+    else:
+      args.uihost = uihost
+      args.uiport = uiport
+      args.uistype = 'push'
 
-  for arg, value in vars(args).items():
-    if '--{}'.format(arg) not in connector_commands and \
-            arg not in ['beamline', 'experiment', 'ui', 'n_proc']:
-      if value:
-        if value is True:
-          cmd_list = ['--{}'.format(arg)]
-        else:
-          cmd_list = ['--{}'.format(arg), value]
-        connector_commands.extend(cmd_list)
+  if as_text:
+    for arg, value in vars(args).items():
+      if '--{}'.format(arg) not in connector_commands and \
+              arg not in ['beamline', 'experiment', 'ui', 'n_proc']:
+        if value:
+          if value is True:
+            cmd_list = ['--{}'.format(arg)]
+          else:
+            cmd_list = ['--{}'.format(arg), value]
+          connector_commands.extend(cmd_list)
+
+  if as_text:
+    return connector_commands
+  else:
+    return args
+
+def entry_point():
+  args, _ = parse_command_args().parse_known_args()
 
   # mpi command
+  connector_commands = understand_args(args)
   command = list(map(
     str, ['mpirun',
           '--map-by', 'core',

@@ -407,7 +407,13 @@ class TestReader(Reader):
 if __name__ == '__main__':
   print('*** TESTING ZMQ READER ***')
 
-  from interceptor.command_line.connector_run_mpi import parse_command_args
+  from interceptor.command_line.connector_run_mpi import parse_command_args, \
+    understand_args
   args, _ = parse_command_args().parse_known_args()
+  args = understand_args(args)
+
+  print ('host = ', args.host)
+  print ('port = ', args.port)
+
   reader = TestReader(args=args)
   reader.run()
