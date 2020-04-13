@@ -191,7 +191,8 @@ class Reader(ConnectorBase):
       except Exception as exp:
         print ('DEBUG: {} CONNECT FAILED! {}'.format(self.name, exp))
         continue
-      if self.args.test:
+      if False:
+      # if self.args.test:
         for idx, frame in enumerate(frames):
           if len(frame.bytes) < 10000:
             print ('debug: {}: {}'.format(idx, frame.bytes))
