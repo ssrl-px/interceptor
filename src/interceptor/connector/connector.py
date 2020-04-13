@@ -144,23 +144,22 @@ class Reader(ConnectorBase):
 
   def process(self, info, frame, filename):
     start = time.time()
+    s_exp = time.time()
     try:
-      s_exp = time.time()
       experiments = self.make_experiments(filename, frame)
-      time_exp = time.time() - s_exp
     except Exception as exp:
       print ("CONNECTOR ERROR: Could not create ExperimentList object.\n  {}"
              "".format(exp))
       experiments = None
+    time_exp = time.time() - s_exp
+    s_proc = time.time()
     if experiments:
-      s_proc = time.time()
       info = self.processor.run(experiments=experiments, info=info)
-      time_proc = time.time() - s_proc
     else:
       info['prc_error'] = 'EXPERIMENT ERROR: ExperimentList a NoneType object'
-    info['proc_time'] = 'exp. = {:.2f} sec, proc. = {:.2f} sec'.format(
-      time_exp, time_proc
-    )
+    time_proc = time.time() - s_proc
+    info['proc_time'] = time_proc
+    info['expr_time'] = time_exp
     return info
 
   def run(self):
@@ -215,6 +214,8 @@ class Reader(ConnectorBase):
         'img_error': '',
         'prc_error': '',
         'comment'  : '',
+        'time_proc': 0,
+        'time_expr': 0,
       }
       if data[1] == -1:
         info['img_error'] = data[3]
@@ -312,9 +313,15 @@ class Collector(ConnectorBase):
             # print ("  DEBUG: BEAM X = {:.2f}, Y = {:.2f}, DIST = {:.2f}".format(
             #   info['beamXY'][0], info['beamXY'][1], info['dist']
             # ))
-            print ('  TIME: recv = {:.2f} sec, proc = {} ,'
-                   ' total = {:.2f} sec'.format(
-              info['receive_time'], info['proc_time'], info['total_time']))
+            print (
+              '  TIME: recv = {:.2f} sec, exp = {:.2f}, proc = {:.2f} ,'
+              ' total = {:.2f} sec'.format(
+                info['receive_time'],
+                info['expr_time'],
+                info['proc_time'],
+                info['total_time'],
+              ),
+            )
             print ('***\n')
 
           # send string to UI (DHS and/or Interceptor GUI)
