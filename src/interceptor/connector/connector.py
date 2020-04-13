@@ -143,7 +143,6 @@ class Reader(ConnectorBase):
     return [run_no, idx, data, msg]
 
   def process(self, info, frame, filename):
-    start = time.time()
     s_exp = time.time()
     try:
       experiments = self.make_experiments(filename, frame)
@@ -151,13 +150,13 @@ class Reader(ConnectorBase):
       print ("CONNECTOR ERROR: Could not create ExperimentList object.\n  {}"
              "".format(exp))
       experiments = None
-    time_exp = time.time() - s_exp
+    time_exp = float(time.time() - s_exp)
     s_proc = time.time()
     if experiments:
       info = self.processor.run(experiments=experiments, info=info)
     else:
       info['prc_error'] = 'EXPERIMENT ERROR: ExperimentList a NoneType object'
-    time_proc = time.time() - s_proc
+    time_proc = float(time.time() - s_proc)
     info['proc_time'] = time_proc
     info['expr_time'] = time_exp
     return info
