@@ -346,8 +346,7 @@ class TestReader(Reader):
 
   def run(self):
     print ('Writing eiger_#.stream file')
-    eiger_idx = self.rank
-    filename = 'eiger_test_0.stream'.format(eiger_idx)
+    filename = 'eiger_test_0.stream'
     self.name = 'ZMQ_TEST'
     with open(filename, "w") as fh:
       fh.write('EIGERSTREAM')
