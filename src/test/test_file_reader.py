@@ -1,6 +1,7 @@
 import os
 import time
 import argparse
+import numpy as np
 
 from iotbx import phil as ip
 from dxtbx.model.experiment_list import ExperimentListFactory
@@ -52,6 +53,9 @@ def parse_test_args():
     '--flex', action='store_true', default=False,
     help='Perform spotfinding with flex'
   )
+  parser.add_argument(
+    '--repeat', type=int, nargs='?', default=0,
+    help='Number of times to repeat the trial (average time will be reported)')
   return parser
 
 
@@ -120,22 +124,25 @@ def test_file_reader(args):
   FormatEigerStreamSSRL.inject_data(data)
   exp = ExperimentListFactory.from_filenames([filename])
 
-  if args.flex:
-    print ("Flex testing")
-    spf_params = make_phil(args.phil)
-    spf_start = time.time()
-    observed = flex.reflection_table.from_observations(
-      exp, spf_params)
-    spf_time = time.time() - spf_start
-    print ("{} reflections found".format(len(observed)))
-    print('Spf time: {:.4f} sec'.format(spf_time))
-  else:
-    print ('FastProcessor testing')
-    prc_start = time.time()
-    info = processor.run(exp, info)
-    proc_time = time.time() - prc_start
-    print ("{} reflections found".format(info['n_spots']))
-    print('Proc time: {:.4f} sec'.format(proc_time))
+  times = []
+  for i in range(args.repeat):
+    if args.flex:
+      spf_params = make_phil(args.phil)
+      t_start = time.time()
+      observed = flex.reflection_table.from_observations(
+        exp, spf_params)
+      proc_time = time.time() - t_start
+      n_spots = len(observed)
+    else:
+      t_start = time.time()
+      info = processor.run(exp, info)
+      proc_time = time.time() - t_start
+      n_spots = info['n_spots']
+    print ('trial {}: {:.2f} sec'.format(i, proc_time))
+    times.append(proc_time)
+
+  print ("{} spots found".format(n_spots))
+  print('Proc time: {:.4f} sec'.format(np.mean(times)))
 
 
 # Unit test for ZMQ Reader
