@@ -65,6 +65,8 @@ def make_phil(phil_file=None):
       diff_phil = spf_scope.fetch_diff(source=spf_phil).show()
   else:
     spf_phil = ip.parse(spf_params_string)
+    diff_phil = spf_scope.fetch(source=spf_phil).show()
+
   spf_params = spf_scope.fetch(source=spf_phil).extract()
 
   return spf_params
@@ -123,20 +125,26 @@ def test_file_reader(args):
 
   if args.flex:
     spf_params = make_phil(args.phil)
-    s_start = time.time()
-    observed = flex.reflection_table.from_observations(
-      exp, spf_params)
-    spf_time = time.time() - s_start
-    print("{} spots found".format(len(observed)))
-    print("Processing time: {:.2f} seconds".format(spf_time))
-  else:
-    t_start = time.time()
-    info = processor.run(exp, info)
-    proc_time = time.time() - t_start
-    print("{} spots found".format(info['n_spots']))
-    print("Processing time: {:.2f} seconds".format(proc_time))
 
+  times = []
+  for i in range(args.repeat):
+    if args.flex:
+      t_start = time.time()
+      observed = flex.reflection_table.from_observations(
+        exp, spf_params)
+      proc_time = time.time() - t_start
+      n_spots = len(observed)
+    else:
+      t_start = time.time()
+      info = processor.run(exp, info)
+      proc_time = time.time() - t_start
+      n_spots = info['n_spots']
+    print("{} spots found".format(n_spots))
+    print ('trial {}: {:.2f} sec'.format(i, proc_time))
+    times.append(proc_time)
 
+  import numpy as np
+  print('Proc time: {:.4f} sec'.format(np.mean(times)))
 
 
 # Unit test for ZMQ Reader
