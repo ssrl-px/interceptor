@@ -278,7 +278,7 @@ class FastProcessor(Processor):
         info['hres'] = self.calculate_resolution_from_spotfinding(
           observed=observed,
           experiments=experiments
-        )
+        )[1]
 
         # experiment = experiments[0]
         # refl = observed.select(observed["id"] == 0)
