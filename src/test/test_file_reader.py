@@ -63,7 +63,7 @@ def make_phil(phil_file=None):
     spf_phil = ip.parse(spf_params_string)
   spf_params = spf_scope.fetch(source=spf_phil).extract()
 
-  diff_phil = spf_scope.fetch_diff(source=spf_phil).show()
+  diff_phil = spf_scope.fetch(source=spf_phil).show()
 
   return spf_params
 
