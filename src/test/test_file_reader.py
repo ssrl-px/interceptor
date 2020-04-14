@@ -141,10 +141,6 @@ def test_file_reader(args):
   print ('Time: {:.2f} sec'.format(proc_time))
 
 
-  import numpy as np
-  print('Proc time: {:.4f} sec'.format(np.mean(times)))
-
-
 # Unit test for ZMQ Reader
 if __name__ == '__main__':
   print('*** TESTING ZMQ READER ***')
