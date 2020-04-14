@@ -23,7 +23,9 @@ from dials.algorithms.indexing.bravais_settings import \
   refined_settings_from_refined_triclinic
 from dials.algorithms.spot_finding import per_image_analysis
 from dials.array_family import flex
+from dxtbx.model.experiment_list import ExperimentListFactory
 
+from interceptor.format import FormatEigerStreamSSRL
 from iota.components.iota_image import ImageImporter
 from iota.components.iota_processing import IOTAImageProcessor
 from iota.components.iota_utils import Capturing
@@ -154,6 +156,29 @@ class IOTAProcessor(object):
   def run(self, experiments, info):
     return self.process(experiments, info)
 
+def find_spots_fast(filename, data, info):
+
+  # make experiments
+  FormatEigerStreamSSRL.inject_data(data)
+  experiments = ExperimentListFactory.from_filenames([filename])
+
+  # find spots
+  spf_start = time.time()
+  observed = flex.reflection_table.from_observations(
+    experiments, spf_params)
+  spf_time = time.time() - spf_start
+  info['comment'] = 'Spf time: {:.4f} sec'.format(spf_time)
+
+  # image analysis
+  experiment = experiments[0]
+  refl = observed.select(observed["id"] == 0)
+  refl.centroid_px_to_mm([experiment])
+  refl.map_centroids_to_reciprocal_space([experiment])
+  stats = per_image_analysis.stats_per_image(experiment, refl)
+  info['n_spots'] = stats.n_spots_no_ice[0]
+  info['hres'] = stats.estimated_d_min[0]
+
+  return info
 
 class FastProcessor(Processor):
   def __init__(self, last_stage='spotfinding', min_Bragg=10, test=False):
