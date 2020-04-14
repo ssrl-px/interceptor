@@ -54,7 +54,10 @@ def parse_test_args():
   )
   parser.add_argument(
     '--repeat', type=int, nargs='?', default=5,
-    help='Number of times to repeat the trial (average time will be reported)')
+    help='Number of times to repeat the trial in timeit')
+  parser.add_argument(
+    '--reproc', type=int, nargs='?', default=5,
+    help='Number of times to repeat the processing within test function')
   return parser
 
 
@@ -77,69 +80,70 @@ def test_file_reader(args):
     last_stage=args.last_stage,
     # test=args.flex
   )
-  data = {}
-  filepath = '{}_{}'.format(args.prefix, args.number)
-  zmq = {
-    "header1": '{}_01.{}'.format(filepath, args.extension),
-    "header2": '{}_02.{}'.format(filepath, args.extension),
-    "streamfile_1": '{}_03.{}'.format(filepath, args.extension),
-    "streamfile_2": '{}_04.{}'.format(filepath, args.extension),
-    "streamfile_3": '{}_05.{}'.format(filepath, args.extension),
-    "streamfile_4": '{}_06.{}'.format(filepath, args.extension),
-  }
-
-  filename = 'eiger_test_0.stream'
-  with open(filename, "w") as fh:
-    fh.write('EIGERSTREAM')
-
-  for key in zmq:
-    fpath = os.path.join(args.path, zmq[key])
-    with open(fpath, "rb") as fh:
-      item = fh.read()
-    if key != 'streamfile_3':
-      data[key] = item[:-1]
-    else:
-      data[key] = item
-
-  info = {
-    'proc_name': 'zmq_test',
-    'run_no': 0,
-    'frame_idx': 0,
-    'beamXY': (0, 0),
-    'dist': 0,
-    'n_spots': 0,
-    'hres': 99.0,
-    'n_indexed': 0,
-    'sg': 'NA',
-    'uc': 'NA',
-    'spf_error': '',
-    'idx_error': '',
-    'rix_error': '',
-    'img_error': '',
-    'prc_error': '',
-    'comment': '',
-  }
-
-  FormatEigerStreamSSRL.inject_data(data)
-  exp = ExperimentListFactory.from_filenames([filename])
-
   if args.flex:
     spf_params = make_phil(args.phil)
 
-  if args.flex:
-    t_start = time.time()
-    observed = flex.reflection_table.from_observations(
-      exp, spf_params)
-    proc_time = time.time() - t_start
-    n_spots = len(observed)
-  else:
-    t_start = time.time()
-    info = processor.run(exp, info)
-    proc_time = time.time() - t_start
-    n_spots = info['n_spots']
-  print("{} spots found".format(n_spots))
-  print ('Time: {:.2f} sec'.format(proc_time))
+  for i in range(args.repeat):
+    data = {}
+    filepath = '{}_{:05d}'.format(args.prefix, i)
+    zmq = {
+      "header1": '{}_01.{}'.format(filepath, args.extension),
+      "header2": '{}_02.{}'.format(filepath, args.extension),
+      "streamfile_1": '{}_03.{}'.format(filepath, args.extension),
+      "streamfile_2": '{}_04.{}'.format(filepath, args.extension),
+      "streamfile_3": '{}_05.{}'.format(filepath, args.extension),
+      "streamfile_4": '{}_06.{}'.format(filepath, args.extension),
+    }
 
+    filename = 'eiger_test_0.stream'
+    with open(filename, "w") as fh:
+      fh.write('EIGERSTREAM')
+
+    for key in zmq:
+      fpath = os.path.join(args.path, zmq[key])
+      with open(fpath, "rb") as fh:
+        item = fh.read()
+      if key != 'streamfile_3':
+        data[key] = item[:-1]
+      else:
+        data[key] = item
+
+    info = {
+      'proc_name': 'zmq_test',
+      'run_no': 0,
+      'frame_idx': 0,
+      'beamXY': (0, 0),
+      'dist': 0,
+      'n_spots': 0,
+      'hres': 99.0,
+      'n_indexed': 0,
+      'sg': 'NA',
+      'uc': 'NA',
+      'spf_error': '',
+      'idx_error': '',
+      'rix_error': '',
+      'img_error': '',
+      'prc_error': '',
+      'comment': '',
+    }
+
+    FormatEigerStreamSSRL.inject_data(data)
+    exp = ExperimentListFactory.from_filenames([filename])
+
+
+    if args.flex:
+      t_start = time.time()
+      observed = flex.reflection_table.from_observations(
+        exp, spf_params)
+      proc_time = time.time() - t_start
+      n_spots = len(observed)
+    else:
+      t_start = time.time()
+      info = processor.run(exp, info)
+      proc_time = time.time() - t_start
+      n_spots = info['n_spots']
+    print("{} spots found".format(n_spots))
+    print ('Trial: {}. Time: {:.2f} sec'.format(i, proc_time))
 
 # Unit test for ZMQ Reader
 if __name__ == '__main__':
@@ -152,8 +156,7 @@ from iota.components.iota_utils import Capturing
 args, _ = parse_test_args().parse_known_args()
 '''
   stmt = '''
-with Capturing() as junk:
-  test_file_reader(args)
+test_file_reader(args)
   '''
 
   import timeit
