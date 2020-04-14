@@ -69,10 +69,12 @@ def make_phil(phil_file=None):
   if phil_file:
     with open(phil_file, 'r') as pf:
       spf_phil = ip.parse(pf.read())
-      diff_phil = spf_scope.fetch_diff(source=spf_phil).show()
+      if args.verbose:
+        diff_phil = spf_scope.fetch_diff(source=spf_phil).show()
   else:
     spf_phil = ip.parse(spf_params_string)
-    diff_phil = spf_scope.fetch(source=spf_phil).show()
+    if args.verbose:
+      diff_phil = spf_scope.fetch(source=spf_phil).show()
 
   spf_params = spf_scope.fetch(source=spf_phil).extract()
 
