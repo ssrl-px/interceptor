@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
   setup = '''
 from __main__ import parse_test_args, test_file_reader
-from iota.components.utils import Capturing
+from iota.components.iota_utils import Capturing
 args, _ = parse_test_args().parse_known_args()
 '''
   stmt = '''
