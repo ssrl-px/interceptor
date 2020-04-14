@@ -59,6 +59,9 @@ def parse_test_args():
   parser.add_argument(
     '--reproc', type=int, nargs='?', default=5,
     help='Number of times to repeat the processing within test function')
+  parser.add_argument(
+    '--verbose', action='store_true', default=False,
+    help='Print output to stdout')
   return parser
 
 
@@ -143,8 +146,10 @@ def test_file_reader(args):
         info = processor.run(exp, info)
         proc_time = time.time() - t_start
         n_spots = info['n_spots']
-    print("{} spots found".format(n_spots))
-    print ('Trial: {}. Time: {:.2f} sec'.format(i, proc_time))
+
+    if args.verbose:
+      print("{} spots found".format(n_spots))
+      print ('Trial: {}. Time: {:.2f} sec'.format(i, proc_time))
 
 # Unit test for ZMQ Reader
 if __name__ == '__main__':
@@ -164,7 +169,8 @@ test_file_reader(args)
   repeats = timeit.repeat(setup=setup, stmt=stmt, repeat=args.repeat, number=1)
 
   import numpy as np
-  for rep in repeats:
-    print ('Trial {}: {:.4f} sec,'.format(repeats.index(rep), rep))
+  if args.verbose:
+    for rep in repeats:
+      print ('Trial {}: {:.4f} sec,'.format(repeats.index(rep), rep))
   print ('Average time from {} trials: {:.4f}'.format(
     args.repeat, np.mean(repeats)))
