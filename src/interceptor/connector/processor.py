@@ -157,26 +157,26 @@ class IOTAProcessor(object):
     return self.process(experiments, info)
 
 def find_spots_fast(filename, data, info):
+  with Capturing as spf_output:
+    # make experiments
+    FormatEigerStreamSSRL.inject_data(data)
+    experiments = ExperimentListFactory.from_filenames([filename])
 
-  # make experiments
-  FormatEigerStreamSSRL.inject_data(data)
-  experiments = ExperimentListFactory.from_filenames([filename])
+    # find spots
+    spf_start = time.time()
+    observed = flex.reflection_table.from_observations(
+      experiments, spf_params)
+    spf_time = time.time() - spf_start
+    info['comment'] = 'Spf time: {:.4f} sec'.format(spf_time)
 
-  # find spots
-  spf_start = time.time()
-  observed = flex.reflection_table.from_observations(
-    experiments, spf_params)
-  spf_time = time.time() - spf_start
-  info['comment'] = 'Spf time: {:.4f} sec'.format(spf_time)
-
-  # image analysis
-  experiment = experiments[0]
-  refl = observed.select(observed["id"] == 0)
-  refl.centroid_px_to_mm([experiment])
-  refl.map_centroids_to_reciprocal_space([experiment])
-  stats = per_image_analysis.stats_per_image(experiment, refl)
-  info['n_spots'] = stats.n_spots_no_ice[0]
-  info['hres'] = stats.estimated_d_min[0]
+    # image analysis
+    experiment = experiments[0]
+    refl = observed.select(observed["id"] == 0)
+    refl.centroid_px_to_mm([experiment])
+    refl.map_centroids_to_reciprocal_space([experiment])
+    stats = per_image_analysis.stats_per_image(experiment, refl)
+    info['n_spots'] = stats.n_spots_no_ice[0]
+    info['hres'] = stats.estimated_d_min[0]
 
   return info
 
