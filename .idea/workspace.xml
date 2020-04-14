@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="4062e2d3-3d94-4dd0-96cb-ffd3a3879a3b" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/src/interceptor/command_line/connector_run_mpi.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/command_line/connector_run_mpi.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interceptor/connector/processor.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/connector/processor.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

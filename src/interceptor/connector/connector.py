@@ -224,6 +224,7 @@ class Reader(ConnectorBase):
         info['img_error'] = data[3]
       else:
         info = find_spots_fast(filename=filename, data=data[2], info=info)
+        print (info)
         # info = self.process(info, frame=data[2], filename=filename)
       elapsed = time.time() - start
       time_info = {
