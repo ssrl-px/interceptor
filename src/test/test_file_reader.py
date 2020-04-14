@@ -96,7 +96,7 @@ def read_file(args, number=1):
     "streamfile_4": '{}_06.{}'.format(filepath, args.extension),
   }
 
-  filename = 'eiger_test_{}.stream'.format(i)
+  filename = 'eiger_test_{}.stream'.format(number)
   with open(filename, "w") as fh:
     fh.write('EIGERSTREAM')
 
