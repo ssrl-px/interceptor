@@ -60,6 +60,9 @@ def parse_test_args():
     '--reproc', type=int, nargs='?', default=5,
     help='Number of times to repeat the processing within test function')
   parser.add_argument(
+    '--timeit', action='store_true', default=False,
+    help='Use timeit to run the test')
+  parser.add_argument(
     '--verbose', action='store_true', default=False,
     help='Print output to stdout')
   return parser
@@ -158,21 +161,24 @@ if __name__ == '__main__':
   print('*** TESTING ZMQ READER ***')
   args, _ = parse_test_args().parse_known_args()
 
-  setup = '''
+  if args.timeit:
+    setup = '''
 from __main__ import parse_test_args, test_file_reader
 from iota.components.iota_utils import Capturing
 args, _ = parse_test_args().parse_known_args()
-'''
-  stmt = '''
-test_file_reader(args)
   '''
+    stmt = '''
+test_file_reader(args)
+    '''
 
-  import timeit
-  repeats = timeit.repeat(setup=setup, stmt=stmt, repeat=args.repeat, number=1)
+    import timeit
+    repeats = timeit.repeat(setup=setup, stmt=stmt, repeat=args.repeat, number=1)
 
-  import numpy as np
-  if args.verbose:
-    for rep in repeats:
-      print ('Trial {}: {:.4f} sec,'.format(repeats.index(rep), rep))
-  print ('Average time from {} trials: {:.4f}'.format(
-    args.repeat, np.mean(repeats)))
+    import numpy as np
+    if args.verbose:
+      for rep in repeats:
+        print ('Trial {}: {:.4f} sec,'.format(repeats.index(rep), rep))
+    print ('Average time from {} trials: {:.4f}'.format(
+      args.repeat, np.mean(repeats)))
+  else:
+    test_file_reader(args)
