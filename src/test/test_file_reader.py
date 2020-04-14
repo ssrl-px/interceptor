@@ -144,8 +144,12 @@ def test_file_reader(args):
 # Unit test for ZMQ Reader
 if __name__ == '__main__':
   print('*** TESTING ZMQ READER ***')
-
   args, _ = parse_test_args().parse_known_args()
 
+  setup = '''
+  from __main__ import parse_test_args, test_file_reader
+  args, _ = parse_test_args().parse_known_args()'''
+  stmt = "test_file_reader(args)"
+
   import timeit
-  timeit.timeit('test_file_reader(args)', number=args.repeat)
+  timeit.timeit(setup=setup, stmt=stmt, number=args.repeat)
