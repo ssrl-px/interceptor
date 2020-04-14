@@ -147,8 +147,9 @@ if __name__ == '__main__':
   args, _ = parse_test_args().parse_known_args()
 
   setup = '''
-  from __main__ import parse_test_args, test_file_reader
-  args, _ = parse_test_args().parse_known_args()'''
+from __main__ import parse_test_args, test_file_reader
+args, _ = parse_test_args().parse_known_args()
+'''
   stmt = "test_file_reader(args)"
 
   import timeit
