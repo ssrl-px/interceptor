@@ -177,7 +177,7 @@ test_file_reader(args)
     if args.verbose:
       for rep in repeats:
         print('Trial {}: {:.4f} sec,'.format(repeats.index(rep), rep))
-    print('{:<3d} : {:<20d} -- avg time ({} trials): {:<3.4f}'.format(
+    print('{:<3d} : {:<10.6f} -- avg time ({} trials): {:<3.4f}'.format(
       rank, time.time(), args.repeat, np.mean(repeats)))
   else:
     print ('\n*** channel # {}'.format(rank))
