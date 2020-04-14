@@ -148,12 +148,19 @@ if __name__ == '__main__':
 
   setup = '''
 from __main__ import parse_test_args, test_file_reader
+from iota.components.utils import Capturing
 args, _ = parse_test_args().parse_known_args()
 '''
-  stmt = "test_file_reader(args)"
+  stmt = '''
+with Capturing() as junk:
+  test_file_reader(args)
+  '''
 
   import timeit
-  repeat = timeit.repeat(setup=setup, stmt=stmt, repeat=args.repeat, number=1)
+  repeats = timeit.repeat(setup=setup, stmt=stmt, repeat=args.repeat, number=1)
 
   import numpy as np
-  print ('Average time from {} trials: {}'.format(args.repeat, np.mean(repeat)))
+  for rep in repeats:
+    print ('Trial {}: {:.4f} sec')
+  print ('Average time from {} trials: {:.4f}'.format(
+    args.repeat, np.mean(repeats)))
