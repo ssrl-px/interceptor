@@ -86,7 +86,7 @@ def test_file_reader(args):
 
   for i in range(args.repeat):
     data = {}
-    filepath = '{}_{:05d}'.format(args.prefix, i+1)
+    filepath = '{}_{:06d}'.format(args.prefix, i+1)
     zmq = {
       "header1": '{}_01.{}'.format(filepath, args.extension),
       "header2": '{}_02.{}'.format(filepath, args.extension),
