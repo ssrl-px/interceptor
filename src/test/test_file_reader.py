@@ -154,5 +154,5 @@ args, _ = parse_test_args().parse_known_args()
 
   import timeit
   print(
-    timeit.timeit(setup=setup, stmt=stmt, number=args.repeat)
+    timeit.repeat(setup=setup, stmt=stmt, repeat=args.repeat, number=1)
   )
