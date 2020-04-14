@@ -84,7 +84,7 @@ def test_file_reader(args):
   if args.flex:
     spf_params = make_phil(args.phil)
 
-  for i in range(args.repeat):
+  for i in range(args.reproc):
     data = {}
     filepath = '{}_{:06d}'.format(args.prefix, i+1)
     zmq = {
@@ -165,6 +165,6 @@ test_file_reader(args)
 
   import numpy as np
   for rep in repeats:
-    print ('Trial {}: {:.4f} sec'.format(repeats.index(rep), rep))
+    print ('Trial {}: {:.4f} sec,'.format(repeats.index(rep), rep))
   print ('Average time from {} trials: {:.4f}'.format(
     args.repeat, np.mean(repeats)))
