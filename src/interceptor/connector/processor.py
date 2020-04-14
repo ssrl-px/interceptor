@@ -158,9 +158,13 @@ class IOTAProcessor(object):
 
 
 def find_spots_fast(info, data, filename):
+  proc_start = time.time()
+
   # make experiments
+  e_start = time.time()
   FormatEigerStreamSSRL.inject_data(data)
   experiments = ExperimentListFactory.from_filenames([filename])
+  info['exp_time'] = time.time() - e_start
 
   # find spots
   try:
@@ -180,6 +184,9 @@ def find_spots_fast(info, data, filename):
     stats = per_image_analysis.stats_per_image(experiment, refl)
     info['n_spots'] = stats.n_spots_no_ice[0]
     info['hres'] = stats.estimated_d_min[0]
+
+  info['prc_time'] = spf_time
+  info['proc_time'] = time.time() - proc_start
   return info
 
 
