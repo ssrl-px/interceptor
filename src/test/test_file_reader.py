@@ -9,6 +9,7 @@ from dials.array_family import flex
 from interceptor.format import FormatEigerStreamSSRL
 from interceptor.connector.processor import FastProcessor
 
+from iota.components.iota_utils import Capturing
 
 # Custom PHIL for spotfinding only
 from dials.command_line.find_spots import phil_scope as spf_scope
@@ -85,7 +86,7 @@ def test_file_reader(args):
 
   for i in range(args.repeat):
     data = {}
-    filepath = '{}_{:05d}'.format(args.prefix, i)
+    filepath = '{}_{:05d}'.format(args.prefix, i+1)
     zmq = {
       "header1": '{}_01.{}'.format(filepath, args.extension),
       "header2": '{}_02.{}'.format(filepath, args.extension),
@@ -127,21 +128,21 @@ def test_file_reader(args):
       'comment': '',
     }
 
-    FormatEigerStreamSSRL.inject_data(data)
-    exp = ExperimentListFactory.from_filenames([filename])
+    with Capturing() as junk:
+      FormatEigerStreamSSRL.inject_data(data)
+      exp = ExperimentListFactory.from_filenames([filename])
 
-
-    if args.flex:
-      t_start = time.time()
-      observed = flex.reflection_table.from_observations(
-        exp, spf_params)
-      proc_time = time.time() - t_start
-      n_spots = len(observed)
-    else:
-      t_start = time.time()
-      info = processor.run(exp, info)
-      proc_time = time.time() - t_start
-      n_spots = info['n_spots']
+      if args.flex:
+        t_start = time.time()
+        observed = flex.reflection_table.from_observations(
+          exp, spf_params)
+        proc_time = time.time() - t_start
+        n_spots = len(observed)
+      else:
+        t_start = time.time()
+        info = processor.run(exp, info)
+        proc_time = time.time() - t_start
+        n_spots = info['n_spots']
     print("{} spots found".format(n_spots))
     print ('Trial: {}. Time: {:.2f} sec'.format(i, proc_time))
 
