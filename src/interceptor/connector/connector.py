@@ -10,13 +10,13 @@ Description : Streaming stills processor for live data analysis
 import os
 import time
 
-# from dxtbx.model.experiment_list import ExperimentListFactory
+from dxtbx.model.experiment_list import ExperimentListFactory
 
 from iota.components.iota_init import initialize_single_image
 from interceptor.connector.processor import find_spots_fast
-# from interceptor.connector.processor import FastProcessor, IOTAProcessor
+from interceptor.connector.processor import FastProcessor, IOTAProcessor
 from interceptor.connector.stream import ZMQStream
-# from interceptor.format import FormatEigerStreamSSRL as FormatStream
+from interceptor.format import FormatEigerStreamSSRL as FormatStream
 
 
 class ConnectorBase():
@@ -223,8 +223,8 @@ class Reader(ConnectorBase):
       if data[1] == -1:
         info['img_error'] = data[3]
       else:
-        info = find_spots_fast(filename=filename, data=data[2], info=info)
-        # info = self.process(info, frame=data[2], filename=filename)
+        # info = find_spots_fast(filename=filename, data=data[2], info=info)
+        info = self.process(info, frame=data[2], filename=filename)
       elapsed = time.time() - start
       time_info = {
         'total_time'   : elapsed,
