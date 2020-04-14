@@ -153,4 +153,6 @@ args, _ = parse_test_args().parse_known_args()
   stmt = "test_file_reader(args)"
 
   import timeit
-  timeit.timeit(setup=setup, stmt=stmt, number=args.repeat)
+  print(
+    timeit.timeit(setup=setup, stmt=stmt, number=args.repeat)
+  )
