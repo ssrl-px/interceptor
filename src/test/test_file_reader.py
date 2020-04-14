@@ -161,7 +161,7 @@ def run_proc(args, data, info, filename, number=1):
 def run_test(args, rank):
   if args.timeit:
     setup = '''
-from __main__ import parse_test_args, test_file_reader
+from __main__ import parse_test_args, read_file, run_proc
 from iota.components.iota_utils import Capturing
 args, _ = parse_test_args().parse_known_args()
 data, info, filename = read_file(args)
