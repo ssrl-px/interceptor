@@ -156,29 +156,43 @@ def test_file_reader(args):
       print("{} spots found".format(n_spots))
       print ('Trial: {}. Time: {:.2f} sec'.format(i, proc_time))
 
+def run_test(args, rank):
+  if args.timeit:
+    setup = '''
+  from __main__ import parse_test_args, test_file_reader
+  from iota.components.iota_utils import Capturing
+  args, _ = parse_test_args().parse_known_args()
+    '''
+    stmt = '''
+  test_file_reader(args)
+      '''
+
+    import timeit
+
+    repeats = timeit.repeat(setup=setup, stmt=stmt, repeat=args.repeat,
+                            number=1)
+
+    import numpy as np
+
+    if args.verbose:
+      for rep in repeats:
+        print('Trial {}: {:.4f} sec,'.format(repeats.index(rep), rep))
+    print('({}) avg time ({} trial(s)): {:.4f}'.format(
+      rank, args.repeat, np.mean(repeats)))
+  else:
+    print ('\n*** channel # {}'.format(rank))
+    test_file_reader(args)
+
 # Unit test for ZMQ Reader
 if __name__ == '__main__':
   print('*** TESTING ZMQ READER ***')
   args, _ = parse_test_args().parse_known_args()
 
-  if args.timeit:
-    setup = '''
-from __main__ import parse_test_args, test_file_reader
-from iota.components.iota_utils import Capturing
-args, _ = parse_test_args().parse_known_args()
-  '''
-    stmt = '''
-test_file_reader(args)
-    '''
+  from mpi4py import MPI
+  comm_world = MPI.COMM_WORLD
+  if comm_world is not None:
+    rank = comm_world.Get_rank()
+    comm_world.barrier()
+    run_test(args, rank)
 
-    import timeit
-    repeats = timeit.repeat(setup=setup, stmt=stmt, repeat=args.repeat, number=1)
 
-    import numpy as np
-    if args.verbose:
-      for rep in repeats:
-        print ('Trial {}: {:.4f} sec,'.format(repeats.index(rep), rep))
-    print ('Average time from {} trials: {:.4f}'.format(
-      args.repeat, np.mean(repeats)))
-  else:
-    test_file_reader(args)
