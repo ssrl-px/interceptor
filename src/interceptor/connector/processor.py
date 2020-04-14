@@ -171,6 +171,7 @@ def find_spots_fast(filename, data, info):
     info['comment'] = 'Spf time: {:.4f} sec'.format(spf_time)
   except Exception as e:
     info['spf_error'] = 'spotfinding error: {}'.format(str(e))
+    return info
   else:
     experiment = experiments[0]
     refl = observed.select(observed["id"] == 0)
@@ -179,7 +180,6 @@ def find_spots_fast(filename, data, info):
     stats = per_image_analysis.stats_per_image(experiment, refl)
     info['n_spots'] = stats.n_spots_no_ice[0]
     info['hres'] = stats.estimated_d_min[0]
-  finally:
     return info
 
 class FastProcessor(Processor):
