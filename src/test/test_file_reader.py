@@ -161,6 +161,6 @@ with Capturing() as junk:
 
   import numpy as np
   for rep in repeats:
-    print ('Trial {}: {:.4f} sec')
+    print ('Trial {}: {:.4f} sec'.format(repeats.index(rep), rep))
   print ('Average time from {} trials: {:.4f}'.format(
     args.repeat, np.mean(repeats)))
