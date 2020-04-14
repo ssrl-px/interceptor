@@ -159,12 +159,12 @@ def test_file_reader(args):
 def run_test(args, rank):
   if args.timeit:
     setup = '''
-  from __main__ import parse_test_args, test_file_reader
-  from iota.components.iota_utils import Capturing
-  args, _ = parse_test_args().parse_known_args()
+from __main__ import parse_test_args, test_file_reader
+from iota.components.iota_utils import Capturing
+args, _ = parse_test_args().parse_known_args()
     '''
     stmt = '''
-  test_file_reader(args)
+test_file_reader(args)
       '''
 
     import timeit
