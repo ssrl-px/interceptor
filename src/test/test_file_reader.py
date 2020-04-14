@@ -177,7 +177,7 @@ test_file_reader(args)
     if args.verbose:
       for rep in repeats:
         print('Trial {}: {:.4f} sec,'.format(repeats.index(rep), rep))
-    print('{} : {} -- avg time ({} trial(s)): {:.4f}'.format(
+    print('{:<3d} : {:<20d} -- avg time ({} trials): {:<3.4f}'.format(
       rank, time.time(), args.repeat, np.mean(repeats)))
   else:
     print ('\n*** channel # {}'.format(rank))
@@ -185,7 +185,6 @@ test_file_reader(args)
 
 # Unit test for ZMQ Reader
 if __name__ == '__main__':
-  print('*** TESTING ZMQ READER ***')
   args, _ = parse_test_args().parse_known_args()
 
   from mpi4py import MPI
