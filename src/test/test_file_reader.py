@@ -148,4 +148,4 @@ if __name__ == '__main__':
   args, _ = parse_test_args().parse_known_args()
 
   import timeit
-  timeit.timeit(test_file_reader(args), number=args.repeat)
+  timeit.timeit('test_file_reader(args)', number=args.repeat)
