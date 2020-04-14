@@ -126,22 +126,20 @@ def test_file_reader(args):
   if args.flex:
     spf_params = make_phil(args.phil)
 
-  times = []
-  for i in range(args.repeat):
-    if args.flex:
-      t_start = time.time()
-      observed = flex.reflection_table.from_observations(
-        exp, spf_params)
-      proc_time = time.time() - t_start
-      n_spots = len(observed)
-    else:
-      t_start = time.time()
-      info = processor.run(exp, info)
-      proc_time = time.time() - t_start
-      n_spots = info['n_spots']
-    print("{} spots found".format(n_spots))
-    print ('trial {}: {:.2f} sec'.format(i, proc_time))
-    times.append(proc_time)
+  if args.flex:
+    t_start = time.time()
+    observed = flex.reflection_table.from_observations(
+      exp, spf_params)
+    proc_time = time.time() - t_start
+    n_spots = len(observed)
+  else:
+    t_start = time.time()
+    info = processor.run(exp, info)
+    proc_time = time.time() - t_start
+    n_spots = info['n_spots']
+  print("{} spots found".format(n_spots))
+  print ('Time: {:.2f} sec'.format(proc_time))
+
 
   import numpy as np
   print('Proc time: {:.4f} sec'.format(np.mean(times)))
@@ -152,4 +150,6 @@ if __name__ == '__main__':
   print('*** TESTING ZMQ READER ***')
 
   args, _ = parse_test_args().parse_known_args()
-  test_file_reader(args)
+
+  import timeit
+  timeit.timeit(test_file_reader(args), number=args.repeat)
