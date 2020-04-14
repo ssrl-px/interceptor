@@ -162,7 +162,7 @@ def find_spots_fast(filename, data, info):
   experiments = ExperimentListFactory.from_filenames([filename])
 
   # find spots
-  with Capturing as spf_output:
+  with Capturing() as spf_output:
     try:
       spf_start = time.time()
       observed = flex.reflection_table.from_observations(
