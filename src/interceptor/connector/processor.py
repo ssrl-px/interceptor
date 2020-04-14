@@ -156,7 +156,8 @@ class IOTAProcessor(object):
   def run(self, experiments, info):
     return self.process(experiments, info)
 
-def find_spots_fast(filename, data, info):
+
+def find_spots_fast(info, data, filename):
   # make experiments
   FormatEigerStreamSSRL.inject_data(data)
   experiments = ExperimentListFactory.from_filenames([filename])
@@ -171,7 +172,6 @@ def find_spots_fast(filename, data, info):
     info['comment'] = 'Spf time: {:.4f} sec'.format(spf_time)
   except Exception as e:
     info['spf_error'] = 'spotfinding error: {}'.format(str(e))
-    return info
   else:
     experiment = experiments[0]
     refl = observed.select(observed["id"] == 0)
@@ -180,7 +180,8 @@ def find_spots_fast(filename, data, info):
     stats = per_image_analysis.stats_per_image(experiment, refl)
     info['n_spots'] = stats.n_spots_no_ice[0]
     info['hres'] = stats.estimated_d_min[0]
-    return info
+  return info
+
 
 class FastProcessor(Processor):
   def __init__(self, last_stage='spotfinding', min_Bragg=10, test=False):
