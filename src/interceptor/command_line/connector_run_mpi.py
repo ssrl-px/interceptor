@@ -93,19 +93,21 @@ def entry_point():
 
   # parse presets if appropriate
   connector_commands = ['connector']
+
+  # Beamline preset
   if args.beamline:
     host, port = presets['beamlines'].extract(args.beamline)
   else:
     host = args.host
     port = args.port
-    connector_commands.extend(
+  connector_commands.extend(
     [
       '--host', host,
       '--port', port,
       '--stype', 'req',
-    ]
-  )
+    ])
 
+  # Experiment preset
   if args.experiment:
     n_proc, last_stage = presets['experiments'].extract(args.experiment)
   else:
@@ -113,6 +115,7 @@ def entry_point():
     last_stage = args.last_stage
   connector_commands.extend(['--last_stage', last_stage])
 
+  # UI preset
   if args.ui:
     uihost, uiport = presets['ui'].extract(args.ui)
     connector_commands.extend(
