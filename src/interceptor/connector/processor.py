@@ -162,25 +162,25 @@ def find_spots_fast(filename, data, info):
   experiments = ExperimentListFactory.from_filenames([filename])
 
   # find spots
-  with Capturing() as spf_output:
-    try:
-      spf_start = time.time()
+  try:
+    spf_start = time.time()
+    with Capturing() as spf_output:
       observed = flex.reflection_table.from_observations(
         experiments, spf_params)
-      spf_time = time.time() - spf_start
-      info['comment'] = 'Spf time: {:.4f} sec'.format(spf_time)
-    except Exception as e:
-      info['spf_error'] = 'spotfinding error: {}'.format(str(e))
-    else:
-      experiment = experiments[0]
-      refl = observed.select(observed["id"] == 0)
-      refl.centroid_px_to_mm([experiment])
-      refl.map_centroids_to_reciprocal_space([experiment])
-      stats = per_image_analysis.stats_per_image(experiment, refl)
-      info['n_spots'] = stats.n_spots_no_ice[0]
-      info['hres'] = stats.estimated_d_min[0]
-    finally:
-      return info
+    spf_time = time.time() - spf_start
+    info['comment'] = 'Spf time: {:.4f} sec'.format(spf_time)
+  except Exception as e:
+    info['spf_error'] = 'spotfinding error: {}'.format(str(e))
+  else:
+    experiment = experiments[0]
+    refl = observed.select(observed["id"] == 0)
+    refl.centroid_px_to_mm([experiment])
+    refl.map_centroids_to_reciprocal_space([experiment])
+    stats = per_image_analysis.stats_per_image(experiment, refl)
+    info['n_spots'] = stats.n_spots_no_ice[0]
+    info['hres'] = stats.estimated_d_min[0]
+  finally:
+    return info
 
 class FastProcessor(Processor):
   def __init__(self, last_stage='spotfinding', min_Bragg=10, test=False):
