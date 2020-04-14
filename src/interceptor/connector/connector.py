@@ -53,8 +53,7 @@ class ConnectorBase():
     # Generate params, args, etc. if process rank id = 0
     if self.rank == 0:
       # args, _ = self.generate_args()
-      # processor  = self.generate_processor(self.args)
-      processor = None
+      processor  = self.generate_processor(self.args)
       info = dict(processor=processor,
                   args=self.args,
                   host=self.args.host,
@@ -223,8 +222,10 @@ class Reader(ConnectorBase):
       if data[1] == -1:
         info['img_error'] = data[3]
       else:
-        # info = find_spots_fast(filename=filename, data=data[2], info=info)
-        info = self.process(info, frame=data[2], filename=filename)
+        if self.args.test:
+          info = find_spots_fast(filename=filename, data=data[2], info=info)
+        else:
+          info = self.process(info, frame=data[2], filename=filename)
       elapsed = time.time() - start
       time_info = {
         'total_time'   : elapsed,

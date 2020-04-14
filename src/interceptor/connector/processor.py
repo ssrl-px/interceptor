@@ -293,14 +293,7 @@ class FastProcessor(Processor):
     # Spotfinding
     with Capturing() as spf_output:
       try:
-        if self.test:
-          spf_start = time.time()
-          observed = flex.reflection_table.from_observations(
-            experiments, spf_params)
-          spf_time = time.time() - spf_start
-          info['comment'] = 'Spf time: {:.4f} sec'.format(spf_time)
-        else:
-          observed = self.find_spots(experiments)
+        observed = self.find_spots(experiments)
         if len(observed) == 0:
           info['spf_error'] = 'spotfinding error: no spots found!'
       except Exception as err:
