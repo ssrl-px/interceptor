@@ -153,6 +153,7 @@ args, _ = parse_test_args().parse_known_args()
   stmt = "test_file_reader(args)"
 
   import timeit
-  print(
-    timeit.repeat(setup=setup, stmt=stmt, repeat=args.repeat, number=1)
-  )
+  repeat = timeit.repeat(setup=setup, stmt=stmt, repeat=args.repeat, number=1)
+
+  import numpy as np
+  print ('Average time from {} trials: {}'.format(args.repeat, np.mean(repeat)))
