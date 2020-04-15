@@ -293,7 +293,7 @@ class Collector(ConnectorBase):
       if info:
         if self.args.record:
           with open(self.args.record, 'a') as rf:
-            rline = '{} {} {}'.format(
+            rline = '{} {} {}\n'.format(
               info['frame_idx'],
               info['t0'],
               info['prc_time']
