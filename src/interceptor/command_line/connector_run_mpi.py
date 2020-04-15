@@ -164,6 +164,15 @@ def entry_point():
         print ('*** Rate ({} images): {:.2f} Hz'.format(
           len(times), len(times)/times[-1]))
       print ('*** Total runtime: {:.2f} sec'.format(time.time()-start))
+      print (' ... deleting temporary files...')
+      curdir = os.path.abspath(os.curdir)
+      temp_files = [
+        f for f in os.listdir(curdir) if os.path.splitext(f)[-1] == "stream"
+      ]
+      for tfile in temp_files:
+        tpath = os.path.join(curdir, tfile)
+        os.remove(tpath)
+      print ('\n~~~ fin ~~~')
 
 
 def get_total_time(ln):
