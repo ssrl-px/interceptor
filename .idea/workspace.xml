@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="4062e2d3-3d94-4dd0-96cb-ffd3a3879a3b" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/test/test_file_reader.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/test_file_reader.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -32,7 +33,7 @@
   </component>
   <component name="PropertiesComponent">
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
-    <property name="settings.editor.selected.configurable" value="preferences.externalTools" />
+    <property name="settings.editor.selected.configurable" value="preferences.keymap" />
   </component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
@@ -71,14 +72,18 @@
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
     <state x="1029" y="542" key="#com.intellij.fileTypes.FileTypeChooser/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586893416716" />
+    <state x="1197" y="547" width="684" height="679" key="#com.intellij.ide.macro.MacrosDialog" timestamp="1586987820213">
+      <screen x="0" y="23" width="2560" height="1417" />
+    </state>
+    <state x="1197" y="547" width="684" height="679" key="#com.intellij.ide.macro.MacrosDialog/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586987820213" />
     <state x="968" y="475" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog" timestamp="1586472978782">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
     <state x="968" y="475" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586472978782" />
-    <state x="1051" y="569" width="717" height="531" key="#com.intellij.tools.ToolEditorDialog" timestamp="1586984938810">
+    <state x="1051" y="569" width="717" height="531" key="#com.intellij.tools.ToolEditorDialog" timestamp="1586987821094">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
-    <state x="1051" y="569" width="717" height="531" key="#com.intellij.tools.ToolEditorDialog/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586984938810" />
+    <state x="1051" y="569" width="717" height="531" key="#com.intellij.tools.ToolEditorDialog/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586987821094" />
     <state x="928" y="332" key="CommitChangelistDialog2" timestamp="1586215002466">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
@@ -91,10 +96,26 @@
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
     <state x="869" y="591" key="FileChooserDialogImpl/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586208820720" />
-    <state x="789" y="370" key="SettingsEditor" timestamp="1586984984581">
+    <state width="1895" height="401" key="GridCell.Tab.0.bottom" timestamp="1586990902558">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
-    <state x="789" y="370" key="SettingsEditor/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586984984581" />
+    <state width="1895" height="401" key="GridCell.Tab.0.bottom/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586990902558" />
+    <state width="1895" height="401" key="GridCell.Tab.0.center" timestamp="1586990902557">
+      <screen x="0" y="23" width="2560" height="1417" />
+    </state>
+    <state width="1895" height="401" key="GridCell.Tab.0.center/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586990902557" />
+    <state width="1895" height="401" key="GridCell.Tab.0.left" timestamp="1586990902556">
+      <screen x="0" y="23" width="2560" height="1417" />
+    </state>
+    <state width="1895" height="401" key="GridCell.Tab.0.left/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586990902556" />
+    <state width="1895" height="401" key="GridCell.Tab.0.right" timestamp="1586990902558">
+      <screen x="0" y="23" width="2560" height="1417" />
+    </state>
+    <state width="1895" height="401" key="GridCell.Tab.0.right/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586990902558" />
+    <state x="860" y="155" key="SettingsEditor" timestamp="1586988159424">
+      <screen x="0" y="23" width="2560" height="1417" />
+    </state>
+    <state x="860" y="155" key="SettingsEditor/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586988159424" />
     <state x="961" y="495" width="637" height="472" key="find.popup" timestamp="1586551494708">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
