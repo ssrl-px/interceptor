@@ -205,6 +205,7 @@ class Reader(ConnectorBase):
         if self.args.verbose:
           print (
             str(frames[2].bytes[:-1])[3:-2],
+            "({})".format(self.name),
             "rcv time: {:.4f} sec".format(fel))
         continue
 
