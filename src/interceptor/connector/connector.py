@@ -293,7 +293,8 @@ class Collector(ConnectorBase):
       if info:
         if self.args.record:
           with open(self.args.record, 'a') as rf:
-            rline = '{} {} {}\n'.format(
+            rline = '{:<8} {:<4} {:<10.8f} {}\n'.format(
+              info['proc_name'],
               info['frame_idx'],
               info['t0'],
               info['prc_time']
