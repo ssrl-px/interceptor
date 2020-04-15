@@ -27,41 +27,75 @@ from interceptor.connector.connector import Reader, Collector
 
 def parse_command_args():
   """ Parses command line arguments (only options for now) """
-  parser = argparse.ArgumentParser(prog = 'connector_run.py',
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            description=('ZMQ Stream Connector'),
-            epilog=('\n{:-^70}\n'.format('')))
-  parser.add_argument('host', type=str, nargs='?', default='localhost',
-                      help='ZMQ server to listen to')
-  parser.add_argument('--port', type=str, nargs='?', default='6677',
-                      help='Port to listen to')
-  parser.add_argument('--stype', type=str, nargs='?', default='req',
-                      help='Socket type')
-  parser.add_argument('--uihost', type=str, nargs='?', default=None,
-                      help='UI host server to send to')
-  parser.add_argument('--uiport', type=str, nargs='?', default=None,
-                      help='UI port to send to')
-  parser.add_argument('--uistype', type=str, nargs='?', default='push',
-                      help='UI socket type')
-  parser.add_argument('--interval', type=float, nargs='?', default='0',
-                      help='Interval between image receipt')
-  parser.add_argument('--t', '--timeout', type=int, nargs='?', default=0,
-                      help='Timeout in seconds when data not coming')
-  parser.add_argument('--last_stage', type=str, nargs='?', default='spotfinding',
-                      help='"Spotfinding", "indexing", or "integration" works')
-  parser.add_argument('--header', action='store_true', default=False)
-  parser.add_argument('--test', action='store_true', default=False)
-  parser.add_argument('--verbose', action='store_true', default=False,
-                      help='Print output to stdout')
-  parser.add_argument('--send', action='store_true', default=False,
-                      help='Forward results to GUI')
-  parser.add_argument('--iota', action='store_true', default=False,
-                      help='Use IOTA Processor')
+  parser = argparse.ArgumentParser(
+    prog='connector_run.py',
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    description=('ZMQ Stream Connector'),
+    epilog=('\n{:-^70}\n'.format('')))
   parser.add_argument(
-    "--version", action="version",
-    version="Interceptor v. {}".format(intxr_version),
-    help="Prints version info of IOTA",
+    '-n', '--n_proc', type=int, nargs='?', default=10,
+    help='Number of processors')
+  parser.add_argument(
+    '--host', type=str, nargs='?', default='localhost',
+    help='ZMQ server to listen to')
+  parser.add_argument(
+    '--port', type=str, nargs='?', default='6677',
+    help='Port to listen to')
+  parser.add_argument(
+    '--stype', type=str, nargs='?', default='req',
+    help='Socket type')
+  parser.add_argument(
+    '--uihost', type=str, nargs='?', default=None,
+    help='UI host server to send to')
+  parser.add_argument(
+    '--uiport', type=str, nargs='?', default=None,
+    help='UI port to send to')
+  parser.add_argument(
+    '--uistype', type=str, nargs='?', default='push',
+    help='UI socket type')
+  parser.add_argument(
+    '--interval', type=float, nargs='?', default='0',
+    help='Interval between image receipt')
+  parser.add_argument(
+    '--t', '--timeout', type=int, nargs='?', default=0,
+    help='Timeout in seconds when data not coming')
+  parser.add_argument(
+    '--last_stage', type=str, nargs='?', default='spotfinding',
+    help='"Spotfinding", "indexing", or "integration" works')
+  parser.add_argument(
+    '--test', action='store_true', default=False)
+  parser.add_argument(
+    '--verbose', action='store_true', default=False,
+    help='Print output to stdout')
+  parser.add_argument(
+    '--send', action='store_true', default=False,
+    help='Forward results to GUI')
+  parser.add_argument(
+    '--iota', action='store_true', default=False,
+    help='Use IOTA Processor')
+  parser.add_argument(
+    '-b', '--beamline', type=str, nargs='?', default=None,
+    help='Beamline filename (e.g. "12-1") will select host and port'
   )
+  parser.add_argument(
+    '-e', '--experiment', type=str, nargs='?', default=None,
+    help='Experiment preset (e.g. "injector") will select number of '
+         'processors and extent of processing'
+  )
+  parser.add_argument(
+    '-u', '--ui', type=str, nargs='?', default=None,
+    help='UI preset (e.g. "gui") will select to which port and host the output '
+         'is sent'
+  )
+  parser.add_argument(
+    '--dry_run', action='store_true', default=False,
+    help='Print the full command-line and exit without running')
+  parser.add_argument(
+    '--time', action='store_true', default=False,
+    help='Measure time per frame and output when run is terminated')
+  parser.add_argument(
+    '--drain', action='store_true', default=False,
+    help='In True, will not process received images; used for testing')
 
   return parser
 
