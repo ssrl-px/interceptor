@@ -195,7 +195,7 @@ class Reader(ConnectorBase):
         fstart = time.time()
         if self.args.stype.lower() == 'req':
           self.stream.send(b"Hello")
-        frames = self.stream.receive()
+        frames = self.stream.receive(copy=False)
         fel = time.time() - fstart
       except Exception as exp:
         print ('DEBUG: {} CONNECT FAILED! {}'.format(self.name, exp))
