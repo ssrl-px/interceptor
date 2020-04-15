@@ -167,7 +167,7 @@ def entry_point():
       print (' ... deleting temporary files...')
       curdir = os.path.abspath(os.curdir)
       temp_files = [
-        f for f in os.listdir(curdir) if os.path.splitext(f)[-1] == "stream"
+        f for f in os.listdir(curdir) if os.path.splitext(f)[-1] == ".stream"
       ]
       for tfile in temp_files:
         tpath = os.path.join(curdir, tfile)
