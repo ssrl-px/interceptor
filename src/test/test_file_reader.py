@@ -63,21 +63,24 @@ def parse_test_args():
     '--timeit', action='store_true', default=False,
     help='Use timeit to run the test')
   parser.add_argument(
+    '--mpi', action='store_true', default=False,
+    help='Use OpenMPI to run the test')
+  parser.add_argument(
     '--verbose', action='store_true', default=False,
     help='Print output to stdout')
   return parser
 
 
-def make_phil(phil_file=None):
+def make_phil(phil_file=None, verbose=False):
   if phil_file:
     with open(phil_file, 'r') as pf:
       spf_phil = ip.parse(pf.read())
-      if args.verbose:
-        diff_phil = spf_scope.fetch_diff(source=spf_phil).show()
+      # if verbose:
+      #   diff_phil = spf_scope.fetch_diff(source=spf_phil).show()
   else:
     spf_phil = ip.parse(spf_params_string)
-    if args.verbose:
-      diff_phil = spf_scope.fetch(source=spf_phil).show()
+    # if verbose:
+    #   diff_phil = spf_scope.fetch(source=spf_phil).show()
 
   spf_params = spf_scope.fetch(source=spf_phil).extract()
 
@@ -136,7 +139,7 @@ def run_proc(args, data, info, filename, number=1):
     last_stage=args.last_stage,
     # test=args.flex
   )
-  spf_params = make_phil(args.phil)
+  spf_params = make_phil(args.phil, verbose=args.verbose)
 
   with Capturing() as junk:
     FormatEigerStreamSSRL.inject_data(data)
@@ -154,9 +157,9 @@ def run_proc(args, data, info, filename, number=1):
       proc_time = time.time() - t_start
       n_spots = info['n_spots']
 
-    if args.verbose:
-      print("{} spots found".format(n_spots))
-      print ('Trial: {}. Time: {:.2f} sec'.format(number, proc_time))
+  if args.verbose:
+    print("{} spots found".format(n_spots))
+    print ('Trial: {}. Time: {:.2f} sec'.format(number, proc_time))
 
 def run_test(args, rank):
   if args.timeit:
@@ -187,15 +190,22 @@ run_proc(args, data, info, filename)
     data, info, filename = read_file(args)
     run_proc(args, data, info, filename)
 
-# Unit test for ZMQ Reader
-if __name__ == '__main__':
+def entry_point():
   args, _ = parse_test_args().parse_known_args()
 
-  from mpi4py import MPI
-  comm_world = MPI.COMM_WORLD
-  if comm_world is not None:
-    rank = comm_world.Get_rank()
-    comm_world.barrier()
-    run_test(args, rank)
+  if args.mpi:
+    from mpi4py import MPI
+    comm_world = MPI.COMM_WORLD
+    if comm_world is not None:
+      rank = comm_world.Get_rank()
+      comm_world.barrier()
+      run_test(args, rank)
+  else:
+    for i in range(args.repeat):
+      run_test(args, i)
+
+# Unit test for ZMQ Reader
+if __name__ == '__main__':
+  entry_point()
 
 
