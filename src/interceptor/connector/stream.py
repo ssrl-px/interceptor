@@ -67,12 +67,11 @@ class ZMQStream:
   def recv(self):
     return self.socket.recv()
 
-  def receive(self, copy=False):
+  def receive(self, *args, **kwargs):
     """
     Receive and return connector frames
     """
-    frames = self.socket.recv_multipart(copy=copy)
-    return frames
+    return self.socket.recv_multipart(*args, **kwargs)
 
   def receive_string(self):
     string = self.socket.recv_string()

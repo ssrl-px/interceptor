@@ -63,6 +63,8 @@ def parse_command_args():
     '--last_stage', type=str, nargs='?', default='spotfinding',
     help='"Spotfinding", "indexing", or "integration" works')
   parser.add_argument(
+    '--header', action='store_true', default=False)
+  parser.add_argument(
     '--test', action='store_true', default=False)
   parser.add_argument(
     '--verbose', action='store_true', default=False,
