@@ -200,6 +200,12 @@ class Reader(ConnectorBase):
       except Exception as exp:
         print ('DEBUG: {} CONNECT FAILED! {}'.format(self.name, exp))
         continue
+
+      if self.args.drain:
+        if self.args.verbose:
+          print (str(frames[0].bytes[:-1])[3:-2])
+        continue
+
       data = self.make_data_dict(frames)
       info = {
         'proc_name' : self.name,

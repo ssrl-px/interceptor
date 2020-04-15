@@ -85,6 +85,9 @@ def parse_command_args():
   parser.add_argument(
     '--time', action='store_true', default=False,
     help='Measure time per frame and output when run is terminated')
+  parser.add_argument(
+    '--drain', action='store_true', default=False,
+    help='In True, will not process received images; used for testing')
 
   return parser
 
