@@ -203,7 +203,9 @@ class Reader(ConnectorBase):
 
       if self.args.drain:
         if self.args.verbose:
-          print (str(frames[2].bytes[:-1])[3:-2])
+          print (
+            str(frames[2].bytes[:-1])[3:-2],
+            "rcv time: {:.4s} sec".format(fel))
         continue
 
       data = self.make_data_dict(frames)
