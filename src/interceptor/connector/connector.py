@@ -227,6 +227,7 @@ class Reader(ConnectorBase):
         'img_error': '',
         'prc_error': '',
         'comment'  : '',
+        't0'       : start,
       }
       if data[1] == -1:
         info['img_error'] = data[3]
@@ -290,6 +291,15 @@ class Collector(ConnectorBase):
     while True:
       info = collector.receive_json()
       if info:
+        if self.args.record:
+          with open(self.args.record, 'a') as rf:
+            rline = '{} {} {}'.format(
+              info['frame_idx'],
+              info['t0'],
+              info['prc_time']
+            )
+            rf.write(rline)
+
         try:
           # message to DHS / UI
           prefix = 'htos_log note zmaDhs'

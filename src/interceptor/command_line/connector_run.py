@@ -90,6 +90,10 @@ def parse_command_args():
          'is sent'
   )
   parser.add_argument(
+    '-r', '--record', type=str, nargs='?', default=None,
+    help='If filepath is supplied, record proc info into file'
+  )
+  parser.add_argument(
     '--dry_run', action='store_true', default=False,
     help='Print the full command-line and exit without running')
   parser.add_argument(
