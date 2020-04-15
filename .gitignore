@@ -99,4 +99,3 @@ git-notifier.log
 .gitversion
 *.profraw
 /release.sh
-/data/
