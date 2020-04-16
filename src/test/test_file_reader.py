@@ -245,7 +245,6 @@ def print_phil(phil_file=None):
 def entry_point():
     args, _ = parse_test_args().parse_known_args()
 
-    results = []
     if args.mpi:
         from mpi4py import MPI
 
@@ -257,12 +256,13 @@ def entry_point():
                 print_phil(args.phil)
             result = run_test(args, rank)
 
+            results = comm_world.gather(result, root=0)
             if rank == 0:
                 print("\n~~~ SUMMARY ~~~")
-            print (result)
-
-
+                for result in results:
+                    print(result)
     else:
+        results = []
         if args.verbose:
             print_phil(args.phil)
         for i in range(args.repeat):
