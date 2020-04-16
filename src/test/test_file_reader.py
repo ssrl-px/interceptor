@@ -212,8 +212,11 @@ def run_proc(args, data, info, filename, number=1):
         print("{} spots found".format(n_spots))
         print("Trial: {}. Time: {:.2f} sec".format(number, proc_time))
 
+    return proc_time
+
 
 def run_test(args, rank):
+    t0 = time.time()
     if args.timeit:
         setup = """
 from __main__ import parse_test_args, read_file, run_proc
@@ -226,22 +229,13 @@ run_proc(args, data, info, filename)
       """
 
         import timeit
-
-        repeats = timeit.repeat(setup=setup, stmt=stmt, repeat=args.repeat, number=1)
-
-        import numpy as np
-
-        if args.verbose:
-            for rep in repeats:
-                print("Trial {}: {:.4f} sec,".format(repeats.index(rep), rep))
-        print(
-            "{:<3d} : {:<10.6f} -- avg time ({} trials): {:<3.4f}".format(
-                rank, time.time(), args.repeat, np.mean(repeats)
-            )
-        )
+        timing = timeit.timeit(setup=setup, stmt=stmt, number=1)
     else:
         data, info, filename = read_file(args)
-        run_proc(args, data, info, filename, number=rank)
+        timing = run_proc(args, data, info, filename, number=rank)
+
+    info_string = "{:<10.6f}: run #{:<3d} -- {:<3.4f} seconds".format(t0, rank, timing)
+    return info_string
 
 def print_phil(phil_file=None):
     print("~~~ Testing ZMQ Reader ~~~")
@@ -251,6 +245,7 @@ def print_phil(phil_file=None):
 def entry_point():
     args, _ = parse_test_args().parse_known_args()
 
+    results = []
     if args.mpi:
         from mpi4py import MPI
 
@@ -260,13 +255,18 @@ def entry_point():
             comm_world.barrier()
             if rank == 0 and args.verbose:
                 print_phil(args.phil)
-            run_test(args, rank)
+            result = run_test(args, rank)
+            results.append(result)
     else:
         if args.verbose:
             print_phil(args.phil)
         for i in range(args.repeat):
-            run_test(args, i)
+            result = run_test(args, i)
+            results.append(result)
 
+    print ("\n~~~ SUMMARY ~~~")
+    for result in results:
+        print (result)
 
 # Unit test for ZMQ Reader
 if __name__ == "__main__":
