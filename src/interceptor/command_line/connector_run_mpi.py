@@ -11,15 +11,29 @@ import os
 import time
 import procrunner
 
+from iotbx.phil import parse
+
+from interceptor.connector.processor import dials_scope
 from interceptor import import_resources
 from interceptor.command_line.connector_run import parse_command_args
 
 presets = import_resources(configs="connector", package="connector")
 times = []
+report_phil_string = ''
 
 
 def entry_point():
     args, _ = parse_command_args().parse_known_args()
+
+    # get phil diff (to report upon termination)
+    global report_phil_string
+    if args.phil:
+        with open(args.phil, 'r') as pf:
+            user_phil = parse(pf.read())
+    else:
+        from interceptor.connector.processor import custom_params
+        user_phil = parse(custom_params)
+    report_phil_string = dials_scope.fetch_diff(source=user_phil).as_str()
 
     # parse presets if appropriate
     connector_commands = ["connector"]
@@ -96,6 +110,9 @@ def entry_point():
             )
         except KeyboardInterrupt:
             print("\n*** Terminated with KeyboardInterrupt")
+            print("\n*** Processing used the following settings: ")
+            print(report_phil_string)
+            print("\n")
             if args.time and times:
                 print("*** Total processing time: {:.2f} sec".format(times[-1]))
                 print(
