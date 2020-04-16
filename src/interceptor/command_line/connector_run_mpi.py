@@ -73,6 +73,8 @@ def entry_point():
                 "core",
                 "--bind-to",
                 "core",
+                "--rank-by",
+                "core",
                 "--np",
                 n_proc,
                 *connector_commands,
