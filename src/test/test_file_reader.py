@@ -1,3 +1,10 @@
+"""
+Author      : Lyubimov, A.Y.
+Created     : 04/06/2020
+Last Changed: 04/06/2020
+Description : A test script for ZMQ Reader, which reads in files
+"""
+
 import os
 import time
 import argparse
@@ -26,11 +33,35 @@ spotfinder {
 }
 """
 
+help_message = """
+This is a script that will test and time spotfinding and ZMQ decoding. Instead of 
+connecting to a ZMQ URL, all information will be read from files. Test files are 
+included in ./images, while if tinkering with spotfinding settings is desired, 
+a default PHIL file, spf.phil, is included in ./resources.
+
+Example tests:
+
+1. Read in and process a single image once:
+
+dials.python ./src/test/test_file_reader.py ./src/test/images/ --prefix 'zmq' 
+--number 000001 --extension zmq --verbose
+
+2. Process five images directly with flex
+
+dials.python ./src/test/test_file_reader.py ./src/test/images/ --prefix 'zmq' 
+--number 000001 --extension zmq --repeat 5 --flex --verbose
+
+3. Process five images in parallel with MPI and use timeit to time the processing
+
+dials.python ./src/test/test_file_reader.py ./src/test/images/ --prefix 'zmq' 
+--number 000001 --extension zmq --repeat 5 --timeit --mpi --verbose
+
+"""
 
 def parse_test_args():
     """ Parses command line arguments (only options for now) """
     parser = argparse.ArgumentParser(
-        prog="test_file_reader.py", description=("Test processor with file"),
+        prog="test_file_reader.py", description=(help_message),
     )
     parser.add_argument("path", type=str, nargs="?", help="Path to test files")
     parser.add_argument(
@@ -68,21 +99,15 @@ def parse_test_args():
         "--flex",
         action="store_true",
         default=False,
-        help="Perform spotfinding with flex",
+        help="Perform spotfinding dirctly with flex (if False, spotfinding will be "
+             "performed by the FastProcessor class)",
     )
     parser.add_argument(
         "--repeat",
         type=int,
         nargs="?",
-        default=5,
+        default=1,
         help="Number of times to repeat the trial in timeit",
-    )
-    parser.add_argument(
-        "--reproc",
-        type=int,
-        nargs="?",
-        default=5,
-        help="Number of times to repeat the processing within test function",
     )
     parser.add_argument(
         "--timeit",
