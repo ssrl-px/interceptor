@@ -20,8 +20,6 @@ bl121proc00 --port 8121 --last_stage spotfinding --verbose
 """
 
 import argparse
-
-from interceptor import __version__ as intxr_version
 from interceptor.connector.connector import Reader, Collector
 
 
@@ -79,6 +77,13 @@ def parse_command_args():
         nargs="?",
         default="spotfinding",
         help='"Spotfinding", "indexing", or "integration" works',
+    )
+    parser.add_argument(
+        "--phil",
+        type=str,
+        nargs="?",
+        default=None,
+        help='Absolute path to file with PHIL settings',
     )
     parser.add_argument("--header", action="store_true", default=False)
     parser.add_argument("--test", action="store_true", default=False)

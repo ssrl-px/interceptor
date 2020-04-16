@@ -37,14 +37,17 @@ from dials.command_line.find_spots import phil_scope as spf_scope
 
 spf_params_string = """
 spotfinder {
+  filter {
+    max_spot_size = 100
+  }
   threshold {
-    use_trusted_range = False
     algorithm = *dispersion dispersion_extended
     dispersion {
-      gain = 1
+      global_threshold = 15
     }
   }
 }
+
 """
 spf_phil = ip.parse(spf_params_string)
 spf_params = spf_scope.fetch(source=spf_phil).extract()
@@ -193,11 +196,12 @@ def find_spots_fast(info, data, filename):
 
 
 class FastProcessor(Processor):
-    def __init__(self, last_stage="spotfinding", min_Bragg=10, test=False):
+    def __init__(self, last_stage="spotfinding", min_Bragg=10,
+                 phil_file=None, test=False):
         self.last_stage = last_stage
         self.min_Bragg = min_Bragg
         self.test = test
-        params, self.dials_phil = self.generate_params()
+        params, self.dials_phil = self.generate_params(phil_file)
         Processor.__init__(self, params=params)
 
         self.params.indexing.stills.method_list = [
@@ -208,10 +212,15 @@ class FastProcessor(Processor):
         self.params.significance_filter.enable = True
         self.params.significance_filter.isigi_cutoff = 1
 
-    def generate_params(self):
-        phil = dials_scope.fetch(source=ip.parse(custom_params))
-        params = phil.extract()
-        return params, phil
+    def generate_params(self, phil_file=None):
+        if phil_file:
+            with open(phil_file, "r") as pf:
+                target_phil = ip.parse(pf.read())
+        else:
+            target_phil = ip.parse(spf_params_string)
+        new_phil = spf_scope.fetch(source=target_phil)
+        params = new_phil.extract()
+        return params,new_phil
 
     def refine_bravais_settings(self, reflections, experiments):
         sgparams = sg_scope.fetch(self.dials_phil).extract()

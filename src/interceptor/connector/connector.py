@@ -45,7 +45,9 @@ class ConnectorBase:
             info, iparams = initialize_single_image(img=dummy_path, paramfile=None)
             processor = IOTAProcessor(info, iparams, last_stage=args.last_stage)
         else:
-            processor = FastProcessor(last_stage=args.last_stage, test=args.test)
+            processor = FastProcessor(
+                last_stage=args.last_stage, test=args.test, phil_file=args.phil
+            )
         return processor
 
     def initialize_process(self):
