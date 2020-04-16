@@ -245,22 +245,27 @@ def print_phil(phil_file=None):
 def entry_point():
     args, _ = parse_test_args().parse_known_args()
 
+    comm_world = None
     if args.mpi:
-        from mpi4py import MPI
+        try:
+            from mpi4py import MPI
+        except ImportError as ie:
+            print("DEBUG: MPI NOT LOADED! {}".format(ie))
+        else:
+            comm_world = MPI.COMM_WORLD
 
-        comm_world = MPI.COMM_WORLD
-        if comm_world is not None:
-            rank = comm_world.Get_rank()
-            comm_world.barrier()
-            if rank == 0 and args.verbose:
-                print_phil(args.phil)
-            result = run_test(args, rank)
+    if comm_world is not None:
+        rank = comm_world.Get_rank()
+        comm_world.barrier()
+        if rank == 0 and args.verbose:
+            print_phil(args.phil)
+        result = run_test(args, rank)
 
-            results = comm_world.gather(result, root=0)
-            if rank == 0:
-                print("\n~~~ SUMMARY ~~~")
-                for result in results:
-                    print(result)
+        results = comm_world.gather(result, root=0)
+        if rank == 0:
+            print("\n~~~ SUMMARY ~~~")
+            for result in results:
+                print(result)
     else:
         results = []
         if args.verbose:
