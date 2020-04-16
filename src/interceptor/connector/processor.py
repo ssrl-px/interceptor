@@ -9,9 +9,7 @@ Description : Streaming stills processor for live data analysis
 
 import numpy as np
 import copy
-import time
-
-assert time  # for testing; this eliminates unused import error
+import time  # noqa: F401; keep around for testing
 
 from cctbx import sgtbx
 from iotbx import phil as ip
