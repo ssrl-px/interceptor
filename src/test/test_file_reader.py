@@ -256,7 +256,12 @@ def entry_point():
             if rank == 0 and args.verbose:
                 print_phil(args.phil)
             result = run_test(args, rank)
-            results.append(result)
+
+            if rank == 0:
+                print("\n~~~ SUMMARY ~~~")
+            print (result)
+
+
     else:
         if args.verbose:
             print_phil(args.phil)
@@ -264,9 +269,9 @@ def entry_point():
             result = run_test(args, i)
             results.append(result)
 
-    print ("\n~~~ SUMMARY ~~~")
-    for result in results:
-        print (result)
+        print ("\n~~~ SUMMARY ~~~")
+        for result in results:
+            print (result)
 
 # Unit test for ZMQ Reader
 if __name__ == "__main__":
