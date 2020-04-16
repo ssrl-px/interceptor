@@ -22,7 +22,7 @@ from interceptor.format import FormatEigerStreamSSRL as FormatStream
 class ConnectorBase:
     """ Base class for ZMQReader and ZMQCollector classes """
 
-    def __init__(self, comm, args, name="zmq_thread"):
+    def __init__(self, comm, args, name="zmq_thread", proc_name='process'):
         """ Constructor
     :param comm: mpi4py communication instance
     :param args: command line arguments
@@ -34,7 +34,7 @@ class ConnectorBase:
         if comm:
             self.rank = comm.Get_rank()  # each process in MPI has a unique id
             self.size = comm.Get_size()  # number of processes running in this job
-            self.proc_name = comm.Get_processor_name()
+            self.proc_name = proc_name
 
         self.stop = False
         self.timeout_start = None
@@ -95,8 +95,8 @@ class Reader(ConnectorBase):
       Collector class.
   """
 
-    def __init__(self, name="zmq_reader", comm=None, args=None):
-        super(Reader, self).__init__(name=name, comm=comm, args=args)
+    def __init__(self, name="zmq_reader", comm=None, args=None, proc_name='process'):
+        super(Reader, self).__init__(name=name, comm=comm, args=args, proc_name=proc_name)
         self.initialize_process()
 
     def make_experiments(self, filename, data):
@@ -268,8 +268,8 @@ class Collector(ConnectorBase):
       off as a single stream to the UI if requested.
   """
 
-    def __init__(self, name="ZMQ_000", comm=None, args=None):
-        super(Collector, self).__init__(name=name, comm=comm, args=args)
+    def __init__(self, name="ZMQ_000", comm=None, args=None, proc_name='process'):
+        super(Collector, self).__init__(name=name, comm=comm, args=args, proc_name=proc_name)
         self.initialize_process()
 
     def run(self):
