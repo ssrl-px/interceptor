@@ -218,9 +218,15 @@ class FastProcessor(Processor):
                 target_phil = ip.parse(pf.read())
         else:
             target_phil = ip.parse(spf_params_string)
-        new_phil = spf_scope.fetch(source=target_phil)
+        new_phil = dials_scope.fetch(source=target_phil)
         params = new_phil.extract()
-        return params,new_phil
+        return params, new_phil
+
+    def print_params(self):
+        print ("\nParameters for this run: ")
+        diff_phil = dials_scope.fetch_diff(source=self.dials_phil)
+        diff_phil.show()
+        print ('\n')
 
     def refine_bravais_settings(self, reflections, experiments):
         sgparams = sg_scope.fetch(self.dials_phil).extract()
@@ -323,6 +329,7 @@ class FastProcessor(Processor):
         return np.max(d), np.min(d)
 
     def process(self, experiments, info):
+        info['phil'] = self.dials_phil.as_str()
 
         # Spotfinding
         with Capturing() as spf_output:
@@ -334,12 +341,6 @@ class FastProcessor(Processor):
                 info["spf_error"] = "spotfinding error: {}".format(str(err))
                 return info
             else:
-                # info['n_spots'] = len(observed)
-                # info['hres'] = self.calculate_resolution_from_spotfinding(
-                #   observed=observed,
-                #   experiments=experiments
-                # )[1]
-
                 experiment = experiments[0]
                 refl = observed.select(observed["id"] == 0)
                 refl.centroid_px_to_mm([experiment])
@@ -347,18 +348,6 @@ class FastProcessor(Processor):
                 stats = per_image_analysis.stats_per_image(experiment, refl)
                 info["n_spots"] = stats.n_spots_no_ice[0]
                 info["hres"] = stats.estimated_d_min[0]
-                #
-                # # Get (and print) information from experiments
-                # try:
-                #   imgset = experiments.imagesets()[0]
-                #   beam = imgset.get_beam()
-                #   s0 = beam.get_s0()
-                #   detector = imgset.get_detector()[0]
-                #   info['beamXY'] = detector.get_beam_centre_px(s0)
-                #   info['dist'] = detector.get_distance()
-                # except Exception as err:
-                #   info['img_error'] = 'Could not get beam center coords: {}' \
-                #                       ''.format(str(err))
 
         # if last stage was selected to be "spotfinding", stop here
         if self.last_stage == "spotfinding" or info["n_spots"] <= self.min_Bragg:

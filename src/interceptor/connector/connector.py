@@ -100,6 +100,9 @@ class Reader(ConnectorBase):
         super(Reader, self).__init__(name=name, comm=comm, args=args)
         self.initialize_process()
 
+        if self.rank == 1:
+            self.processor.print_params()
+
     def make_experiments(self, filename, data):
         FormatStream.inject_data(data)
         exp = ExperimentListFactory.from_filenames([filename])
@@ -234,6 +237,7 @@ class Reader(ConnectorBase):
                 "prc_error": "",
                 "comment": "",
                 "t0": start,
+                "phil": "",
             }
             if data[1] == -1:
                 info["img_error"] = data[3]
