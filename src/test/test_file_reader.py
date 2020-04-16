@@ -61,7 +61,8 @@ dials.python ./src/test/test_file_reader.py ./src/test/images/ --prefix 'zmq'
 def parse_test_args():
     """ Parses command line arguments (only options for now) """
     parser = argparse.ArgumentParser(
-        prog="test_file_reader.py", description=(help_message),
+        prog="test_file_reader.py", description=help_message,
+        formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument("path", type=str, nargs="?", help="Path to test files")
     parser.add_argument(
