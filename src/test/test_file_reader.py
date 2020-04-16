@@ -125,13 +125,18 @@ def parse_test_args():
     return parser
 
 
-def make_phil(phil_file=None, verbose=False):
+def make_phil(phil_file=None, show_phil=False):
     if phil_file:
         with open(phil_file, "r") as pf:
             spf_phil = ip.parse(pf.read())
     else:
         spf_phil = ip.parse(spf_params_string)
-    spf_params = spf_scope.fetch(source=spf_phil).extract()
+    new_phil = spf_scope.fetch(source=spf_phil)
+    spf_params = new_phil.extract()
+
+    if show_phil:
+        diff_phil = spf_scope.fetch_diff(source=spf_phil)
+        diff_phil.show()
 
     return spf_params
 
@@ -185,7 +190,7 @@ def read_file(args, number=1):
 
 def run_proc(args, data, info, filename, number=1):
     processor = FastProcessor(last_stage=args.last_stage)
-    spf_params = make_phil(args.phil, verbose=args.verbose)
+    spf_params = make_phil(args.phil, show_phil=False)
 
     with Capturing() as junk:
         FormatEigerStreamSSRL.inject_data(data)
@@ -203,6 +208,7 @@ def run_proc(args, data, info, filename, number=1):
             n_spots = info["n_spots"]
 
     if args.verbose:
+        print("\n*** channel # {}".format(number))
         print("{} spots found".format(n_spots))
         print("Trial: {}. Time: {:.2f} sec".format(number, proc_time))
 
@@ -234,13 +240,17 @@ run_proc(args, data, info, filename)
             )
         )
     else:
-        print("\n*** channel # {}".format(rank))
         data, info, filename = read_file(args)
-        run_proc(args, data, info, filename)
+        run_proc(args, data, info, filename, number=rank)
 
+def print_phil(phil_file=None):
+    print("~~~ Testing ZMQ Reader ~~~")
+    print('PHIL Settings for this run: ')
+    make_phil(phil_file, show_phil=True)
 
 def entry_point():
     args, _ = parse_test_args().parse_known_args()
+
     if args.mpi:
         from mpi4py import MPI
 
@@ -248,8 +258,12 @@ def entry_point():
         if comm_world is not None:
             rank = comm_world.Get_rank()
             comm_world.barrier()
+            if rank == 0 and args.verbose:
+                print_phil(args.phil)
             run_test(args, rank)
     else:
+        if args.verbose:
+            print_phil(args.phil)
         for i in range(args.repeat):
             run_test(args, i)
 
