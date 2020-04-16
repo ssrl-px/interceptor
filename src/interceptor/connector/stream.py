@@ -22,7 +22,6 @@ class ZMQStream:
         port=6677,
         socket_type="pull",
         bind=False,
-        proc_name='processor'
     ):
         """
     create stream listener object
@@ -30,7 +29,6 @@ class ZMQStream:
         self.host = host
         self.port = port
         self.name = name
-        self.proc_name = proc_name
 
         # Connect to the stream
         self.connect(socket_type=socket_type, bind=bind)
@@ -53,8 +51,8 @@ class ZMQStream:
         self.socket.connect(url)
 
         print(
-            "*** {} (on {}) CONNECTED to {} (TYPE = {})" "".format(
-                self.name, self.proc_name, url, socket_type)
+            "*** {} CONNECTED to {} (TYPE = {})" "".format(
+                self.name, url, socket_type)
         )
 
         if bind:
