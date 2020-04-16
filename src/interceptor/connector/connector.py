@@ -34,6 +34,7 @@ class ConnectorBase:
         if comm:
             self.rank = comm.Get_rank()  # each process in MPI has a unique id
             self.size = comm.Get_size()  # number of processes running in this job
+            self.proc_name = comm.Get_processor_name()
 
         self.stop = False
         self.timeout_start = None
@@ -180,7 +181,8 @@ class Reader(ConnectorBase):
 
         # Initialize ZMQ stream listener
         self.stream = ZMQStream(
-            name=self.name, host=self.host, port=self.port, socket_type=self.args.stype
+            name=self.name, host=self.host, port=self.port, socket_type=self.args.stype,
+            pname=self.proc_name
         )
 
         # intra-process communication (not using MPI... yet)
