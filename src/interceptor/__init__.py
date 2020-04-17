@@ -16,13 +16,14 @@ class PackageFinderException(Exception):
         Exception.__init__(self, msg)
 
 
-def packagefinder(filename, package, read_config=False, return_text=False):
+def packagefinder(filename, package, module=None, read_config=False, return_text=False):
+    if module is None:
+        module = "interceptor.resources"
+
     if isinstance(package, list) or isinstance(package, tuple):
         submodule = ".".join(package[:-1])
-        module = "interceptor.resources.{}".format(submodule)
+        module += submodule
         package = package[-1]
-    else:
-        module = "interceptor.resources"
 
     try:
         imported = getattr(__import__(module, fromlist=[package]), package)
@@ -44,7 +45,7 @@ def packagefinder(filename, package, read_config=False, return_text=False):
         with (pkg_resources.path(imported, filename)) as rpath:
             resource_filepath = str(rpath)
 
-        if not os.path.isfile(resource_filepath):
+        if not os.path.exists(resource_filepath):
             msg = "ERROR: file {} not found in {}".format(
                 filename, os.path.dirname(resource_filepath)
             )

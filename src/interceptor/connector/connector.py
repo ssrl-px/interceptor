@@ -34,6 +34,9 @@ class ConnectorBase:
         if comm:
             self.rank = comm.Get_rank()  # each process in MPI has a unique id
             self.size = comm.Get_size()  # number of processes running in this job
+        else:
+            self.rank = 0
+            self.size = 0
 
         self.stop = False
         self.timeout_start = None
@@ -51,27 +54,32 @@ class ConnectorBase:
         return processor
 
     def initialize_process(self):
-        # Generate params, args, etc. if process rank id = 0
-        if self.rank == 0:
-            # args, _ = self.generate_args()
-            processor = self.generate_processor(self.args)
-            info = dict(
-                processor=processor,
-                args=self.args,
-                host=self.args.host,
-                port=self.args.port,
-            )
+        if self.comm:
+            # Generate params, args, etc. if process rank id = 0
+            if self.rank == 0:
+                # args, _ = self.generate_args()
+                processor = self.generate_processor(self.args)
+                info = dict(
+                    processor=processor,
+                    args=self.args,
+                    host=self.args.host,
+                    port=self.args.port,
+                )
+            else:
+                info = None
+
+            # send info dict to all processes
+            info = self.comm.bcast(info, root=0)
+
+            # extract info
+            self.processor = info["processor"]
+            self.args = info["args"]
+            self.host = info["host"]
+            self.port = info["port"]
         else:
-            info = None
-
-        # send info dict to all processes
-        info = self.comm.bcast(info, root=0)
-
-        # extract info
-        self.processor = info["processor"]
-        self.args = info["args"]
-        self.host = info["host"]
-        self.port = info["port"]
+            self.processor = self.generate_processor(self.args)
+            self.host = self.args.host
+            self.port = self.args.port
 
     def signal_stop(self):
         self.stop = True
@@ -110,7 +118,8 @@ class Reader(ConnectorBase):
 
     def convert_from_stream(self, frames):
         if len(frames) <= 2:
-            if self.args.header and self.args.htype in str(frames[0].bytes):
+            framestring = frames[0] if isinstance(frames[0], bytes) else frames[0].bytes
+            if self.args.header and self.args.htype in str(framestring):
                 self.make_header(frames)
                 return None
         else:
@@ -121,7 +130,10 @@ class Reader(ConnectorBase):
                     self.make_header(frames=hdr_frames)
             else:
                 img_frames = frames
-            frame_string = str(img_frames[0].bytes[:-1])[3:-2]  # extract dict entries
+            if isinstance(img_frames[0], bytes):
+                frame_string = str(img_frames[0][:-1])[3:-2]  # extract dict entries
+            else:
+                frame_string = str(img_frames[0].bytes[:-1])[3:-2]
             frame_split = frame_string.split(",")
             idx = -1
             run_no = -1
@@ -133,7 +145,10 @@ class Reader(ConnectorBase):
             return [run_no, idx, img_frames]
 
     def make_header(self, frames):
-        self.header = [frames[0].bytes[:-1], frames[1].bytes[:-1]]
+        if isinstance(frames[0], bytes):
+            self.header = [frames[0][:-1], frames[1][:-1]]
+        else:
+            self.header = [frames[0].bytes[:-1], frames[1].bytes[:-1]]
 
     def make_data_dict(self, frames):
         frames = self.convert_from_stream(frames)
@@ -147,9 +162,9 @@ class Reader(ConnectorBase):
             i = frames[2].index(frm) + 1
             key = "streamfile_{}".format(i)
             if i != 3:
-                data[key] = frm.bytes[:-1]
+                data[key] = frm[:-1] if isinstance(frm, bytes) else frm.bytes[:-1]
             else:
-                data[key] = frm.bytes
+                data[key] = frm if isinstance(frm, bytes) else frm.bytes
         msg = "DATA: Converted successfully!"
         return [run_no, idx, data, msg]
 
