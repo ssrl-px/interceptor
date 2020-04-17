@@ -13,7 +13,6 @@ import time
 from dxtbx.model.experiment_list import ExperimentListFactory
 
 from iota.components.iota_init import initialize_single_image
-from interceptor.connector.processor import find_spots_fast
 from interceptor.connector.processor import FastProcessor, IOTAProcessor
 from interceptor.connector.stream import ZMQStream
 from interceptor.format import FormatEigerStreamSSRL as FormatStream
@@ -111,38 +110,39 @@ class Reader(ConnectorBase):
         if self.rank == 1:
             self.processor.print_params()
 
-    def make_experiments(self, filename, data):
-        FormatStream.inject_data(data)
-        exp = ExperimentListFactory.from_filenames([filename])
-        return exp
-
     def convert_from_stream(self, frames):
+        msg = ''
         if len(frames) <= 2:
             framestring = frames[0] if isinstance(frames[0], bytes) else frames[0].bytes
             if self.args.header and self.args.htype in str(framestring):
                 self.make_header(frames)
-                return None
+                return [-999, -999, None], 'Header Frame'
         else:
-            if not self.args.header:
-                hdr_frames = frames[:2]
-                img_frames = frames[2:]
-                if not hasattr(self, "header"):
-                    self.make_header(frames=hdr_frames)
-            else:
-                img_frames = frames
-            if isinstance(img_frames[0], bytes):
-                frame_string = str(img_frames[0][:-1])[3:-2]  # extract dict entries
-            else:
-                frame_string = str(img_frames[0].bytes[:-1])[3:-2]
-            frame_split = frame_string.split(",")
-            idx = -1
-            run_no = -1
-            for part in frame_split:
-                if "series" in part:
-                    run_no = part.split(":")[1]
-                if "frame" in part:
-                    idx = part.split(":")[1]
-            return [run_no, idx, img_frames]
+            try:
+                if not self.args.header:
+                    hdr_frames = frames[:2]
+                    img_frames = frames[2:]
+                    if not hasattr(self, "header"):
+                        self.make_header(frames=hdr_frames)
+                else:
+                    img_frames = frames
+                if isinstance(img_frames[0], bytes):
+                    frame_string = str(img_frames[0][:-1])[3:-2]  # extract dict entries
+                else:
+                    frame_string = str(img_frames[0].bytes[:-1])[3:-2]
+                frame_split = frame_string.split(",")
+                idx = -1
+                run_no = -1
+                for part in frame_split:
+                    if "series" in part:
+                        run_no = part.split(":")[1]
+                    if "frame" in part:
+                        idx = part.split(":")[1]
+                return_frames = [run_no, idx, img_frames]
+            except Exception as e:
+                return_frames = None
+                msg = 'CONVERSION ERROR: {}'.format(str(e))
+            return return_frames, msg
 
     def make_header(self, frames):
         if isinstance(frames[0], bytes):
@@ -151,65 +151,82 @@ class Reader(ConnectorBase):
             self.header = [frames[0].bytes[:-1], frames[1].bytes[:-1]]
 
     def make_data_dict(self, frames):
-        frames = self.convert_from_stream(frames)
+        frames, msg = self.convert_from_stream(frames)
         if frames is None:
-            return [-1, -1, None, "DATA ERROR: Frames is NONE"]
+            return None, msg
+        elif frames[0] == -999:
+            return "header_frame", None
+        else:
+            run_no = frames[0]
+            idx = frames[1]
+            data = {"header1": self.header[0], "header2": self.header[1]}
+            for frm in frames[2]:
+                i = frames[2].index(frm) + 1
+                key = "streamfile_{}".format(i)
+                if i != 3:
+                    data[key] = frm[:-1] if isinstance(frm, bytes) else frm.bytes[:-1]
+                else:
+                    data[key] = frm if isinstance(frm, bytes) else frm.bytes
+            msg = ''
 
-        run_no = frames[0]
-        idx = frames[1]
-        data = {"header1": self.header[0], "header2": self.header[1]}
-        for frm in frames[2]:
-            i = frames[2].index(frm) + 1
-            key = "streamfile_{}".format(i)
-            if i != 3:
-                data[key] = frm[:-1] if isinstance(frm, bytes) else frm.bytes[:-1]
-            else:
-                data[key] = frm if isinstance(frm, bytes) else frm.bytes
-        msg = "DATA: Converted successfully!"
-        return [run_no, idx, data, msg]
+        info = {
+            "proc_name": self.name,
+            "run_no": run_no,
+            "frame_idx": idx,
+            "beamXY": (0, 0),
+            "dist": 0,
+            "n_spots": 0,
+            "hres": 99.0,
+            "n_indexed": 0,
+            "sg": "NA",
+            "uc": "NA",
+            "dat_error": msg,
+            "spf_error": "",
+            "idx_error": "",
+            "rix_error": "",
+            "img_error": "",
+            "prc_error": "",
+            "comment": "",
+            "t0": 0,
+            "phil": "",
+        }
+
+        return data, info
 
     def process(self, info, frame, filename):
-        s_exp = time.time()
-        try:
-            experiments = self.make_experiments(filename, frame)
-        except Exception as exp:
-            print(
-                "CONNECTOR ERROR: Could not create ExperimentList object.\n  {}"
-                "".format(exp)
-            )
-            experiments = None
-        time_exp = time.time() - s_exp
         s_proc = time.time()
-        if experiments:
-            info = self.processor.run(experiments=experiments, info=info)
-        else:
-            info["prc_error"] = "EXPERIMENT ERROR: ExperimentList a NoneType object"
-        time_proc = time.time() - s_proc
-        info["proc_time"] = time.time() - s_exp
-        info["exp_time"] = time_exp
-        info["prc_time"] = time_proc
+        info = self.processor.run(data=frame, filename=filename, info=info)
+        info["proc_time"] = time.time() - s_proc
         return info
 
-    def run(self):
-        # Write eiger_#.stream file
+    def write_eiger_file(self):
         eiger_idx = self.rank
         filename = "eiger_{}.stream".format(eiger_idx)
         self.name = "ZMQ_{:03d}".format(eiger_idx)
         with open(filename, "w") as fh:
             fh.write("EIGERSTREAM")
+        return filename
 
+    def initialize_zmq_sockets(self):
         # Initialize ZMQ stream listener
         self.stream = ZMQStream(
             name=self.name, host=self.host, port=self.port, socket_type=self.args.stype
         )
 
         # intra-process communication (not using MPI... yet)
-        uplink = ZMQStream(
+        self.uplink = ZMQStream(
             name="{}_uplink".format(self.name),
             host="localhost",
             port=7121,
             socket_type="push",
         )
+
+    def process_stream(self):
+        # Write eiger_*.stream file
+        filename = self.write_eiger_file()
+
+        # Initialize ZMQ sockets
+        self.initialize_zmq_sockets()
 
         # Start listening for ZMQ stream
         while True:
@@ -224,6 +241,7 @@ class Reader(ConnectorBase):
                 print("DEBUG: {} CONNECT FAILED! {}".format(self.name, exp))
                 continue
 
+            # Drain images without processing
             if self.args.drain:
                 if self.args.verbose:
                     print(
@@ -233,38 +251,19 @@ class Reader(ConnectorBase):
                     )
                 continue
 
-            data = self.make_data_dict(frames)
-            info = {
-                "proc_name": self.name,
-                "run_no": data[0],
-                "frame_idx": data[1],
-                "beamXY": (0, 0),
-                "dist": 0,
-                "n_spots": 0,
-                "hres": 99.0,
-                "n_indexed": 0,
-                "sg": "NA",
-                "uc": "NA",
-                "spf_error": "",
-                "idx_error": "",
-                "rix_error": "",
-                "img_error": "",
-                "prc_error": "",
-                "comment": "",
-                "t0": start,
-                "phil": "",
-            }
-            if data[1] == -1:
-                info["img_error"] = data[3]
-            else:
-                if self.args.test:
-                    info = find_spots_fast(info, data=data[2], filename=filename)
-                else:
-                    info = self.process(info, frame=data[2], filename=filename)
+            data, info = self.make_data_dict(frames)
+
+            if data is 'header_frame':
+                continue
+            elif data is None:
+                print (info)
+                continue
+
+            info = self.process(info, frame=data, filename=filename)
             elapsed = time.time() - start
             time_info = {"total_time": elapsed, "receive_time": fel}
             info.update(time_info)
-            uplink.send_json(info)
+            self.uplink.send_json(info)
 
             # If frame processing fits within specified interval, sleep for the
             # remainder of that interval; otherwise (or if args.interval == 0) don't
@@ -276,6 +275,9 @@ class Reader(ConnectorBase):
             if self.stop:
                 break
         self.stream.close()
+
+    def run(self):
+        self.process_stream()
 
     def abort(self):
         self.stop = True
@@ -326,6 +328,7 @@ class Collector(ConnectorBase):
                     # message to DHS / UI
                     prefix = "htos_log note zmaDhs"
                     err_list = [
+                        info["dat_error"],
                         info["img_error"],
                         info["spf_error"],
                         info["idx_error"],

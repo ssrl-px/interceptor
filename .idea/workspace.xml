@@ -2,45 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="4062e2d3-3d94-4dd0-96cb-ffd3a3879a3b" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/src/interceptor/test/images/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/interceptor/test/resources/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interceptor/command_line/connector_run.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/command_line/connector_run.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interceptor/command_line/connector_run_mpi.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/command_line/connector_run_mpi.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/interceptor/connector/connector.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/connector/connector.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000001_01.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000001_01.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000001_02.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000001_02.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000001_03.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000001_03.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000001_04.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000001_04.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000001_05.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000001_05.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000001_06.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000001_06.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000002_01.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000002_01.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000002_02.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000002_02.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000002_03.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000002_03.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000002_04.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000002_04.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000002_05.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000002_05.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000002_06.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000002_06.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000003_01.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000003_01.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000003_02.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000003_02.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000003_03.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000003_03.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000003_04.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000003_04.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000003_05.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000003_05.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000003_06.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000003_06.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000004_01.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000004_01.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000004_02.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000004_02.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000004_03.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000004_03.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000004_04.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000004_04.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000004_05.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000004_05.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000004_06.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000004_06.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000005_01.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000005_01.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000005_02.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000005_02.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000005_03.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000005_03.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000005_04.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000005_04.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000005_05.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000005_05.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/images/zmq_000005_06.zmq" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/images/zmq_000005_06.zmq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/resources/spf.phil" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/resources/spf.phil" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/test_file_reader.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/test_file_reader.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/test_zmq_import.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/test_zmq_import.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interceptor/connector/processor.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/connector/processor.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -133,22 +99,22 @@
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
     <state x="869" y="591" key="FileChooserDialogImpl/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586208820720" />
-    <state width="1895" height="401" key="GridCell.Tab.0.bottom" timestamp="1586990902558">
+    <state width="1890" height="400" key="GridCell.Tab.0.bottom" timestamp="1587160256230">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
-    <state width="1895" height="401" key="GridCell.Tab.0.bottom/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586990902558" />
-    <state width="1895" height="401" key="GridCell.Tab.0.center" timestamp="1586990902557">
+    <state width="1890" height="400" key="GridCell.Tab.0.bottom/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587160256230" />
+    <state width="1890" height="400" key="GridCell.Tab.0.center" timestamp="1587160256229">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
-    <state width="1895" height="401" key="GridCell.Tab.0.center/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586990902557" />
-    <state width="1895" height="401" key="GridCell.Tab.0.left" timestamp="1586990902556">
+    <state width="1890" height="400" key="GridCell.Tab.0.center/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587160256229" />
+    <state width="1890" height="400" key="GridCell.Tab.0.left" timestamp="1587160256229">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
-    <state width="1895" height="401" key="GridCell.Tab.0.left/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586990902556" />
-    <state width="1895" height="401" key="GridCell.Tab.0.right" timestamp="1586990902558">
+    <state width="1890" height="400" key="GridCell.Tab.0.left/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587160256229" />
+    <state width="1890" height="400" key="GridCell.Tab.0.right" timestamp="1587160256230">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
-    <state width="1895" height="401" key="GridCell.Tab.0.right/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586990902558" />
+    <state width="1890" height="400" key="GridCell.Tab.0.right/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587160256230" />
     <state x="860" y="155" key="SettingsEditor" timestamp="1586988159424">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>

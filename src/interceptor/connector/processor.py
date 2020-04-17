@@ -43,7 +43,7 @@ spotfinder {
   threshold {
     algorithm = *dispersion dispersion_extended
     dispersion {
-      global_threshold = 15
+      global_threshold = 0
     }
   }
 }
@@ -65,10 +65,14 @@ output {
   integration_pickle = None
 }
 spotfinder {
+  filter {
+    max_spot_size = 100
+  }
   threshold {
     algorithm = *dispersion dispersion_extended
     dispersion {
       gain = 1
+      global_threshold = 0
     }
   }
 }
@@ -100,6 +104,15 @@ significance_filter {
   isigi_cutoff = 1.0
 }
 """
+
+
+def make_experiments(data, filename):
+    # make experiments
+    e_start = time.time()
+    FormatEigerStreamSSRL.inject_data(data)
+    experiments = ExperimentListFactory.from_filenames([filename])
+    e_time = time.time() - e_start
+    return experiments, e_time
 
 
 class IOTAProcessor(object):
@@ -159,40 +172,9 @@ class IOTAProcessor(object):
         info["prc_error"] = ";".join(errors)
         return info
 
-    def run(self, experiments, info):
+    def run(self, data, filename, info):
+        experiments, e_time = make_experiments(data, filename)
         return self.process(experiments, info)
-
-
-def find_spots_fast(info, data, filename):
-    proc_start = time.time()
-
-    # make experiments
-    e_start = time.time()
-    FormatEigerStreamSSRL.inject_data(data)
-    experiments = ExperimentListFactory.from_filenames([filename])
-    info["exp_time"] = time.time() - e_start
-
-    # find spots
-    try:
-        spf_start = time.time()
-        with Capturing() as spf_output:
-            observed = flex.reflection_table.from_observations(experiments, spf_params)
-        spf_time = time.time() - spf_start
-        info["comment"] = "Spf time: {:.4f} sec".format(spf_time)
-    except Exception as e:
-        info["spf_error"] = "spotfinding error: {}".format(str(e))
-    else:
-        experiment = experiments[0]
-        refl = observed.select(observed["id"] == 0)
-        refl.centroid_px_to_mm([experiment])
-        refl.map_centroids_to_reciprocal_space([experiment])
-        stats = per_image_analysis.stats_per_image(experiment, refl)
-        info["n_spots"] = stats.n_spots_no_ice[0]
-        info["hres"] = stats.estimated_d_min[0]
-
-    info["prc_time"] = spf_time
-    info["proc_time"] = time.time() - proc_start
-    return info
 
 
 class FastProcessor(Processor):
@@ -309,27 +291,11 @@ class FastProcessor(Processor):
         else:
             return experiments, indexed, "failed"
 
-    def calculate_resolution_from_spotfinding(self, observed, experiments):
-        # get detector and beam
-        try:
-            detector = experiments.unique_detectors()[0]
-            beam = experiments.unique_beams()[0]
-        except AttributeError:
-            detector = experiments.imagesets()[0].get_detector()
-            beam = experiments.imagesets()[0].get_beam()
-
-        s1 = flex.vec3_double()
-        for i in range(len(observed)):
-            obs_px_value = observed["xyzobs.px.value"][i][0:2]
-            obs_location = detector[observed["panel"][i]]
-            obs_coord = obs_location.get_pixel_lab_coord(obs_px_value)
-            s1.append(obs_coord)
-        two_theta = s1.angle(beam.get_s0())
-        d = beam.get_wavelength() / (2 * flex.asin(two_theta / 2))
-        return np.max(d), np.min(d)
-
-    def process(self, experiments, info):
+    def process(self, data, filename, info):
         info['phil'] = self.dials_phil.as_str()
+
+        # Make ExperimentList object
+        experiments, e_time = make_experiments(data, filename)
 
         # Spotfinding
         with Capturing() as spf_output:
@@ -381,8 +347,8 @@ class FastProcessor(Processor):
         if "index" in self.last_stage:
             return info
 
-    def run(self, experiments, info):
-        return self.process(experiments, info)
+    def run(self, data, filename, info):
+        return self.process(data, filename, info)
 
 
 if __name__ == "__main__":

@@ -55,6 +55,7 @@ def entry_point():
             "experiment",
             "ui",
             "n_proc",
+            "mpi_bind"
         ]:
             if value:
                 if value is True:
@@ -64,23 +65,56 @@ def entry_point():
                 connector_commands.extend(cmd_list)
 
     # mpi command
-    command = list(
-        map(
-            str,
-            [
-                "mpirun",
-                "--map-by",
-                "core",
-                "--bind-to",
-                "core",
-                "--rank-by",
-                "core",
-                "--np",
-                n_proc,
-                *connector_commands,
-            ],
+    if args.mpi_bind:
+        estimated_nproc = 0
+        ranges = args.mpi_bind.split(',')
+        if isinstance(ranges, str):
+            ranges = [ranges]
+        for r in ranges:
+            rng = r.split('-')
+            if isinstance(rng, str):
+                start = int(rng(0))
+                end = int(rng(1))
+                estimated_nproc += len(range(start, end))
+            else:
+                estimated_nproc += int(rng)
+        cpus = args.mpi_bind
+        n_proc = estimated_nproc
+        command = list(
+            map(
+                str,
+                [
+                    "mpirun",
+                    "--cpu-set",
+                    cpus,
+                    "--bind-to",
+                    "cpu-list:ordered",
+                    "--rank-by",
+                    "core",
+                    "--np",
+                    n_proc,
+                    *connector_commands,
+                ],
+            )
         )
-    )
+    else:
+        command = list(
+            map(
+                str,
+                [
+                    "mpirun",
+                    "--map-by",
+                    "core",
+                    "--bind-to",
+                    "core",
+                    "--rank-by",
+                    "core",
+                    "--np",
+                    n_proc,
+                    *connector_commands,
+                ],
+            )
+        )
 
     # run mpi
     print(" ".join(command))

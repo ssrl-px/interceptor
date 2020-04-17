@@ -1,6 +1,6 @@
 """
 Author      : Lyubimov, A.Y.
-Created     : 04/06/2020
+Created     : 04/16/2020
 Last Changed: 04/16/2020
 Description : Unit test for ZMQ format import (from file)
 """
@@ -30,9 +30,9 @@ class TestReader(Reader):
         return data
 
 
-def test_reader_from_file():
+def test_zmq_import():
     reader = TestReader()
-    run_no, idx, data, msg = reader.run()
+    data, info = reader.run()
 
     # check that the data keys line up with correct entries
     # datasest header
@@ -49,4 +49,4 @@ def test_reader_from_file():
 
 
 if __name__ == '__main__':
-    test_reader_from_file()
+    test_zmq_import()

@@ -83,7 +83,15 @@ def parse_command_args():
         type=str,
         nargs="?",
         default=None,
-        help='Absolute path to file with PHIL settings',
+        help="Absolute path to file with PHIL settings",
+    )
+    parser.add_argument(
+        "--mpi_bind",
+        type=str,
+        nargs="?",
+        default=None,
+        help='List of cpus to which the processes will bind (e.g. "1-10,20-54");'
+             ' will supersede the --n_proc value even from preset',
     )
     parser.add_argument("--header", action="store_true", default=False)
     parser.add_argument("--test", action="store_true", default=False)
