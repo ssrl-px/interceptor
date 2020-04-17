@@ -1,6 +1,6 @@
-## Interceptor
+# Interceptor
 
-# Overview
+## Overview
 
 The Interceptor is a suite of programs used to provide real-time analysis of x-ray diffraction data as it’s collected at a beamline facility. Originally intended to support serial crystallography experiment, the Interceptor is now seen as applicable to a growing variety of use cases.
 
@@ -14,7 +14,7 @@ The interceptor is composed of the following modules:
 4. *Interceptor GUI* - A user-friendly front end that allows users and/or staff to monitor the processing results. Currently, the idea is that it’ll be used if BluIce is not used for the purpose. Perhaps could be set up to monitor runs independently.
 
 
-# Process Launch
+## Process Launch
 
 Currently, the most user-friendly launch is with connect_mpi command (which runs the connector_run_mpi.py script) as follows:
 
@@ -51,7 +51,7 @@ corresponds to (e.g.)
     --uihost localhost --port 4443 --uistype push
 
 
-MPI
+## MPI
 
 OpenMPI is used to run Connector instances (one Collector, many Readers) in parallel.
 
@@ -68,7 +68,7 @@ In case one wishes to bypass a specific socket or set of cores, MPI allows bypas
 When calculating the average processing time per core, subtract 1 from the number of cores, as that is allocated to the Collector, which does no processing.
 
 
-# This will be added to in the future ...
+## This will be added to in the future ...
 
 
 ## Disclaimer Notice
