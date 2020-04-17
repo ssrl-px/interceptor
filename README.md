@@ -4,14 +4,14 @@
 
 The Interceptor is a suite of programs used to provide real-time analysis of x-ray diffraction data as it’s collected at a beamline facility. Originally intended to support serial crystallography experiment, the Interceptor is now seen as applicable to a growing variety of use cases.
 
-The interceptor is composed of the following modules:
+The Interceptor is composed of the following modules:
 
 1. *Splitter* - a C++ program that accepts a ZeroMQ stream from the detector, writes the raw image data to an HDF5 file, and forwards the ZeroMQ stream to the processing modules
 2. *ZMQ Connector* - a Python program that opens a ZeroMQ socket connection to the specified URL. There are two types of Connectors:
   -*ZMQ Reader* - uses request-reply protocol to request a single image (in multipart format) from the Splitter, and processes it using DIALS algorithms; tabulates results and pushes the JSON-formatted dictionary to the
-  -*ZMQ Collector* - uses push-pull protocol to pull a single result string from the Reader. Depending on settings, will print information to stdout and/or forward a specially formatted result string to either DHS or the stand-alone Interceptor GUI for display
+  -*ZMQ Collector* - uses push-pull protocol to pull a single result string from the Reader. Depending on settings, will print information to stdout and/or forward a specially formatted result string to either beamline control software or the stand-alone Interceptor GUI for display
 3. *FastProcessor* - a subclass of the DIALS Stills Processor (for now) that can process an image partially or fully and report its results. Instantiated once for every ZMQ Reader.
-4. *Interceptor GUI* - A user-friendly front end that allows users and/or staff to monitor the processing results. Currently, the idea is that it’ll be used if BluIce is not used for the purpose. Perhaps could be set up to monitor runs independently.
+4. *Interceptor GUI* - A user-friendly front end that allows users and/or staff to monitor the processing results. Currently, the idea is that it’ll be used if BluIce is not used for the purpose. Whether to enable the Interceptor GUI to be used independently of BluIce is under discussion. (It depends on whether the GUI will contain additional features of interest to users or staff.)
 
 
 ## Process Launch
