@@ -7,7 +7,6 @@ Last Changed: 03/31/2020
 Description : Streaming stills processor for live data analysis
 """
 
-import numpy as np
 import copy
 import time  # noqa: F401; keep around for testing
 
@@ -31,29 +30,8 @@ from iota.components.iota_image import ImageImporter
 from iota.components.iota_processing import IOTAImageProcessor
 from iota.components.iota_utils import Capturing
 
-# For debugging purposes
-# Custom PHIL for spotfinding only
-from dials.command_line.find_spots import phil_scope as spf_scope
-
-spf_params_string = """
-spotfinder {
-  filter {
-    max_spot_size = 100
-  }
-  threshold {
-    algorithm = *dispersion dispersion_extended
-    dispersion {
-      global_threshold = 0
-    }
-  }
-}
-
-"""
-spf_phil = ip.parse(spf_params_string)
-spf_params = spf_scope.fetch(source=spf_phil).extract()
-
 # Custom PHIL for processing with DIALS stills processor
-custom_params = """
+custom_param_string = """
 output {
   experiments_filename = None
   indexed_filename = None
@@ -104,6 +82,8 @@ significance_filter {
   isigi_cutoff = 1.0
 }
 """
+custom_phil = ip.parse(custom_param_string)
+custom_params = dials_scope.fetch(source=custom_phil).extract()
 
 
 def make_experiments(data, filename):
@@ -199,7 +179,7 @@ class FastProcessor(Processor):
             with open(phil_file, "r") as pf:
                 target_phil = ip.parse(pf.read())
         else:
-            target_phil = ip.parse(spf_params_string)
+            target_phil = ip.parse(custom_param_string)
         new_phil = dials_scope.fetch(source=target_phil)
         params = new_phil.extract()
         return params, new_phil
