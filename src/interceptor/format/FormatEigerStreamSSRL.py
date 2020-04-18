@@ -16,8 +16,11 @@ except (ImportError, ValueError):
     bitshuffle = None
 
 injected_data = {}
+
+
 def inject_data(data):
-  FormatEigerStream.injected_data = data
+    FormatEigerStream.injected_data = data
+
 
 class FormatEigerStreamSSRL(FormatEigerStream.FormatEigerStream):
     """
@@ -29,33 +32,33 @@ class FormatEigerStreamSSRL(FormatEigerStream.FormatEigerStream):
         return True
 
     def _detector(self):
-        ''' Create an Eiger detector profile (taken from FormatCBFMiniEiger) '''
+        """ Create an Eiger detector profile (taken from FormatCBFMiniEiger) """
         configuration = self.header["configuration"]
         info = self.header["info"]
 
-        distance = configuration['detector_distance']
-        wavelength = configuration['wavelength']
-        beam_x = configuration['beam_center_x']
-        beam_y = configuration['beam_center_y']
+        distance = configuration["detector_distance"]
+        wavelength = configuration["wavelength"]
+        beam_x = configuration["beam_center_x"]
+        beam_y = configuration["beam_center_y"]
 
-        pixel_x = configuration['x_pixel_size']
-        pixel_y = configuration['y_pixel_size']
+        pixel_x = configuration["x_pixel_size"]
+        pixel_y = configuration["y_pixel_size"]
 
-        material = configuration['sensor_material']
-        thickness = configuration['sensor_thickness']*1000
+        material = configuration["sensor_material"]
+        thickness = configuration["sensor_thickness"] * 1000
 
-        nx = configuration['x_pixels_in_detector']
-        ny = configuration['y_pixels_in_detector']
+        nx = configuration["x_pixels_in_detector"]
+        ny = configuration["y_pixels_in_detector"]
 
-        if 'count_rate_correction_count_cutoff' in configuration:
-            overload = configuration['count_rate_correction_count_cutoff']
+        if "count_rate_correction_count_cutoff" in configuration:
+            overload = configuration["count_rate_correction_count_cutoff"]
         else:
             # hard-code if missing from Eiger stream header
             overload = 4001400
         underload = -1
 
         try:
-            identifier = configuration['description']
+            identifier = configuration["description"]
         except KeyError:
             identifier = "Unknown Eiger"
 

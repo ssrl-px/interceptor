@@ -1,0 +1,88 @@
+maximum_trusted_value = None
+per_image_statistics = False
+spotfinder {
+  lookup {
+    mask = None
+  }
+  write_hot_mask = False
+  hot_mask_prefix = 'hot_mask'
+  force_2d = False
+  scan_range = None
+  region_of_interest = None
+  compute_mean_background = False
+  filter {
+    min_spot_size = Auto
+    max_spot_size = 100
+    max_separation = 2
+    max_strong_pixel_fraction = 0.25
+    background_gradient {
+      filter = False
+      background_size = 2
+      gradient_cutoff = 4
+    }
+    spot_density {
+      filter = False
+    }
+    border = 0
+    use_trusted_range = False
+    d_min = None
+    d_max = None
+    resolution_range = None
+    untrusted {
+      panel = None
+      circle = None
+      rectangle = None
+      polygon = None
+      pixel = None
+    }
+    ice_rings {
+      filter = False
+      unit_cell = 4.498,4.498,7.338,90,90,120
+      space_group = 194
+      width = 0.002
+      d_min = None
+    }
+  }
+  mp {
+    method = *none drmaa sge lsf pbs
+    njobs = 1
+    nproc = 1
+    chunksize = auto
+    min_chunksize = 20
+  }
+  threshold {
+    algorithm = *dispersion dispersion_extended
+    dispersion {
+      gain = 1
+      kernel_size = 3 3
+      sigma_background = 6
+      sigma_strong = 3
+      min_local = 2
+      global_threshold = 0
+    }
+  }
+}
+input {
+  experiments = None
+  tolerance {
+    beam {
+      wavelength = 1e-6
+      direction = 1e-6
+      polarization_normal = 1e-6
+      polarization_fraction = 1e-6
+    }
+    detector {
+      fast_axis = 1e-6
+      slow_axis = 1e-6
+      origin = 5e-2
+    }
+    goniometer {
+      rotation_axis = 1e-6
+      fixed_rotation = 1e-6
+      setting_rotation = 1e-6
+    }
+    scan {
+      oscillation = 0.01
+    }
+  }
+}
