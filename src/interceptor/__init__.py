@@ -1,4 +1,4 @@
-__version__ = "0.10.1"
+__version__ = "0.10.2"
 
 import os
 import platform
@@ -22,7 +22,7 @@ def packagefinder(filename, package, module=None, read_config=False, return_text
 
     if isinstance(package, list) or isinstance(package, tuple):
         submodule = ".".join(package[:-1])
-        module += submodule
+        module = "{}.{}".format(module, submodule)
         package = package[-1]
 
     try:
