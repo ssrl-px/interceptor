@@ -87,14 +87,12 @@ def parse_command_args():
         "--t",
         "--timeout",
         type=int,
-        nargs=1,
         default=0,
         help="Timeout in seconds when data not coming",
     )
     parser.add_argument(
         "--last_stage",
         type=str,
-        nargs=1,
         default="spotfinding",
         help='"Spotfinding", "indexing", or "integration" works',
     )
@@ -156,7 +154,6 @@ def parse_command_args():
         "-r",
         "--record",
         type=str,
-        nargs="?",
         default=None,
         help="If filepath is supplied, record proc info into file",
     )

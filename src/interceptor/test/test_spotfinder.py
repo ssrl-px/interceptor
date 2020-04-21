@@ -6,6 +6,11 @@ Description : Unit test for spotfinding on ZMQ-formatted data (from file)
 """
 
 
+def test_processor(proc_for_testing):
+    print ('debug: proc last_stage = ', proc_for_testing.last_stage)
+    assert proc_for_testing.last_stage == 'spotfinding'
+
+
 def test_info(process_test_image):
     info = process_test_image
     assert info is not None

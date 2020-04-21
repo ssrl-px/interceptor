@@ -39,8 +39,19 @@ def imported_data():
     return reader.run()
 
 
+@pytest.fixture(scope='module')
+def proc_for_testing():
+    reader = MinimalReader()
+
+    argstring = '-b 12-1 -e mesh'.split()
+    test_args, _ = parse_command_args().parse_known_args(argstring)
+
+    processor = reader.generate_processor(test_args)
+    return processor
+
+
 @pytest.fixture(scope="module")
-def process_test_image(imported_data):
+def process_test_image(imported_data, proc_for_testing):
     data, info = imported_data
 
     # Create dummy file for format class
@@ -48,9 +59,8 @@ def process_test_image(imported_data):
     with open(filename, 'w') as ef:
         ef.write('EIGERSTREAM')
 
-    # generate processor and run spotfinding (default)
-    processor = FastProcessor()
-    info = processor.run(data, filename, info)
+    # run spotfinding (default)
+    info = proc_for_testing.run(data, filename, info)
 
     # cleanup temp files and folders
     os.remove('eiger_test_1.stream')
