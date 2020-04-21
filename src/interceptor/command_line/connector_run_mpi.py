@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 """
 Author      : Lyubimov, A.Y.
 Created     : 04/06/2020
-Last Changed: 04/06/2020
+Last Changed: 04/20/2020
 Description : Launches multiple ZMQ Connector instances via MPI
 """
 
@@ -11,74 +11,38 @@ import os
 import time
 import procrunner
 
-from interceptor import import_resources
 from interceptor.command_line.connector_run import parse_command_args
-
-presets = import_resources(configs="connector", package="connector")
 times = []
 
 
-def entry_point():
-    args, _ = parse_command_args().parse_known_args()
-
+def make_mpi_command_line(args):
     # parse presets if appropriate
     connector_commands = ["connector"]
 
-    # Beamline preset
-    if args.beamline:
-        host, port = presets["beamlines"].extract(args.beamline)
-    else:
-        host = args.host
-        port = args.port
-    connector_commands.extend(
-        ["--host", host, "--port", port, "--stype", "req",]
-    )
-
-    # Experiment preset
-    if args.experiment:
-        n_proc, last_stage = presets["experiments"].extract(args.experiment)
-    else:
-        n_proc = args.n_proc
-        last_stage = args.last_stage
-    connector_commands.extend(["--last_stage", last_stage])
-
-    # UI preset
-    if args.ui:
-        uihost, uiport = presets["ui"].extract(args.ui)
-        connector_commands.extend(
-            ["--uihost", uihost, "--uiport", uiport, "--uistype", "push",]
-        )
-
     for arg, value in vars(args).items():
-        if "--{}".format(arg) not in connector_commands and arg not in [
-            "beamline",
-            "experiment",
-            "ui",
-            "n_proc",
-            "mpi_bind"
-        ]:
-            if value:
-                if value is True:
-                    cmd_list = ["--{}".format(arg)]
-                else:
-                    cmd_list = ["--{}".format(arg), value]
-                connector_commands.extend(cmd_list)
+        if value and arg not in ['n_proc', 'mpi_bind']:
+            if value is True:
+                cmd_list = ["--{}".format(arg)]
+            else:
+                cmd_list = ["--{}".format(arg), value]
+            connector_commands.extend(cmd_list)
 
     # mpi command
     if args.mpi_bind:
         estimated_nproc = 0
-        ranges = args.mpi_bind.split(',')
-        if isinstance(ranges, str):
-            ranges = [ranges]
+        ranges = [i.replace(',', '') for i in args.mpi_bind]
         for r in ranges:
             rng = r.split('-')
-            if isinstance(rng, str):
-                start = int(rng(0))
-                end = int(rng(1))
-                estimated_nproc += len(range(start, end))
+            if isinstance(rng, list):
+                if len(rng) == 2:
+                    start = int(rng[0])
+                    end = int(rng[1])
+                    estimated_nproc += len(range(start, end+1))
+                else:
+                    estimated_nproc += 1
             else:
-                estimated_nproc += int(rng)
-        cpus = args.mpi_bind
+                estimated_nproc += 1
+        cpus = ','.join(ranges)
         n_proc = estimated_nproc
         command = list(
             map(
@@ -110,12 +74,17 @@ def entry_point():
                     "--rank-by",
                     "core",
                     "--np",
-                    n_proc,
+                    args.n_proc,
                     *connector_commands,
                 ],
             )
         )
+    return command
 
+
+def entry_point():
+    args, _ = parse_command_args().parse_known_args()
+    command = make_mpi_command_line(args)
     # run mpi
     print(" ".join(command))
     if not args.dry_run:

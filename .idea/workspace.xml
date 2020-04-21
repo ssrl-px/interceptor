@@ -2,10 +2,20 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="4062e2d3-3d94-4dd0-96cb-ffd3a3879a3b" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.bumpversion.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/.bumpversion.cfg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/connector/beamlines.cfg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/connector/experiments.cfg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/interceptor/resources/connector/ui.cfg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/interceptor/test/conftest.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/interceptor/test/test_args.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/interceptor/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/interceptor/connector/processor.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/connector/processor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interceptor/command_line/connector_run.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/command_line/connector_run.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interceptor/command_line/connector_run_mpi.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/command_line/connector_run_mpi.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/gui/tracker.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interceptor/resources/connector/connector.cfg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interceptor/test/test_import.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/test_import.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/interceptor/test/test_spotfinder.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/interceptor/test/test_spotfinder.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/intxr.egg-info/PKG-INFO" beforeDir="false" afterPath="$PROJECT_DIR$/src/intxr.egg-info/PKG-INFO" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,7 +45,7 @@
   </component>
   <component name="PropertiesComponent">
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
-    <property name="settings.editor.selected.configurable" value="preferences.keymap" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
@@ -46,12 +56,35 @@
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/interceptor/test" />
       <recent name="$PROJECT_DIR$/src/interceptor" />
       <recent name="$PROJECT_DIR$/src/test/resources_pkg" />
       <recent name="$PROJECT_DIR$/src/test/images_pkg" />
       <recent name="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/custom" />
-      <recent name="$PROJECT_DIR$/src/interceptor/resources/gui_resources/icons/tango/32x32" />
     </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="ui_run" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="interceptor" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="$PROJECT_DIR$/../xfel_python3/build/bin/python" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src/interceptor/command_line" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/interceptor/command_line/ui_run.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
   </component>
   <component name="StructureViewFactory">
     <option name="ACTIVE_ACTIONS" value=",SHOW_FIELDS,SHOW_INHERITED" />
@@ -70,6 +103,10 @@
     <servers />
   </component>
   <component name="WindowStateProjectService">
+    <state x="744" y="393" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1587432600855">
+      <screen x="0" y="23" width="2560" height="1417" />
+    </state>
+    <state x="744" y="393" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587432600855" />
     <state x="1029" y="542" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1586893416716">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
@@ -98,26 +135,26 @@
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
     <state x="869" y="591" key="FileChooserDialogImpl/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586208820720" />
-    <state width="1890" height="400" key="GridCell.Tab.0.bottom" timestamp="1587160256230">
+    <state width="1890" height="400" key="GridCell.Tab.0.bottom" timestamp="1587432944287">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
-    <state width="1890" height="400" key="GridCell.Tab.0.bottom/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587160256230" />
-    <state width="1890" height="400" key="GridCell.Tab.0.center" timestamp="1587160256229">
+    <state width="1890" height="400" key="GridCell.Tab.0.bottom/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587432944287" />
+    <state width="1890" height="400" key="GridCell.Tab.0.center" timestamp="1587432944286">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
-    <state width="1890" height="400" key="GridCell.Tab.0.center/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587160256229" />
-    <state width="1890" height="400" key="GridCell.Tab.0.left" timestamp="1587160256229">
+    <state width="1890" height="400" key="GridCell.Tab.0.center/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587432944286" />
+    <state width="1890" height="400" key="GridCell.Tab.0.left" timestamp="1587432944285">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
-    <state width="1890" height="400" key="GridCell.Tab.0.left/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587160256229" />
-    <state width="1890" height="400" key="GridCell.Tab.0.right" timestamp="1587160256230">
+    <state width="1890" height="400" key="GridCell.Tab.0.left/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587432944285" />
+    <state width="1890" height="400" key="GridCell.Tab.0.right" timestamp="1587432944286">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
-    <state width="1890" height="400" key="GridCell.Tab.0.right/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587160256230" />
-    <state x="860" y="155" key="SettingsEditor" timestamp="1586988159424">
+    <state width="1890" height="400" key="GridCell.Tab.0.right/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587432944286" />
+    <state x="860" y="155" key="SettingsEditor" timestamp="1587432545986">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>
-    <state x="860" y="155" key="SettingsEditor/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1586988159424" />
+    <state x="860" y="155" key="SettingsEditor/0.23.2560.1417/-1680.23.1680.1027@0.23.2560.1417" timestamp="1587432545986" />
     <state x="961" y="495" width="637" height="472" key="find.popup" timestamp="1586551494708">
       <screen x="0" y="23" width="2560" height="1417" />
     </state>

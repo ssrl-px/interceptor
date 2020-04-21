@@ -16,9 +16,11 @@ from matplotlib.widgets import SpanSelector
 
 from iota.components.gui import controls as ct
 from interceptor.gui import receiver as rcv, find_icon
-from interceptor import import_resources
+from interceptor import packagefinder
 
-presets = import_resources(configs="connector", package="connector")
+blconfig = packagefinder('beamlines.cfg', 'connector', read_config=True)
+uiconfig = packagefinder('ui.cfg', 'connector', read_config=True)
+
 icon_cache = {}
 
 itx_EVT_ZOOM = wx.NewEventType()
@@ -652,7 +654,7 @@ class TrackerWindow(wx.Frame):
         # Beamline selection
         txt_bl = wx.StaticText(self.toolbar, label="Beamline: ")
         txt_spc = wx.StaticText(self.toolbar, label="   ")
-        choices = presets["beamlines"].original_keys
+        choices = [s for s in blconfig.sections()]
         chc_bl = wx.Choice(self.toolbar, choices=choices)
         self.toolbar.AddControl(txt_bl)
         self.tb_chc_bl = self.toolbar.AddControl(chc_bl)
@@ -719,8 +721,8 @@ class TrackerWindow(wx.Frame):
     def set_bl_choice(self):
         ctrl = self.tb_chc_bl.GetControl()
         selstring = ctrl.GetString(ctrl.GetSelection())
-        host, _ = presets["beamlines"].extract(selstring)
-        _, port = presets["ui"].extract("gui")
+        host = blconfig[selstring]['host']
+        port = uiconfig['gui']['uiport']
         self.tb_ctrl_host.GetControl().SetValue(host)
         self.tb_ctrl_port.GetControl().SetValue(port)
 

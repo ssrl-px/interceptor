@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 """
 Author      : Lyubimov, A.Y.
 Created     : 03/31/2020
-Last Changed: 03/31/2020
+Last Changed: 04/20/2020
 Description : ZMQ Connector launched with MPI. For example:
 
 To run on 10 cores at host 'bl121proc00', receiving from port 8121, running 
@@ -20,8 +20,25 @@ bl121proc00 --port 8121 --last_stage spotfinding --verbose
 """
 
 import argparse
+from interceptor import __version__ as intxr_version
 from interceptor.connector.connector import Reader, Collector
 
+from interceptor import packagefinder
+
+
+class ExpandPresets(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=1, **kwargs):
+        self.filename = kwargs.pop('filename', None)
+        if not self.filename:
+            raise ValueError("Preset filename must be specified")
+        if nargs != 1:
+            raise ValueError("Nargs must be equal to one")
+        super(ExpandPresets, self).__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        config = packagefinder(self.filename, 'connector', read_config=True)
+        for key, value in config[values].items():
+            setattr(namespace, key, value)
 
 def parse_command_args():
     """ Parses command line arguments (only options for now) """
@@ -32,63 +49,64 @@ def parse_command_args():
         epilog=("\n{:-^70}\n".format("")),
     )
     parser.add_argument(
-        "-n", "--n_proc", type=int, nargs="?", default=10, help="Number of processors"
+        "--version",
+        action="version",
+        version="Interceptor v{}".format(intxr_version),
+        help="Prints version info of Interceptor",
     )
     parser.add_argument(
-        "--host",
-        type=str,
-        nargs="?",
-        default="localhost",
-        help="ZMQ server to listen to",
+        "-n", "--n_proc", type=int, default=10, help="Number of processors"
     )
     parser.add_argument(
-        "--port", type=str, nargs="?", default="6677", help="Port to listen to"
+        "--host", type=str, default='localhost', help="ZMQ server to listen to",
     )
     parser.add_argument(
-        "--stype", type=str, nargs="?", default="req", help="Socket type"
+        "--port", type=str, default=9999, help="Port to listen to"
     )
     parser.add_argument(
-        "--uihost", type=str, nargs="?", default=None, help="UI host server to send to"
+        "--stype", type=str, default='req', help="Socket type"
     )
     parser.add_argument(
-        "--uiport", type=str, nargs="?", default=None, help="UI port to send to"
+        "--uihost", type=str, help="UI host server to send to"
     )
     parser.add_argument(
-        "--uistype", type=str, nargs="?", default="push", help="UI socket type"
+        "--uiport", type=str, help="UI port to send to"
+    )
+    parser.add_argument(
+        "--uistype", type=str, help="UI socket type"
     )
     parser.add_argument(
         "--interval",
         type=float,
         nargs="?",
-        default="0",
+        default=0,
         help="Interval between image receipt",
     )
     parser.add_argument(
         "--t",
         "--timeout",
         type=int,
-        nargs="?",
+        nargs=1,
         default=0,
         help="Timeout in seconds when data not coming",
     )
     parser.add_argument(
         "--last_stage",
         type=str,
-        nargs="?",
+        nargs=1,
         default="spotfinding",
         help='"Spotfinding", "indexing", or "integration" works',
     )
     parser.add_argument(
         "--phil",
         type=str,
-        nargs="?",
         default=None,
         help="Absolute path to file with PHIL settings",
     )
     parser.add_argument(
         "--mpi_bind",
         type=str,
-        nargs="?",
+        nargs="*",
         default=None,
         help='List of cpus to which the processes will bind (e.g. "1-10,20-54");'
              ' will supersede the --n_proc value even from preset',
@@ -108,16 +126,18 @@ def parse_command_args():
         "-b",
         "--beamline",
         type=str,
-        nargs="?",
-        default=None,
+        filename='beamlines.cfg',
+        action=ExpandPresets,
+        default=argparse.SUPPRESS,
         help='Beamline filename (e.g. "12-1") will select host and port',
     )
     parser.add_argument(
         "-e",
         "--experiment",
         type=str,
-        nargs="?",
-        default=None,
+        filename='experiments.cfg',
+        action=ExpandPresets,
+        default=argparse.SUPPRESS,
         help='Experiment preset (e.g. "injector") will select number of '
         "processors and extent of processing",
     )
@@ -125,8 +145,9 @@ def parse_command_args():
         "-u",
         "--ui",
         type=str,
-        nargs="?",
-        default=None,
+        filename='ui.cfg',
+        action=ExpandPresets,
+        default=argparse.SUPPRESS,
         help='UI preset (e.g. "gui") will select to which port and host the output '
         "is sent",
     )

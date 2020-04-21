@@ -2,6 +2,7 @@ __version__ = "0.10.2"
 
 import os
 import platform
+import configparser
 
 ver = platform.python_version_tuple()
 
@@ -34,9 +35,7 @@ def packagefinder(filename, package, module=None, read_config=False, return_text
         msg = 'ERROR: Could not find module "{}"'.format(module)
         raise PackageFinderException(msg)
 
-    if read_config:
-        return read_package_file(imported, filename)
-    elif return_text:
+    if return_text:
         try:
             return pkg_resources.read_text(imported, filename)
         except FileNotFoundError as e:
@@ -51,7 +50,12 @@ def packagefinder(filename, package, module=None, read_config=False, return_text
             )
             raise PackageFinderException(msg)
 
-        return resource_filepath
+        if read_config:
+            config = configparser.ConfigParser()
+            config.read(resource_filepath)
+            return config
+        else:
+            return resource_filepath
 
 
 class ResourceDict(dict):
@@ -127,6 +131,5 @@ def import_resources(configs, package):
     else:
         filename = check_extension(configs)
         return packagefinder(filename, package=package, read_config=True)
-
 
 # -- end
