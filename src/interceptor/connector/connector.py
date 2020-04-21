@@ -111,12 +111,12 @@ class Reader(ConnectorBase):
             self.processor.print_params()
 
     def convert_from_stream(self, frames):
-        msg = ''
+        msg = ""
         if len(frames) <= 2:
             framestring = frames[0] if isinstance(frames[0], bytes) else frames[0].bytes
             if self.args.header and self.args.htype in str(framestring):
                 self.make_header(frames)
-                return [-999, -999, None], 'Header Frame'
+                return [-999, -999, None], "Header Frame"
         else:
             try:
                 if not self.args.header:
@@ -141,7 +141,7 @@ class Reader(ConnectorBase):
                 return_frames = [run_no, idx, img_frames]
             except Exception as e:
                 return_frames = None
-                msg = 'CONVERSION ERROR: {}'.format(str(e))
+                msg = "CONVERSION ERROR: {}".format(str(e))
             return return_frames, msg
 
     def make_header(self, frames):
@@ -167,7 +167,7 @@ class Reader(ConnectorBase):
                     data[key] = frm[:-1] if isinstance(frm, bytes) else frm.bytes[:-1]
                 else:
                     data[key] = frm if isinstance(frm, bytes) else frm.bytes
-            msg = ''
+            msg = ""
 
         info = {
             "proc_name": self.name,
@@ -253,14 +253,14 @@ class Reader(ConnectorBase):
 
             data, info = self.make_data_dict(frames)
 
-            if data is 'header_frame':
-                print ("debug: header frame, skipping...")
+            if data is "header_frame":
+                print("debug: header frame, skipping...")
                 continue
             elif data is None:
-                print (info)
+                print(info)
                 continue
             elif info is None:
-                print ('debug: info is None!')
+                print("debug: info is None!")
                 continue
 
             info = self.process(info, frame=data, filename=filename)
@@ -297,7 +297,76 @@ class Collector(ConnectorBase):
         super(Collector, self).__init__(name=name, comm=comm, args=args)
         self.initialize_process()
 
-    def run(self):
+    def write_to_file(self, info):
+        with open(self.args.record, "a") as rf:
+            rline = "{:<8} {:<4} {:<10.8f} {}\n".format(
+                info["proc_name"], info["frame_idx"], info["t0"], info["proc_time"],
+            )
+            rf.write(rline)
+
+    def make_result_string(self, info):
+        # message to DHS / UI
+        prefix = "htos_log note zmaDhs"
+        err_list = [
+            info["dat_error"],
+            info["img_error"],
+            info["spf_error"],
+            info["idx_error"],
+            info["rix_error"],
+            info["prc_error"],
+            info["comment"],
+        ]
+        errors = ";".join([i for i in err_list if i != ""])
+        ui_msg = (
+            "{0} {1} {2} {3} {4} "
+            "{5} {6:.2f} {7} {8} {9} {{{10}}}"
+            "".format(
+                prefix,  # required for DHS logging
+                info["run_no"],  # run number
+                info["frame_idx"],  # frame index
+                info["n_spots"],  # number_of_spots
+                0,  # TODO: number_of_spots_with_overloaded_pixels
+                info["n_indexed"],  # number of indexed reflections
+                info["hres"],  # high resolution boundary
+                0,  # TODO: number_of_ice-rings
+                info["sg"],  # space group
+                info["uc"],  # unit cell
+                errors,  # errors
+            )
+        )
+        return ui_msg
+
+    def print_to_stdout(self, info, ui_msg):
+        print(
+            "*** ({}) RUN {}, FRAME {}:".format(
+                info["proc_name"], info["run_no"], info["frame_idx"]
+            )
+        )
+        print("  {}".format(ui_msg))
+        print(
+            "  TIME: recv = {:.2f} sec,"
+            " proc = {:.4f} ,"
+            " total = {:.2f} sec".format(
+                info["receive_time"], info["proc_time"], info["total_time"],
+            ),
+        )
+        print("***\n")
+
+    def output_results(self, info, record=False, verbose=False):
+        ui_msg = None
+        if record:
+            self.write_to_file(info=info)
+        try:
+            ui_msg = self.make_result_string(info=info)
+        except Exception as exp:
+            print("PRINT ERROR: ", exp)
+        else:
+            if verbose:
+                self.print_to_stdout(info=info, ui_msg=ui_msg)
+        finally:
+            return ui_msg
+
+    def collect(self):
         # todo: decide whether to leave this port hardcoded
         host = "localhost"
         port = 7121
@@ -314,77 +383,20 @@ class Collector(ConnectorBase):
                 port=self.args.uiport,
                 socket_type=self.args.uistype,
             )
-
         while True:
             info = collector.receive_json()
             if info:
-                if self.args.record:
-                    with open(self.args.record, "a") as rf:
-                        rline = "{:<8} {:<4} {:<10.8f} {}\n".format(
-                            info["proc_name"],
-                            info["frame_idx"],
-                            info["t0"],
-                            info["proc_time"],
-                        )
-                        rf.write(rline)
+                # send string to UI (DHS or Interceptor GUI)
+                ui_msg = self.output_results(
+                    info, record=self.args.record, verbose=self.args.verbose
+                )
+                if send_to_ui:
+                    try:
+                        ui_stream.send_string(ui_msg)
+                    except Exception:
+                        pass
 
-                try:
-                    # message to DHS / UI
-                    prefix = "htos_log note zmaDhs"
-                    err_list = [
-                        info["dat_error"],
-                        info["img_error"],
-                        info["spf_error"],
-                        info["idx_error"],
-                        info["rix_error"],
-                        info["prc_error"],
-                        info["comment"],
-                    ]
-                    errors = ";".join([i for i in err_list if i != ""])
-                    ui_msg = (
-                        "{0} {1} {2} {3} {4} "
-                        "{5} {6:.2f} {7} {8} {9} {{{10}}}"
-                        "".format(
-                            prefix,  # required for DHS logging
-                            info["run_no"],  # run number
-                            info["frame_idx"],  # frame index
-                            info["n_spots"],  # number_of_spots
-                            0,  # TODO: number_of_spots_with_overloaded_pixels
-                            info["n_indexed"],  # number of indexed reflections
-                            info["hres"],  # high resolution boundary
-                            0,  # TODO: number_of_ice-rings
-                            info["sg"],  # space group
-                            info["uc"],  # unit cell
-                            errors,  # errors
-                        )
-                    )
-                except Exception as exp:
-                    print("PRINT ERROR: ", exp)
-                else:
-                    if self.args.verbose:
-                        print(
-                            "*** ({}) RUN {}, FRAME {}:".format(
-                                info["proc_name"], info["run_no"], info["frame_idx"]
-                            )
-                        )
-                        print("  {}".format(ui_msg))
-                        # print ("  DEBUG: BEAM X = {:.2f}, Y = {:.2f}, DIST = {:.2f}".format(
-                        #   info['beamXY'][0], info['beamXY'][1], info['dist']
-                        # ))
-                        print(
-                            "  TIME: recv = {:.2f} sec,"
-                            " proc = {:.4f} ,"
-                            " total = {:.2f} sec".format(
-                                info["receive_time"],
-                                info["proc_time"],
-                                info["total_time"],
-                            ),
-                        )
-                        print("***\n")
+    def run(self):
+        self.collect()
 
-                    # send string to UI (DHS and/or Interceptor GUI)
-                    if send_to_ui:
-                        try:
-                            ui_stream.send_string(ui_msg)
-                        except Exception as exp:
-                            pass
+# -- end

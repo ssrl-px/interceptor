@@ -10,8 +10,7 @@ import shutil
 import pytest
 
 from interceptor import packagefinder
-from interceptor.connector.connector import Reader
-from interceptor.connector.processor import FastProcessor
+from interceptor.connector.connector import Reader, Collector
 from interceptor.command_line.connector_run import parse_command_args
 args, _ = parse_command_args().parse_known_args()
 
@@ -31,6 +30,11 @@ class MinimalReader(Reader):
 
         data = self.make_data_dict(frames)
         return data
+
+
+class FileCollector(Collector):
+    def __init__(self, name='test'):
+        super(FileCollector, self).__init__(name=name, args=args)
 
 
 @pytest.fixture(scope="module")
@@ -67,3 +71,9 @@ def process_test_image(imported_data, proc_for_testing):
     shutil.rmtree('debug')
 
     return info
+
+
+@pytest.fixture(scope='module')
+def print_info(process_test_image):
+    collector = FileCollector()
+    return collector.make_result_string(info=process_test_image)

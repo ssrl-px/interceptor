@@ -7,8 +7,7 @@ Description : Unit test for spotfinding on ZMQ-formatted data (from file)
 
 
 def test_processor(proc_for_testing):
-    print ('debug: proc last_stage = ', proc_for_testing.last_stage)
-    assert proc_for_testing.last_stage == 'spotfinding'
+    assert proc_for_testing.last_stage == "indexing"
 
 
 def test_info(process_test_image):
@@ -19,21 +18,21 @@ def test_info(process_test_image):
 def test_frame_import(process_test_image):
     # Test that frame imported correctly (frame index should be neither -1 nor -999)
     info = process_test_image
-    assert int(info['frame_idx']) > 0
+    assert int(info["frame_idx"]) > 0
 
 
 def test_errors(process_test_image):
     # Check that no errors were recorded
     info = process_test_image
     for key, value in info.items():
-        if 'error' in key:
+        if "error" in key:
             assert not value
 
 
 def test_spots_found(process_test_image):
     # Check that spots were found
     info = process_test_image
-    assert int(info['n_spots']) > 0
+    assert int(info["n_spots"]) > 0
 
 
 def test_n_spots(process_test_image):
@@ -41,11 +40,18 @@ def test_n_spots(process_test_image):
     # changes or if I change defaults settings)
     info = process_test_image
     try:
-        assert int(info['n_spots']) == 641
+        assert int(info["n_spots"]) == 641
     except AssertionError as e:
-        print("WARNING: {} spots found instead of 641".format(
-            info['n_spots']))
+        print("WARNING: {} spots found instead of 641".format(info["n_spots"]))
         raise e
+
+
+def test_output(print_info):
+    assert (
+        print_info
+        == "htos_log note zmaDhs "
+           "1 1 641 0 574 1.58 0 P4 78.82 78.82 37.19 90.00 90.00 90.00 {}"
+    )
 
 
 if __name__ == "__main__":
