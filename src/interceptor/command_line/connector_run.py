@@ -20,10 +20,10 @@ bl121proc00 --port 8121 --last_stage spotfinding --verbose
 """
 
 import argparse
-from interceptor import __version__ as intxr_version
-from interceptor.connector.connector import Reader, Collector
 
+from interceptor import __version__ as intxr_version
 from interceptor import packagefinder
+from interceptor.connector.connector import Reader, Collector
 
 
 class ExpandPresets(argparse.Action):
@@ -39,6 +39,7 @@ class ExpandPresets(argparse.Action):
         config = packagefinder(self.filename, 'connector', read_config=True)
         for key, value in config[values].items():
             setattr(namespace, key, value)
+
 
 def parse_command_args():
     """ Parses command line arguments (only options for now) """
