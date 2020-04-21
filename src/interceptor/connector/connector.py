@@ -254,9 +254,13 @@ class Reader(ConnectorBase):
             data, info = self.make_data_dict(frames)
 
             if data is 'header_frame':
+                print ("debug: header frame, skipping...")
                 continue
             elif data is None:
                 print (info)
+                continue
+            elif info is None:
+                print ('debug: info is None!')
                 continue
 
             info = self.process(info, frame=data, filename=filename)
@@ -320,7 +324,7 @@ class Collector(ConnectorBase):
                             info["proc_name"],
                             info["frame_idx"],
                             info["t0"],
-                            info["prc_time"],
+                            info["proc_time"],
                         )
                         rf.write(rline)
 
@@ -369,12 +373,10 @@ class Collector(ConnectorBase):
                         # ))
                         print(
                             "  TIME: recv = {:.2f} sec,"
-                            " exp = {:.4f},"
                             " proc = {:.4f} ,"
                             " total = {:.2f} sec".format(
                                 info["receive_time"],
-                                info["exp_time"],
-                                info["prc_time"],
+                                info["proc_time"],
                                 info["total_time"],
                             ),
                         )
