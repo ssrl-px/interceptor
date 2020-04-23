@@ -40,9 +40,9 @@ def test_n_spots(process_test_image):
     # changes or if I change defaults settings)
     info = process_test_image
     try:
-        assert int(info["n_spots"]) == 641
+        assert int(info["n_spots"]) == 731
     except AssertionError as e:
-        print("WARNING: {} spots found instead of 641".format(info["n_spots"]))
+        print("WARNING: {} spots found instead of 731".format(info["n_spots"]))
         raise e
 
 
@@ -50,7 +50,7 @@ def test_output(print_info):
     assert (
         print_info
         == "htos_log note zmaDhs "
-           "1 1 641 0 574 1.58 0 P4 78.82 78.82 37.19 90.00 90.00 90.00 {}"
+           "1 1 731 0 13 1.64 0 1 P4 78.82 78.82 37.19 90.00 90.00 90.00 {}"
     )
 
 

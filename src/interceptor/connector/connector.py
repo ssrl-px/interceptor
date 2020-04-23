@@ -177,6 +177,7 @@ class Reader(ConnectorBase):
             "dist": 0,
             "n_spots": 0,
             "hres": 99.0,
+            "score": 0,
             "n_indexed": 0,
             "sg": "NA",
             "uc": "NA",
@@ -319,16 +320,17 @@ class Collector(ConnectorBase):
         errors = ";".join([i for i in err_list if i != ""])
         ui_msg = (
             "{0} {1} {2} {3} {4} "
-            "{5} {6:.2f} {7} {8} {9} {{{10}}}"
+            "{5} {6:.2f} {7} {8} {9} {10} {{{11}}}"
             "".format(
                 prefix,  # required for DHS logging
                 info["run_no"],  # run number
                 info["frame_idx"],  # frame index
                 info["n_spots"],  # number_of_spots
-                0,  # TODO: number_of_spots_with_overloaded_pixels
-                info["n_indexed"],  # number of indexed reflections
+                info["n_overloads"],  # number_of_spots_with_overloaded_pixels
+                info["score"],  # composite score (used to be n_indexed...)
                 info["hres"],  # high resolution boundary
-                0,  # TODO: number_of_ice-rings
+                info["n_ice_rings"],  # number_of_ice-rings
+                info["mean_shape_ratio"], # mean spot shape ratio
                 info["sg"],  # space group
                 info["uc"],  # unit cell
                 errors,  # errors
