@@ -49,8 +49,9 @@ def test_n_spots(process_test_image):
 def test_output(print_info):
     assert (
         print_info
-        == "htos_log note zmaDhs "
-           "1 1 731 0 13 1.64 0 1 P4 78.82 78.82 37.19 90.00 90.00 90.00 {}"
+        == "htos_log note zmqDhs run 1 frame 1 "
+           "result {731 0 13 1.64 0 1.00 P4 78.82 78.82 37.19 90.00 90.00 90.00 {}} "
+           "mapping {}"
     )
 
 

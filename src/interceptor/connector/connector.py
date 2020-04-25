@@ -133,12 +133,26 @@ class Reader(ConnectorBase):
                 frame_split = frame_string.split(",")
                 idx = -1
                 run_no = -1
+                mapping = ""
+                reporting = ""
                 for part in frame_split:
                     if "series" in part:
                         run_no = part.split(":")[1]
                     if "frame" in part:
                         idx = part.split(":")[1]
-                return_frames = [run_no, idx, img_frames]
+                    if "mapping" in part:
+                        mapping = part.split(":")[1]
+                    if "reporting" in part:
+                        reporting = part.split(":")[1]
+                return_frames = [
+                    {
+                        "run_no": run_no,
+                        "frame_idx": idx,
+                        "mapping": mapping,
+                        "reporting": reporting,
+                    },
+                    img_frames,
+                ]
             except Exception as e:
                 return_frames = None
                 msg = "CONVERSION ERROR: {}".format(str(e))
@@ -154,14 +168,12 @@ class Reader(ConnectorBase):
         frames, msg = self.convert_from_stream(frames)
         if frames is None:
             return None, msg
-        elif frames[0] == -999:
+        elif frames[0]["frame_idx"] == -999:
             return "header_frame", None
         else:
-            run_no = frames[0]
-            idx = frames[1]
             data = {"header1": self.header[0], "header2": self.header[1]}
-            for frm in frames[2]:
-                i = frames[2].index(frm) + 1
+            for frm in frames[1]:
+                i = frames[1].index(frm) + 1
                 key = "streamfile_{}".format(i)
                 if i != 3:
                     data[key] = frm[:-1] if isinstance(frm, bytes) else frm.bytes[:-1]
@@ -171,8 +183,6 @@ class Reader(ConnectorBase):
 
         info = {
             "proc_name": self.name,
-            "run_no": run_no,
-            "frame_idx": idx,
             "beamXY": (0, 0),
             "dist": 0,
             "n_spots": 0,
@@ -191,6 +201,7 @@ class Reader(ConnectorBase):
             "t0": 0,
             "phil": "",
         }
+        info.update(frames[0])
 
         return data, info
 
@@ -307,7 +318,6 @@ class Collector(ConnectorBase):
 
     def make_result_string(self, info):
         # message to DHS / UI
-        prefix = "htos_log note zmaDhs"
         err_list = [
             info["dat_error"],
             info["img_error"],
@@ -318,23 +328,30 @@ class Collector(ConnectorBase):
             info["comment"],
         ]
         errors = ";".join([i for i in err_list if i != ""])
-        ui_msg = (
-            "{0} {1} {2} {3} {4} "
-            "{5} {6:.2f} {7} {8} {9} {10} {{{11}}}"
+        results = (
+            "{0} {1} {2} {3:.2f} {4} "
+            "{5:.2f} {6} {7} {{{8}}}"
             "".format(
-                prefix,  # required for DHS logging
-                info["run_no"],  # run number
-                info["frame_idx"],  # frame index
                 info["n_spots"],  # number_of_spots
                 info["n_overloads"],  # number_of_spots_with_overloaded_pixels
                 info["score"],  # composite score (used to be n_indexed...)
                 info["hres"],  # high resolution boundary
                 info["n_ice_rings"],  # number_of_ice-rings
-                info["mean_shape_ratio"], # mean spot shape ratio
+                info["mean_shape_ratio"],  # mean spot shape ratio
                 info["sg"],  # space group
                 info["uc"],  # unit cell
                 errors,  # errors
             )
+        )
+        reporting = (
+            info["reporting"] if info["reporting"] != "" else "htos_log note zmqDhs"
+        )
+        ui_msg = "{0} run {1} frame {2} result {{{3}}} mapping {{{4}}}".format(
+            reporting,
+            info["run_no"],  # run number
+            info["frame_idx"],  # frame index
+            results,  # processing results
+            info["mapping"],  # mapping from run header
         )
         return ui_msg
 
@@ -400,5 +417,6 @@ class Collector(ConnectorBase):
 
     def run(self):
         self.collect()
+
 
 # -- end

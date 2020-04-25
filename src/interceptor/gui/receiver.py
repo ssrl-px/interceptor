@@ -41,15 +41,19 @@ class Receiver(Thread):
             except Exception as exp:
                 time.sleep(1)
             else:
-                data_parsed = data_string.split(" ")
+                run_no = data_string.split('run ')[1].split(' frame')[0]
+                frame_idx = data_string.split('frame ')[1].split(' result')[0]
+                result_string = data_string.split('result ')[1].split(' mapping')[0]
+                results = result_string[1:-1].split()
+
                 data = {
-                    "run_no": data_parsed[3],
-                    "frame_idx": data_parsed[4],
-                    "n_spots": data_parsed[5],
-                    "hres": data_parsed[8],
+                    "run_no": run_no,
+                    "frame_idx": frame_idx,
+                    "n_spots": results[0],
+                    "hres": results[3],
                 }
                 # mark frame if indexed
-                sg = data_parsed[10]
+                sg = results[6]
                 data["indexed"] = data["n_spots"] if sg != "NA" else np.nan
                 if data:
                     self.all_info.append(data)
