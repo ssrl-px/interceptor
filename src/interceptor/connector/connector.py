@@ -56,13 +56,14 @@ class ConnectorBase:
         if self.comm:
             # Generate params, args, etc. if process rank id = 0
             if self.rank == 0:
-                # args, _ = self.generate_args()
                 processor = self.generate_processor(self.args)
                 info = dict(
                     processor=processor,
                     args=self.args,
                     host=self.args.host,
                     port=self.args.port,
+                    rhost=self.args.host,
+                    rport="7{}".format(str(self.args.port)[1:]),
                 )
             else:
                 info = None
@@ -75,6 +76,8 @@ class ConnectorBase:
             self.args = info["args"]
             self.host = info["host"]
             self.port = info["port"]
+            self.rhost = info["rhost"]
+            self.rport = info["rport"]
         else:
             self.processor = self.generate_processor(self.args)
             self.host = self.args.host
@@ -220,16 +223,16 @@ class Reader(ConnectorBase):
         return filename
 
     def initialize_zmq_sockets(self):
-        # Initialize ZMQ stream listener
-        self.stream = ZMQStream(
+        # Initialize ZMQ stream listener (aka 'data socket')
+        self.d_socket = ZMQStream(
             name=self.name, host=self.host, port=self.port, socket_type=self.args.stype
         )
 
-        # intra-process communication (not using MPI... yet)
-        self.uplink = ZMQStream(
-            name="{}_uplink".format(self.name),
-            host="localhost",
-            port=7121,
+        # intra-process communication (aka 'result socket')
+        self.r_socket = ZMQStream(
+            name="{}_2C".format(self.name),
+            host=self.rhost,
+            port=self.rport,
             socket_type="push",
         )
 
@@ -246,8 +249,8 @@ class Reader(ConnectorBase):
             try:
                 fstart = time.time()
                 if self.args.stype.lower() == "req":
-                    self.stream.send(b"Hello")
-                frames = self.stream.receive(copy=False, flags=0)
+                    self.d_socket.send(b"Hello")
+                frames = self.d_socket.receive(copy=False, flags=0)
                 fel = time.time() - fstart
             except Exception as exp:
                 print("DEBUG: {} CONNECT FAILED! {}".format(self.name, exp))
@@ -279,7 +282,7 @@ class Reader(ConnectorBase):
             elapsed = time.time() - start
             time_info = {"total_time": elapsed, "receive_time": fel}
             info.update(time_info)
-            self.uplink.send_json(info)
+            self.r_socket.send_json(info)
 
             # If frame processing fits within specified interval, sleep for the
             # remainder of that interval; otherwise (or if args.interval == 0) don't
@@ -386,18 +389,18 @@ class Collector(ConnectorBase):
             return ui_msg
 
     def collect(self):
-        # todo: decide whether to leave this port hardcoded
-        host = "localhost"
-        port = 7121
-        socket_type = "pull"
         collector = ZMQStream(
-            name=self.name, host=host, port=port, socket_type=socket_type, bind=True
+            name=self.name,
+            host=self.rhost,
+            port=self.rport,
+            socket_type="push",
+            bind=True,
         )
 
         send_to_ui = self.args.send or (self.args.uihost and self.args.uiport)
         if send_to_ui:
-            ui_stream = ZMQStream(
-                name=self.name + "_uplink",
+            ui_socket = ZMQStream(
+                name=self.name + "_2C",
                 host=self.args.uihost,
                 port=self.args.uiport,
                 socket_type=self.args.uistype,
@@ -411,7 +414,7 @@ class Collector(ConnectorBase):
                 )
                 if send_to_ui:
                     try:
-                        ui_stream.send_string(ui_msg)
+                        ui_socket.send_string(ui_msg)
                     except Exception:
                         pass
 
