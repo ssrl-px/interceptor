@@ -115,6 +115,7 @@ class Reader(ConnectorBase):
 
     def convert_from_stream(self, frames):
         msg = ""
+        # Contingency for when header frame is sent once per run
         if len(frames) <= 2:
             framestring = frames[0] if isinstance(frames[0], bytes) else frames[0].bytes
             if self.args.header and self.args.htype in str(framestring):
@@ -125,38 +126,49 @@ class Reader(ConnectorBase):
                 if not self.args.header:
                     hdr_frames = frames[:2]
                     img_frames = frames[2:]
-                    if not hasattr(self, "header"):
-                        self.make_header(frames=hdr_frames)
+                    self.make_header(frames=hdr_frames)
                 else:
                     img_frames = frames
+            except Exception as e:
+                return_frames = None
+                msg = "HEADER ERROR: {}".format(str(e))
+                return return_frames, msg
+
+            img_info = {
+                "run_no": -1,
+                "frame_idx": -1,
+                "mapping": "",
+                "reporting": "",
+                "filename": "",
+            }
+
+            try:
+                # Get master_file name from header
+                header_split = str(self.header[0][3:-2]).split(",")
+                for part in header_split:
+                    if "master_file" in part:
+                        filepath = part.split(":")[1].strip('"')
+                        img_info["filename"] = os.path.basename(filepath)
+
+                # Get frame info from frame
                 if isinstance(img_frames[0], bytes):
                     frame_string = str(img_frames[0][:-1])[3:-2]  # extract dict entries
                 else:
                     frame_string = str(img_frames[0].bytes[:-1])[3:-2]
                 frame_split = frame_string.split(",")
-                idx = -1
-                run_no = -1
-                mapping = ""
-                reporting = ""
                 for part in frame_split:
                     if "series" in part:
-                        run_no = part.split(":")[1]
+                        img_info["run_no"] = part.split(":")[1]
                     if "frame" in part:
-                        idx = part.split(":")[1]
+                        img_info["frame_idx"] = part.split(":")[1]
                     if "mapping" in part:
-                        mapping = part.split(":")[1]
+                        img_info["mapping"] = part.split(":")[1].strip('"')
                     if "reporting" in part:
-                        reporting = part.split(":")[1]
-                return_frames = [
-                    {
-                        "run_no": run_no,
-                        "frame_idx": idx,
-                        "mapping": mapping,
-                        "reporting": reporting,
-                    },
-                    img_frames,
-                ]
+                        img_info["reporting"] = part.split(":")[1].strip('"')
+                return_frames = [img_info, img_frames]
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 return_frames = None
                 msg = "CONVERSION ERROR: {}".format(str(e))
             return return_frames, msg
@@ -349,12 +361,14 @@ class Collector(ConnectorBase):
         reporting = (
             info["reporting"] if info["reporting"] != "" else "htos_log note zmqDhs"
         )
-        ui_msg = "{0} run {1} frame {2} result {{{3}}} mapping {{{4}}}".format(
+        ui_msg = "{0} run {1} frame {2} result {{{3}}} mapping {{{4}}} " \
+                 "filename {5}".format(
             reporting,
             info["run_no"],  # run number
             info["frame_idx"],  # frame index
             results,  # processing results
             info["mapping"],  # mapping from run header
+            info["filename"],  # master file
         )
         return ui_msg
 

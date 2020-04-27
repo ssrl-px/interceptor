@@ -31,3 +31,11 @@ def test_zmq_import_image(imported_data):
     # check that 'streamfile_3' contains a large string (i.e. image)
     assert len(data['streamfile_3']) > 100000
 
+
+def test_image_info(imported_data):
+    data, info = imported_data
+    assert info['run_no'] == "1"
+    assert info['frame_idx'] == "1"
+    assert info['filename'] == 'hdf5_test_0361-000_master.h5'
+    assert info['mapping'] == ''
+    assert info['reporting'] == ''
