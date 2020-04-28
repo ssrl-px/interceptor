@@ -408,7 +408,7 @@ class Collector(ConnectorBase):
             name=self.name,
             host=self.rhost,
             port=self.rport,
-            socket_type="push",
+            socket_type="pull",
             bind=True,
         )
 
