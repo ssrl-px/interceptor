@@ -190,8 +190,9 @@ def entry_point():
     if comm_world is not None:
         args, _ = parse_command_args().parse_known_args()
         rank = comm_world.Get_rank()
+        localhost = MPI.Get_processor_name().split('.')[0]
         if rank == 0:
-            script = Collector(comm=comm_world, args=args)
+            script = Collector(comm=comm_world, args=args, localhost=localhost)
         else:
             script = Reader(comm=comm_world, args=args)
         comm_world.barrier()

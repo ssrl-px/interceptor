@@ -21,7 +21,7 @@ from interceptor.format import FormatEigerStreamSSRL as FormatStream
 class ConnectorBase:
     """ Base class for ZMQReader and ZMQCollector classes """
 
-    def __init__(self, comm, args, name="zmq_thread"):
+    def __init__(self, comm, args, name="zmq_thread", localhost='localhost'):
         """ Constructor
     :param comm: mpi4py communication instance
     :param args: command line arguments
@@ -29,6 +29,7 @@ class ConnectorBase:
     """
         self.name = name
         self.comm = comm
+        self.localhost = localhost
 
         if comm:
             self.rank = comm.Get_rank()  # each process in MPI has a unique id
@@ -62,7 +63,7 @@ class ConnectorBase:
                     args=self.args,
                     host=self.args.host,
                     port=self.args.port,
-                    rhost=self.args.host,
+                    rhost=self.localhost,
                     rport="7{}".format(str(self.args.port)[1:]),
                 )
             else:
@@ -320,8 +321,8 @@ class Collector(ConnectorBase):
       off as a single stream to the UI if requested.
   """
 
-    def __init__(self, name="ZMQ_000", comm=None, args=None):
-        super(Collector, self).__init__(name=name, comm=comm, args=args)
+    def __init__(self, name="ZMQ_000", comm=None, args=None, localhost=None):
+        super(Collector, self).__init__(name=name, comm=comm, args=args, localhost=localhost)
         self.initialize_process()
 
     def write_to_file(self, info):
