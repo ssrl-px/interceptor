@@ -29,14 +29,15 @@ class ZMQStream:
         self.host = host
         self.port = port
         self.name = name
+        self.socket_type = socket_type
+        self.bind = bind
 
         # Connect to the stream
-        self.connect(socket_type=socket_type, bind=bind)
+        self.connect(socket_type=self.socket_type, bind=self.bind)
 
-    def connect(self, socket_type="pull", bind=False):
+    def connect(self, socket_type="pull", bind=False, silent=False):
         """
     Enable stream, connect to connector host
-
     :return: socket object
     """
 
@@ -50,10 +51,11 @@ class ZMQStream:
         url = "tcp://{0}:{1}".format(self.host, self.port)
         self.socket.connect(url)
 
-        print(
-            "*** {} CONNECTED to {} (TYPE = {})" "".format(
-                self.name, url, socket_type)
-        )
+        if not silent:
+            print(
+                "*** {} CONNECTED to {} (TYPE = {})" "".format(
+                    self.name, url, socket_type)
+            )
 
         if bind:
             self.socket.bind("tcp://*:{}".format(self.port))
@@ -74,7 +76,7 @@ class ZMQStream:
 
     def receive(self, *args, **kwargs):
         """
-    Receive and return connector frames
+    Multipart receive is basically default
     """
         return self.socket.recv_multipart(*args, **kwargs)
 
@@ -84,6 +86,22 @@ class ZMQStream:
 
     def receive_json(self):
         return self.socket.recv_json()
+
+    def reset(self):
+        """
+    Close and reopen the socket (predominantly for use with REQ sockets,
+    which can grow "stale" when not getting a reply right away)
+    """
+        self.socket.LINGER = 0
+        self.socket.close()
+        self.connect(self.socket_type, self.bind, silent=True)
+
+    def poll(self, timeout=None, flags=1):
+        """
+    Single-socket polling
+    :return: event if socket is receiving anything, 0 if it's receiving nothing
+    """
+        return self.socket.poll(timeout=timeout, flags=flags)
 
     def close(self):
         """

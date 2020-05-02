@@ -99,3 +99,5 @@ git-notifier.log
 .gitversion
 *.profraw
 /release.sh
+.vscode/settings.json
+src/intxr.egg-info/PKG-INFO

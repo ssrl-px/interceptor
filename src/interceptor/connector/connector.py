@@ -10,6 +10,8 @@ Description : Streaming stills processor for live data analysis
 import os
 import time
 
+import zmq
+
 from dxtbx.model.experiment_list import ExperimentListFactory
 
 from iota.components.iota_init import initialize_single_image
@@ -150,6 +152,10 @@ class Reader(ConnectorBase):
                     if "master_file" in part:
                         filepath = part.split(":")[1].strip('"')
                         img_info["filename"] = os.path.basename(filepath)
+                    if "mapping" in part:
+                        img_info["mapping"] = part.split(":")[1].strip('"')
+                    if "reporting" in part:
+                        img_info["reporting"] = part.split(":")[1].strip('"')
 
                 # Get frame info from frame
                 if isinstance(img_frames[0], bytes):
@@ -162,10 +168,6 @@ class Reader(ConnectorBase):
                         img_info["run_no"] = part.split(":")[1]
                     if "frame" in part:
                         img_info["frame_idx"] = part.split(":")[1]
-                    if "mapping" in part:
-                        img_info["mapping"] = part.split(":")[1].strip('"')
-                    if "reporting" in part:
-                        img_info["reporting"] = part.split(":")[1].strip('"')
                 return_frames = [img_info, img_frames]
             except Exception as e:
                 import traceback
@@ -263,8 +265,24 @@ class Reader(ConnectorBase):
                 fstart = time.time()
                 if self.args.stype.lower() == "req":
                     self.d_socket.send(b"Hello")
-                frames = self.d_socket.receive(copy=False, flags=0)
+                    expecting_reply = True
+                    while expecting_reply:
+                        if self.d_socket.poll(timeout=10000):
+                            frames = self.d_socket.receive(copy=False, flags=0)
+                            expecting_reply = False
+                        else:
+                            self.d_socket.reset()
+                            self.d_socket.send(b"Hello")
+
+                else:
+                    frames = self.d_socket.receive(copy=False, flags=0)
                 fel = time.time() - fstart
+            except zmq.error.Again as e:
+                print ('DEBUG: {} timed out, continuing... ({})'.format(self.name, e))
+                continue
+            except zmq.ZMQError as e:
+                print ('DEBUG: ZMQError {}'.format(e))
+                continue
             except Exception as exp:
                 print("DEBUG: {} CONNECT FAILED! {}".format(self.name, exp))
                 continue
@@ -306,7 +324,8 @@ class Reader(ConnectorBase):
 
             if self.stop:
                 break
-        self.stream.close()
+
+        self.d_socket.close()
 
     def run(self):
         self.process_stream()
