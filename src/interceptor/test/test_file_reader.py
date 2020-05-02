@@ -11,7 +11,6 @@ import argparse
 
 from iotbx import phil as ip
 from dxtbx.model.experiment_list import ExperimentListFactory
-from dials.array_family import flex
 
 from interceptor.format import FormatEigerStreamSSRL
 from interceptor.connector.processor import FastProcessor
@@ -34,26 +33,21 @@ spotfinder {
 """
 
 help_message = """
-This is a script that will test and time spotfinding and ZMQ decoding. Instead of 
-connecting to a ZMQ URL, all information will be read from files. Test files are 
-included in ./images, while if tinkering with spotfinding settings is desired, 
+This is a script that will test and time spotfinding and ZMQ decoding. Instead of
+connecting to a ZMQ URL, all information will be read from files. Test files are
+included in ./images, while if tinkering with spotfinding settings is desired,
 a default PHIL file, spf.phil, is included in ./resources.
 
 Example tests:
 
 1. Read in and process a single image once:
 
-dials.python ./src/test/test_file_reader.py ./src/test/images/ --prefix 'zmq' 
+dials.python ./src/test/test_file_reader.py ./src/test/images/ --prefix 'zmq'
 --number 000001 --extension zmq --verbose
 
-2. Process five images directly with flex
+2. Process five images in parallel with MPI and use timeit to time the processing
 
-dials.python ./src/test/test_file_reader.py ./src/test/images/ --prefix 'zmq' 
---number 000001 --extension zmq --repeat 5 --flex --verbose
-
-3. Process five images in parallel with MPI and use timeit to time the processing
-
-dials.python ./src/test/test_file_reader.py ./src/test/images/ --prefix 'zmq' 
+dials.python ./src/test/test_file_reader.py ./src/test/images/ --prefix 'zmq'
 --number 000001 --extension zmq --repeat 5 --timeit --mpi --verbose
 
 """
@@ -70,7 +64,7 @@ def parse_test_args():
         type=str,
         nargs="?",
         default=None,
-        help="Processing parameter file (for flex only)",
+        help="Processing parameter file",
     )
     parser.add_argument(
         "--prefix",
@@ -95,13 +89,6 @@ def parse_test_args():
         nargs="?",
         default="spotfinding",
         help='"Spotfinding", "indexing", or "integration" works',
-    )
-    parser.add_argument(
-        "--flex",
-        action="store_true",
-        default=False,
-        help="Perform spotfinding dirctly with flex (if False, spotfinding will be "
-             "performed by the FastProcessor class)",
     )
     parser.add_argument(
         "--repeat",
@@ -189,23 +176,12 @@ def read_file(args, number=1):
 
 
 def run_proc(args, data, info, filename, number=1):
-    processor = FastProcessor(last_stage=args.last_stage)
-    spf_params = make_phil(args.phil, show_phil=False)
-
+    processor = FastProcessor(last_stage=args.last_stage, phil_file=args.phil)
     with Capturing() as junk:
-        FormatEigerStreamSSRL.inject_data(data)
-        exp = ExperimentListFactory.from_filenames([filename])
-
-        if args.flex:
-            t_start = time.time()
-            observed = flex.reflection_table.from_observations(exp, spf_params)
-            proc_time = time.time() - t_start
-            n_spots = len(observed)
-        else:
-            t_start = time.time()
-            info = processor.run(exp, info)
-            proc_time = time.time() - t_start
-            n_spots = info["n_spots"]
+        t_start = time.time()
+        info = processor.run(data, filename, info)
+        proc_time = time.time() - t_start
+        n_spots = info["n_spots"]
 
     if args.verbose:
         print("\n*** channel # {}".format(number))
