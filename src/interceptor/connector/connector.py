@@ -23,7 +23,7 @@ from interceptor.format import FormatEigerStreamSSRL as FormatStream
 class ConnectorBase:
     """ Base class for ZMQReader and ZMQCollector classes """
 
-    def __init__(self, comm, args, name="zmq_thread", localhost='localhost'):
+    def __init__(self, comm, args, name="zmq_thread", localhost="localhost"):
         """ Constructor
     :param comm: mpi4py communication instance
     :param args: command line arguments
@@ -117,13 +117,29 @@ class Reader(ConnectorBase):
             self.processor.print_params()
 
     def convert_from_stream(self, frames):
-        msg = ""
-        # Contingency for when header frame is sent once per run
-        if len(frames) <= 2:
+        img_info = {
+            "state": "process",
+            "proc_name": self.name,
+            "proc_url": "tcp://{}:{}".format(self.host, self.port),
+            "run_no": -1,
+            "frame_idx": -1,
+            "mapping": "",
+            "reporting": "",
+            "filename": "",
+        }
+        return_frames = None
+
+        if len(frames) < 2:  # catch end frame
+            framestring = frames[0] if isinstance(frames[0], bytes) else frames[0].bytes
+            if "dseries-end" in framestring:
+                img_info["state"] = "series-end"
+        elif len(frames) == 2:  # catch header frame (if applicable)
             framestring = frames[0] if isinstance(frames[0], bytes) else frames[0].bytes
             if self.args.header and self.args.htype in str(framestring):
                 self.make_header(frames)
-                return [-999, -999, None], "Header Frame"
+                img_info["run_no"] = -999
+                img_info["frame_idx"] = -999
+                img_info["state"] = "header-frame"
         else:
             try:
                 if not self.args.header:
@@ -133,48 +149,37 @@ class Reader(ConnectorBase):
                 else:
                     img_frames = frames
             except Exception as e:
-                return_frames = None
-                msg = "HEADER ERROR: {}".format(str(e))
-                return return_frames, msg
+                img_info["state"] = "error"
+                img_info["dat_error"] = "HEADER ERROR: {}".format(str(e))
+            else:
+                try:
+                    # Get master_file name from header
+                    header_split = str(self.header[0][3:-2]).split(",")
+                    for part in header_split:
+                        if "master_file" in part:
+                            filepath = part.split(":")[1].strip('"')
+                            img_info["filename"] = os.path.basename(filepath)
+                        if "mapping" in part:
+                            img_info["mapping"] = part.split(":")[1].strip('"')
+                        if "reporting" in part:
+                            img_info["reporting"] = part.split(":")[1].strip('"')
 
-            img_info = {
-                "run_no": -1,
-                "frame_idx": -1,
-                "mapping": "",
-                "reporting": "",
-                "filename": "",
-            }
-
-            try:
-                # Get master_file name from header
-                header_split = str(self.header[0][3:-2]).split(",")
-                for part in header_split:
-                    if "master_file" in part:
-                        filepath = part.split(":")[1].strip('"')
-                        img_info["filename"] = os.path.basename(filepath)
-                    if "mapping" in part:
-                        img_info["mapping"] = part.split(":")[1].strip('"')
-                    if "reporting" in part:
-                        img_info["reporting"] = part.split(":")[1].strip('"')
-
-                # Get frame info from frame
-                if isinstance(img_frames[0], bytes):
-                    frame_string = str(img_frames[0][:-1])[3:-2]  # extract dict entries
-                else:
-                    frame_string = str(img_frames[0].bytes[:-1])[3:-2]
-                frame_split = frame_string.split(",")
-                for part in frame_split:
-                    if "series" in part:
-                        img_info["run_no"] = part.split(":")[1]
-                    if "frame" in part:
-                        img_info["frame_idx"] = part.split(":")[1]
-                return_frames = [img_info, img_frames]
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                return_frames = None
-                msg = "CONVERSION ERROR: {}".format(str(e))
-            return return_frames, msg
+                    # Get frame info from frame
+                    if isinstance(img_frames[0], bytes):
+                        frame_string = str(img_frames[0][:-1])[3:-2]
+                    else:
+                        frame_string = str(img_frames[0].bytes[:-1])[3:-2]
+                    frame_split = frame_string.split(",")
+                    for part in frame_split:
+                        if "series" in part:
+                            img_info["run_no"] = part.split(":")[1]
+                        if "frame" in part:
+                            img_info["frame_idx"] = part.split(":")[1]
+                    return_frames = img_frames
+                except Exception as e:
+                    img_info["state"] = "error"
+                    img_info["dat_error"] = "CONVERSION ERROR: {}".format(str(e))
+        return img_info, return_frames
 
     def make_header(self, frames):
         if isinstance(frames[0], bytes):
@@ -183,11 +188,9 @@ class Reader(ConnectorBase):
             self.header = [frames[0].bytes[:-1], frames[1].bytes[:-1]]
 
     def make_data_dict(self, frames):
-        frames, msg = self.convert_from_stream(frames)
-        if frames is None:
-            return None, msg
-        elif frames[0]["frame_idx"] == -999:
-            return "header_frame", None
+        info, frames = self.convert_from_stream(frames)
+        if info["state"] in ["error", "header-frame", "series-end"]:
+            data = None
         else:
             data = {"header1": self.header[0], "header2": self.header[1]}
             for frm in frames[1]:
@@ -197,32 +200,25 @@ class Reader(ConnectorBase):
                     data[key] = frm[:-1] if isinstance(frm, bytes) else frm.bytes[:-1]
                 else:
                     data[key] = frm if isinstance(frm, bytes) else frm.bytes
-            msg = ""
 
-        info = {
-            "proc_name": self.name,
+        proc_info = {
             "beamXY": (0, 0),
             "dist": 0,
             "n_spots": 0,
-            "n_overloads":0,
+            "n_overloads": 0,
             "hres": 99.0,
             "score": 0,
-            "n_ice_rings":0,
-            "mean_shape_ratio":0,
+            "n_ice_rings": 0,
+            "mean_shape_ratio": 0,
             "n_indexed": 0,
             "sg": "NA",
             "uc": "NA",
-            "dat_error": msg,
-            "spf_error": "",
-            "idx_error": "",
-            "rix_error": "",
-            "img_error": "",
-            "prc_error": "",
             "comment": "",
             "t0": 0,
             "phil": "",
         }
-        info.update(frames[0])
+        info.update(proc_info)
+
         return data, info
 
     def process(self, info, frame, filename):
@@ -241,17 +237,31 @@ class Reader(ConnectorBase):
 
     def initialize_zmq_sockets(self):
         # Initialize ZMQ stream listener (aka 'data socket')
-        self.d_socket = ZMQStream(
-            name=self.name, host=self.host, port=self.port, socket_type=self.args.stype
-        )
+        try:
+            self.d_socket = ZMQStream(
+                name=self.name,
+                host=self.host,
+                port=self.port,
+                socket_type=self.args.stype,
+            )
 
-        # intra-process communication (aka 'result socket')
-        self.r_socket = ZMQStream(
-            name="{}_2C".format(self.name),
-            host=self.rhost,
-            port=self.rport,
-            socket_type="push",
-        )
+            # intra-process communication (aka 'result socket')
+            self.r_socket = ZMQStream(
+                name="{}_2C".format(self.name),
+                host=self.rhost,
+                port=self.rport,
+                socket_type="push",
+            )
+        except Exception as e:
+            print("SOCKET ERROR: {}".format(e))
+            exit()
+        else:
+            info = {
+                "proc_name": self.name,
+                "proc_url": "tcp://{}:{}".format(self.host, self.port),
+                "state": "connected",
+            }
+            self.r_socket.send_json(info)
 
     def process_stream(self):
         # Write eiger_*.stream file
@@ -275,57 +285,41 @@ class Reader(ConnectorBase):
                         else:
                             self.d_socket.reset()
                             self.d_socket.send(b"Hello")
-
                 else:
                     frames = self.d_socket.receive(copy=False, flags=0)
                 fel = time.time() - fstart
-            except zmq.error.Again as e:
-                print ('DEBUG: {} timed out, continuing... ({})'.format(self.name, e))
-                continue
-            except zmq.ZMQError as e:
-                print ('DEBUG: ZMQError {}'.format(e))
-                continue
             except Exception as exp:
                 print("DEBUG: {} CONNECT FAILED! {}".format(self.name, exp))
                 continue
+            else:
+                # Drain images without processing
+                if self.args.drain:
+                    if self.args.verbose:
+                        print(
+                            str(frames[2].bytes[:-1])[3:-2],
+                            "({})".format(self.name),
+                            "rcv time: {:.4f} sec".format(fel),
+                        )
+                    continue
 
-            # Drain images without processing
-            if self.args.drain:
-                if self.args.verbose:
-                    print(
-                        str(frames[2].bytes[:-1])[3:-2],
-                        "({})".format(self.name),
-                        "rcv time: {:.4f} sec".format(fel),
-                    )
-                continue
+                data, info = self.make_data_dict(frames)
 
-            data, info = self.make_data_dict(frames)
+                if info is None:
+                    print("debug: info is None!")
+                    continue
+                elif info['state'] == 'process':
+                    info = self.process(info, frame=data, filename=filename)
+                    elapsed = time.time() - start
+                    time_info = {"total_time": elapsed, "receive_time": fel}
+                    info.update(time_info)
 
-            if data is "header_frame":
-                print("debug: header frame, skipping...")
-                continue
-            elif data is None:
-                print(info)
-                continue
-            elif info is None:
-                print("debug: info is None!")
-                continue
+                # send info to collector
+                self.r_socket.send_json(info)
 
-            info = self.process(info, frame=data, filename=filename)
-            elapsed = time.time() - start
-            time_info = {"total_time": elapsed, "receive_time": fel}
-            info.update(time_info)
-            self.r_socket.send_json(info)
-
-            # If frame processing fits within specified interval, sleep for the
-            # remainder of that interval; otherwise (or if args.interval == 0) don't
-            # sleep at all
-            interval = self.args.interval - elapsed
-            if interval > 0:
-                time.sleep(interval)
-
-            if self.stop:
-                break
+            finally:
+                # stop if called
+                if self.stop:
+                    break
 
         self.d_socket.close()
 
@@ -343,8 +337,23 @@ class Collector(ConnectorBase):
   """
 
     def __init__(self, name="ZMQ_000", comm=None, args=None, localhost=None):
-        super(Collector, self).__init__(name=name, comm=comm, args=args, localhost=localhost)
+        super(Collector, self).__init__(
+            name=name, comm=comm, args=args, localhost=localhost
+        )
         self.initialize_process()
+
+    def understand_info(self, info):
+        if info["state"] == "connected":
+            msg = "{} CONNECTED to {}".format(info["proc_name"], info["proc_url"])
+        elif info["state"] == "series-end":
+            msg = "{} received END-OF-SERIES signal".format(info["proc_name"])
+        elif info["state"] == "error":
+            msg = '{} DATA ERROR: {}'.format(info["proc_name"], info["dat_error"])
+        else:
+            return False
+        if self.args.verbose:
+            print(msg)
+        return True
 
     def write_to_file(self, info):
         with open(self.args.record, "a") as rf:
@@ -356,15 +365,9 @@ class Collector(ConnectorBase):
     def make_result_string(self, info):
         # message to DHS / UI
         err_list = [
-            info["dat_error"],
-            info["img_error"],
-            info["spf_error"],
-            info["idx_error"],
-            info["rix_error"],
-            info["prc_error"],
-            info["comment"],
+            e for e in info if ("error" in e or "comment" in e) and info[e] != ""
         ]
-        errors = ";".join([i for i in err_list if i != ""])
+        errors = "; ".join(err_list)
         results = (
             "{0} {1} {2} {3:.2f} {4} "
             "{5:.2f} {6} {7} {{{8}}}"
@@ -383,14 +386,16 @@ class Collector(ConnectorBase):
         reporting = (
             info["reporting"] if info["reporting"] != "" else "htos_log note zmqDhs"
         )
-        ui_msg = "{0} run {1} frame {2} result {{{3}}} mapping {{{4}}} " \
-                 "filename {5}".format(
-            reporting,
-            info["run_no"],  # run number
-            info["frame_idx"],  # frame index
-            results,  # processing results
-            info["mapping"],  # mapping from run header
-            info["filename"],  # master file
+        ui_msg = (
+            "{0} run {1} frame {2} result {{{3}}} mapping {{{4}}} "
+            "filename {5}".format(
+                reporting,
+                info["run_no"],  # run number
+                info["frame_idx"],  # frame index
+                results,  # processing results
+                info["mapping"],  # mapping from run header
+                info["filename"],  # master file
+            )
         )
         return ui_msg
 
@@ -444,6 +449,10 @@ class Collector(ConnectorBase):
         while True:
             info = collector.receive_json()
             if info:
+                # understand info (if not regular info, don't send to UI)
+                if self.understand_info(info):
+                    continue
+
                 # send string to UI (DHS or Interceptor GUI)
                 ui_msg = self.output_results(
                     info, record=self.args.record, verbose=self.args.verbose
