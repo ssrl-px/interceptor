@@ -8,9 +8,22 @@ Description : ZMQ streaming module (customized for Interceptor)
 """
 
 import zmq
+from zmq.eventloop.ioloop import IOLoop
+from zmq.eventloop.zmqstream import ZMQStream
 
 
-class ZMQStream:
+class NumberOfWorkersException(Exception):
+    def __init__(self):
+        msg = 'ZMQ ERROR: Number of available workers exceeds specified maximum!'
+        Exception.__init__(self, msg)
+
+
+class WorkerMessageError(Exception):
+    def __init__(self, msg):
+        Exception.__init__(self, msg)
+
+
+class ZMQReceiver:
     """
   A class to listen to a zeromq stream
   """
@@ -53,8 +66,8 @@ class ZMQStream:
 
         if not silent:
             print(
-                "*** {} CONNECTED to {} (TYPE = {})" "".format(
-                    self.name, url, socket_type)
+                "*** {} CONNECTED to {} (TYPE = {})"
+                "".format(self.name, url, socket_type)
             )
 
         if bind:
@@ -108,3 +121,9 @@ class ZMQStream:
     Close and disable stream
     """
         return self.socket.close()
+
+
+def make_zmqstream_utility(socket):
+    return ZMQStream(socket)
+
+# -- end

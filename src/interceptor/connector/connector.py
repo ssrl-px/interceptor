@@ -11,19 +11,20 @@ import os
 import time
 
 import zmq
+from zmq.eventloop.ioloop import IOLoop
 
 from dxtbx.model.experiment_list import ExperimentListFactory
 
 from iota.components.iota_init import initialize_single_image
 from interceptor.connector.processor import FastProcessor, IOTAProcessor
-from interceptor.connector.stream import ZMQStream
+from interceptor.connector.stream import ZMQReceiver, make_zmqstream_utility
 from interceptor.format import FormatEigerStreamSSRL as FormatStream
 
 
 class ConnectorBase:
     """ Base class for ZMQReader and ZMQCollector classes """
 
-    def __init__(self, comm, args, name="zmq_thread", localhost='localhost'):
+    def __init__(self, comm, args, name="zmq_thread", localhost="localhost"):
         """ Constructor
     :param comm: mpi4py communication instance
     :param args: command line arguments
@@ -66,7 +67,9 @@ class ConnectorBase:
                     host=self.args.host,
                     port=self.args.port,
                     rhost=self.localhost,
-                    rport="7{}".format(str(self.args.port)[1:]),
+                    rport="6{}".format(str(self.args.port)[1:]),
+                    chost=self.localhost,
+                    cport="7{}".format(str(self.args.port)[1:]),
                 )
             else:
                 info = None
@@ -81,6 +84,8 @@ class ConnectorBase:
             self.port = info["port"]
             self.rhost = info["rhost"]
             self.rport = info["rport"]
+            self.chost = info["chost"]
+            self.cport = info["cport"]
         else:
             self.processor = self.generate_processor(self.args)
             self.host = self.args.host
@@ -102,6 +107,113 @@ class ConnectorBase:
                     exit()
 
 
+class Broker(ConnectorBase):
+    """
+    LRU - least recently used - queue load-balancing broker. Will drain images from
+    Splitter as fast as possible, then distribute to the workers starting with the
+    least-recently used worker, using the REQ-ROUTER protocol
+    """
+
+    def __init__(self, name="zmq_reader", comm=None, args=None, localhost=None):
+        super(Broker, self).__init__(
+            name=name, comm=comm, args=args, localhost=localhost
+        )
+        self.initialize_process()
+
+        self.max_workers = self.args.n_proc
+        self.n_workers = 0
+        self.workers = []
+
+        self.ioloop = IOLoop.instance()
+
+        if self.rank == 1:
+            print("DEBUG: BROKER connected")
+
+    def initialize_zmq_sockets(self):
+        """ Create frontend and backend sockets via ZMQStream utility
+        :return:
+        """
+        # TODO: these need to be vastly less clunky than they are right now
+
+        # Initialize frontend socket (zmq.ROUTER, faces workers), with ZMQStream utility
+        be = ZMQReceiver(
+            name="{}_BE".format(self.name),
+            host=self.host,
+            port=self.port,
+            socket_type="push",
+        )
+        self.backend = make_zmqstream_utility(be.socket)
+
+        # Initialize backend socket (zmq.PULL, faces server), with ZMQStream utility
+        fe = ZMQReceiver(
+            name="{}_FE".format(self.name),
+            host=self.rhost,
+            port=self.rport,
+            socket_type="router",
+            bind=True,
+        )
+        self.frontend = make_zmqstream_utility(fe.socket)
+
+        # set callbacks
+        self.backend.on_recv(self.backend_recv_callback)
+        self.frontend.on_recv(self.frontend_recv_callback)
+
+    def backend_recv_callback(self, msg):
+        """ This will fun whenever backend socket receives a message. The message
+        will be a worker saying "READY", and this function will add the worker to
+        the queue of ready workers. Using the list format ensures that the worker on
+        top of the list would be the least-recently used worker.
+        :param msg: message to backend (zmq.ROUTER) socket
+        """
+
+        # Get worker address
+        worker_id, empty, ready = msg[:3]
+
+        # make sure empty is empty
+        assert empty == b""
+
+        # Add worker to list of ready workers (with failsafes)
+        try:
+            self.n_workers += 1
+            assert self.n_workers == self.max_workers
+        except AssertionError:
+            raise NumberOfWorkersException()
+        else:
+            try:
+                # make sure the worker is ready
+                assert ready == b"READY"
+            except AssertionError:
+                raise WorkerMessageError(ready)
+            else:
+                self.workers.append(worker_id)
+
+    def frontend_recv_callback(self, msg):
+        """ This will run whenever frontend socket receives data from the server,
+        in multipart mode. This function will assign the incoming data to the worker
+        on top of the available list, and pop the worker from the list, exposing the
+        next-least recently used worker.
+        :param msg: message to frontend (zmq.PULL) socket
+        """
+
+        # unpack message
+        client_add, empty, frames = msg
+
+        # if no workers available, drop frame
+        if self.n_workers == 0:
+            return
+
+        # make sure the empty frame is empty
+        assert empty == b""
+
+        # assign work to LRU worker and remove that worker from list
+        self.n_workers -= 1
+        worker_id = self.workers.pop()
+        self.backend.send_multipart([worker_id, b"", client_addr, b"", request])
+
+    def run(self):
+        self.ioloop.start()
+
+
 class Reader(ConnectorBase):
     """ ZMQ Reader: requests a single frame (multipart) from the Eiger,
       converts to dictionary format, attaches to a special format class,
@@ -113,7 +225,7 @@ class Reader(ConnectorBase):
         super(Reader, self).__init__(name=name, comm=comm, args=args)
         self.initialize_process()
 
-        if self.rank == 1:
+        if self.rank == 2:
             self.processor.print_params()
 
     def convert_from_stream(self, frames):
@@ -171,6 +283,7 @@ class Reader(ConnectorBase):
                 return_frames = [img_info, img_frames]
             except Exception as e:
                 import traceback
+
                 traceback.print_exc()
                 return_frames = None
                 msg = "CONVERSION ERROR: {}".format(str(e))
@@ -239,15 +352,15 @@ class Reader(ConnectorBase):
 
     def initialize_zmq_sockets(self):
         # Initialize ZMQ stream listener (aka 'data socket')
-        self.d_socket = ZMQStream(
-            name=self.name, host=self.host, port=self.port, socket_type=self.args.stype
+        self.w_socket = ZMQReceiver(
+            name=self.name, host=self.rhost, port=self.rport, socket_type="req"
         )
 
         # intra-process communication (aka 'result socket')
-        self.r_socket = ZMQStream(
+        self.c_socket = ZMQReceiver(
             name="{}_2C".format(self.name),
-            host=self.rhost,
-            port=self.rport,
+            host=self.chost,
+            port=self.cport,
             socket_type="push",
         )
 
@@ -263,25 +376,21 @@ class Reader(ConnectorBase):
             start = time.time()
             try:
                 fstart = time.time()
-                if self.args.stype.lower() == "req":
-                    self.d_socket.send(b"Hello")
-                    expecting_reply = True
-                    while expecting_reply:
-                        if self.d_socket.poll(timeout=10000):
-                            frames = self.d_socket.receive(copy=False, flags=0)
-                            expecting_reply = False
-                        else:
-                            self.d_socket.reset()
-                            self.d_socket.send(b"Hello")
-
-                else:
-                    frames = self.d_socket.receive(copy=False, flags=0)
+                self.w_socket.send(b"READY")
+                expecting_reply = True
+                while expecting_reply:
+                    if self.w_socket.poll(timeout=10000):
+                        frames = self.w_socket.receive(copy=False, flags=0)
+                        expecting_reply = False
+                    else:
+                        self.w_socket.reset()
+                        self.w_socket.send(b"READY")
                 fel = time.time() - fstart
             except zmq.error.Again as e:
-                print ('DEBUG: {} timed out, continuing... ({})'.format(self.name, e))
+                print("DEBUG: {} timed out, continuing... ({})".format(self.name, e))
                 continue
             except zmq.ZMQError as e:
-                print ('DEBUG: ZMQError {}'.format(e))
+                print("DEBUG: ZMQError {}".format(e))
                 continue
             except Exception as exp:
                 print("DEBUG: {} CONNECT FAILED! {}".format(self.name, exp))
@@ -313,7 +422,7 @@ class Reader(ConnectorBase):
             elapsed = time.time() - start
             time_info = {"total_time": elapsed, "receive_time": fel}
             info.update(time_info)
-            self.r_socket.send_json(info)
+            self.c_socket.send_json(info)
 
             # If frame processing fits within specified interval, sleep for the
             # remainder of that interval; otherwise (or if args.interval == 0) don't
@@ -325,7 +434,7 @@ class Reader(ConnectorBase):
             if self.stop:
                 break
 
-        self.d_socket.close()
+        self.w_socket.close()
 
     def run(self):
         self.process_stream()
@@ -340,8 +449,8 @@ class Collector(ConnectorBase):
       off as a single stream to the UI if requested.
   """
 
-    def __init__(self, name="ZMQ_000", comm=None, args=None, localhost=None):
-        super(Collector, self).__init__(name=name, comm=comm, args=args, localhost=localhost)
+    def __init__(self, name="zmq_collector", comm=None, args=None):
+        super(Collector, self).__init__(name=name, comm=comm, args=args)
         self.initialize_process()
 
     def write_to_file(self, info):
@@ -381,14 +490,16 @@ class Collector(ConnectorBase):
         reporting = (
             info["reporting"] if info["reporting"] != "" else "htos_log note zmqDhs"
         )
-        ui_msg = "{0} run {1} frame {2} result {{{3}}} mapping {{{4}}} " \
-                 "filename {5}".format(
-            reporting,
-            info["run_no"],  # run number
-            info["frame_idx"],  # frame index
-            results,  # processing results
-            info["mapping"],  # mapping from run header
-            info["filename"],  # master file
+        ui_msg = (
+            "{0} run {1} frame {2} result {{{3}}} mapping {{{4}}} "
+            "filename {5}".format(
+                reporting,
+                info["run_no"],  # run number
+                info["frame_idx"],  # frame index
+                results,  # processing results
+                info["mapping"],  # mapping from run header
+                info["filename"],  # master file
+            )
         )
         return ui_msg
 
@@ -423,7 +534,7 @@ class Collector(ConnectorBase):
             return ui_msg
 
     def collect(self):
-        collector = ZMQStream(
+        collector = ZMQReceiver(
             name=self.name,
             host=self.rhost,
             port=self.rport,
@@ -433,7 +544,7 @@ class Collector(ConnectorBase):
 
         send_to_ui = self.args.send or (self.args.uihost and self.args.uiport)
         if send_to_ui:
-            ui_socket = ZMQStream(
+            ui_socket = ZMQReceiver(
                 name=self.name + "_2C",
                 host=self.args.uihost,
                 port=self.args.uiport,
