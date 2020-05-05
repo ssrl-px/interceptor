@@ -193,8 +193,8 @@ class Reader(ConnectorBase):
             data = None
         else:
             data = {"header1": self.header[0], "header2": self.header[1]}
-            for frm in frames[1]:
-                i = frames[1].index(frm) + 1
+            for frm in frames:
+                i = frames.index(frm) + 1
                 key = "streamfile_{}".format(i)
                 if i != 3:
                     data[key] = frm[:-1] if isinstance(frm, bytes) else frm.bytes[:-1]
