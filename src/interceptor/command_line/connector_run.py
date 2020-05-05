@@ -192,7 +192,12 @@ def entry_point():
         else:
             script = Reader(comm=comm_world, args=args)
         comm_world.barrier()
-        script.run()
+
+        if rank == 0:
+            from zmq.eventloop.ioloop import IOLoop
+            IOLoop.instance().start()
+        else:
+            script.run()
 
 
 if __name__ == "__main__":
