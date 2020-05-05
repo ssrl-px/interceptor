@@ -102,3 +102,9 @@ class ZMQStream:
     Close and disable stream
     """
         return self.socket.close()
+
+
+def make_zmqstream_utility(socket):
+    return ZMQStream(socket)
+
+# -- end

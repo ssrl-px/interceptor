@@ -190,6 +190,7 @@ def run_proc(args, data, info, filename, number=1):
 
     return proc_time
 
+# testing remote push
 
 def run_test(args, rank):
     t0 = time.time()
