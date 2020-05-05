@@ -314,8 +314,11 @@ class Reader(ConnectorBase):
             "beamXY": (0, 0),
             "dist": 0,
             "n_spots": 0,
+            "n_overloads":0,
             "hres": 99.0,
             "score": 0,
+            "n_ice_rings":0,
+            "mean_shape_ratio":0,
             "n_indexed": 0,
             "sg": "NA",
             "uc": "NA",
@@ -330,7 +333,6 @@ class Reader(ConnectorBase):
             "phil": "",
         }
         info.update(frames[0])
-
         return data, info
 
     def process(self, info, frame, filename):
