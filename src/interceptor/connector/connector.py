@@ -210,9 +210,6 @@ class Broker(ConnectorBase):
         worker_id = self.workers.pop()
         self.backend.send_multipart([worker_id, b"", client_addr, b"", request])
 
-    def run(self):
-        self.ioloop.start()
-
 
 class Reader(ConnectorBase):
     """ ZMQ Reader: requests a single frame (multipart) from the Eiger,
