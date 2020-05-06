@@ -64,12 +64,6 @@ class ZMQReceiver:
         url = "tcp://{0}:{1}".format(self.host, self.port)
         self.socket.connect(url)
 
-        if not silent:
-            print(
-                "*** {} CONNECTED to {} (TYPE = {})"
-                "".format(self.name, url, socket_type)
-            )
-
         if bind:
             self.socket.bind("tcp://*:{}".format(self.port))
 

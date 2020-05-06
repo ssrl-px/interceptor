@@ -77,13 +77,6 @@ def parse_command_args():
         "--uistype", type=str, help="UI socket type"
     )
     parser.add_argument(
-        "--interval",
-        type=float,
-        nargs="?",
-        default=0,
-        help="Interval between image receipt",
-    )
-    parser.add_argument(
         "--t",
         "--timeout",
         type=int,
