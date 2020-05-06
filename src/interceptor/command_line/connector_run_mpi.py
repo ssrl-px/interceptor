@@ -94,6 +94,14 @@ def entry_point():
                 command, callback_stdout=callback, working_directory=os.curdir
             )
         except KeyboardInterrupt:
+            curdir = os.path.abspath(os.curdir)
+            temp_files = [
+                f for f in os.listdir(curdir) if os.path.splitext(f)[-1] == ".stream"
+            ]
+            for tfile in temp_files:
+                tpath = os.path.join(curdir, tfile)
+                os.remove(tpath)
+
             print("\n*** Terminated with KeyboardInterrupt")
             if args.time and times:
                 print("*** Total processing time: {:.2f} sec".format(times[-1]))
@@ -103,14 +111,6 @@ def entry_point():
                     )
                 )
             print("*** Total runtime: {:.2f} sec".format(time.time() - start))
-            print(" ... deleting temporary files...")
-            curdir = os.path.abspath(os.curdir)
-            temp_files = [
-                f for f in os.listdir(curdir) if os.path.splitext(f)[-1] == ".stream"
-            ]
-            for tfile in temp_files:
-                tpath = os.path.join(curdir, tfile)
-                os.remove(tpath)
             print("\n~~~ fin ~~~")
 
 
