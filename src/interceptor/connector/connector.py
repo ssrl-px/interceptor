@@ -118,7 +118,7 @@ class Reader(ConnectorBase):
 
     def convert_from_stream(self, frames):
         img_info = {
-            "state": "process",
+            "state": "import",
             "proc_name": self.name,
             "proc_url": "tcp://{}:{}".format(self.host, self.port),
             "run_no": -1,
@@ -131,7 +131,7 @@ class Reader(ConnectorBase):
 
         if len(frames) < 2:  # catch end frame
             framestring = frames[0] if isinstance(frames[0], bytes) else frames[0].bytes
-            if "dseries-end" in framestring:
+            if "dseries_end" in str(framestring):
                 img_info["state"] = "series-end"
         elif len(frames) == 2:  # catch header frame (if applicable)
             framestring = frames[0] if isinstance(frames[0], bytes) else frames[0].bytes
@@ -175,10 +175,12 @@ class Reader(ConnectorBase):
                             img_info["run_no"] = part.split(":")[1]
                         if "frame" in part:
                             img_info["frame_idx"] = part.split(":")[1]
+                    img_info['state'] = 'process'
                     return_frames = img_frames
                 except Exception as e:
                     img_info["state"] = "error"
                     img_info["dat_error"] = "CONVERSION ERROR: {}".format(str(e))
+
         return img_info, return_frames
 
     def make_header(self, frames):
@@ -274,20 +276,22 @@ class Reader(ConnectorBase):
         while True:
             start = time.time()
             try:
-                fstart = time.time()
                 if self.args.stype.lower() == "req":
                     self.d_socket.send(b"Hello")
                     expecting_reply = True
                     while expecting_reply:
                         if self.d_socket.poll(timeout=10000):
+                            fstart = time.time()
                             frames = self.d_socket.receive(copy=False, flags=0)
+                            fel = time.time() - fstart
                             expecting_reply = False
                         else:
                             self.d_socket.reset()
                             self.d_socket.send(b"Hello")
                 else:
+                    fstart = time.time()
                     frames = self.d_socket.receive(copy=False, flags=0)
-                fel = time.time() - fstart
+                    fel = time.time() - fstart
             except Exception as exp:
                 print("DEBUG: {} CONNECT FAILED! {}".format(self.name, exp))
                 continue
@@ -296,25 +300,29 @@ class Reader(ConnectorBase):
                 if self.args.drain:
                     if self.args.verbose:
                         print(
-                            str(frames[2].bytes[:-1])[3:-2],
+                            str(frames[0].bytes[:-1])[3:-2],
                             "({})".format(self.name),
                             "rcv time: {:.4f} sec".format(fel),
                         )
-                    continue
+                else:
 
-                data, info = self.make_data_dict(frames)
+                    data, info = self.make_data_dict(frames)
 
-                if info is None:
-                    print("debug: info is None!")
-                    continue
-                elif info['state'] == 'process':
-                    info = self.process(info, frame=data, filename=filename)
-                    elapsed = time.time() - start
-                    time_info = {"total_time": elapsed, "receive_time": fel}
-                    info.update(time_info)
+                    if info is None:
+                        print("debug: info is None!")
+                        continue
+                    elif info['state'] == 'process':
+                        sleep = False
+                        info = self.process(info, frame=data, filename=filename)
+                        elapsed = time.time() - start
+                        time_info = {"total_time": elapsed, "receive_time": fel}
+                        info.update(time_info)
+                    elif info['state'] == 'series-end':
+                        time.sleep(10)
+                        continue
 
-                # send info to collector
-                self.r_socket.send_json(info)
+                    # send info to collector
+                    self.r_socket.send_json(info)
 
             finally:
                 # stop if called
@@ -346,9 +354,12 @@ class Collector(ConnectorBase):
         if info["state"] == "connected":
             msg = "{} CONNECTED to {}".format(info["proc_name"], info["proc_url"])
         elif info["state"] == "series-end":
+            # at this point, this message shouldn't show up
             msg = "{} received END-OF-SERIES signal".format(info["proc_name"])
         elif info["state"] == "error":
             msg = '{} DATA ERROR: {}'.format(info["proc_name"], info["dat_error"])
+        elif info["state"] != 'process':
+            msg = 'DEBUG: {} STATE IS '.format(info["state"])
         else:
             return False
         if self.args.verbose:
@@ -365,7 +376,7 @@ class Collector(ConnectorBase):
     def make_result_string(self, info):
         # message to DHS / UI
         err_list = [
-            e for e in info if ("error" in e or "comment" in e) and info[e] != ""
+            info[e] for e in info if ("error" in e or "comment" in e) and info[e] != ""
         ]
         errors = "; ".join(err_list)
         results = (

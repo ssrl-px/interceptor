@@ -44,7 +44,7 @@ output {
   refined_experiments_filename = None
   integrated_experiments_filename = None
   integrated_filename = None
-  profile_filename = None 
+  profile_filename = None
   integration_pickle = None
 }
 spotfinder {
@@ -113,11 +113,14 @@ class ImageScorer(object):
         # calculate d-spacings
         self.ref_d_star_sq = flex.pow2(self.refl["rlp"].norms())
         self.d_spacings = uctbx.d_star_sq_as_d(self.ref_d_star_sq)
+        print ('debug: d_spacings = ', self.d_spacings.size())
         self.d_min = flex.min(self.d_spacings)
+
 
         # calculate per-image stats
         # self.stats = per_image_analysis.stats_per_image(self.experiments[0], self.refl)
-        self.hres = per_image_analysis.estimate_resolution_limit(self.refl)
+        self.hres = per_image_analysis.estimate_resolution_limit_distl_method2(self.refl)[0]
+#       self.hres = per_image_analysis.estimate_resolution_limit(self.refl)
         self.n_spots = len(self.refl)
 
         # initialize desired parameters (so that can back out without having to
@@ -272,7 +275,7 @@ class ImageScorer(object):
             score += 1
 
         if verbose:
-            print("SCORER: max intensity (15-4Å) = {}, score = {}".format(max_I, score))
+            print("SCORER: max intensity (15-4Ã) = {}, score = {}".format(max_I, score))
 
         # evaluate ice ring presence
         n_ice_rings = self.count_ice_rings(verbose=verbose)
@@ -503,19 +506,25 @@ class FastProcessor(Processor):
         with Capturing() as spf_output:
             try:
                 observed = self.find_spots(experiments)
-                if len(observed) == 0:
-                    info["spf_error"] = "spotfinding error: no spots found!"
             except Exception as err:
                 info["spf_error"] = "spotfinding error: {}".format(str(err))
                 return info
             else:
-                scorer = ImageScorer(experiments, observed)
-                info["n_spots"] = scorer.n_spots
-                info["hres"] = scorer.hres
-                info["n_ice_rings"] = scorer.n_ice_rings
-                info["n_overloads"] = scorer.n_overloads
-                info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
-                info["score"] = scorer.calculate_score()
+                if observed.size() > 10:
+                    try:
+                        scorer = ImageScorer(experiments, observed)
+                        info["n_spots"] = scorer.n_spots
+                        info["hres"] = scorer.hres
+                        info["n_ice_rings"] = scorer.n_ice_rings
+                        info["n_overloads"] = scorer.n_overloads
+                        info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
+                        info["score"] = scorer.calculate_score()
+                    except Exception as e:
+                        info["n_spots"] = observed.size()
+                        info["scr_error"] = "scoring error: {}".format(e)
+                else:
+                    info["n_spots"] = observed.size()
+                    info["spf_error"] = "spotfinding error: insufficient spots found ({})!".format(observed.size())
 
         # if last stage was selected to be "spotfinding", stop here
         if self.last_stage == "spotfinding" or info["n_spots"] <= self.min_Bragg:
