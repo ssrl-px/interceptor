@@ -29,7 +29,7 @@ def debug_segfault():
 class ConnectorBase:
     """ Base class for ZMQReader and ZMQCollector classes """
 
-    def __init__(self, comm, args, name="zmq_thread", localhost="localhost"):
+    def __init__(self, comm, args, name="zmq_thread", localhost='localhost'):
         """ Constructor
     :param comm: mpi4py communication instance
     :param args: command line arguments
@@ -72,9 +72,7 @@ class ConnectorBase:
                     host=self.args.host,
                     port=self.args.port,
                     rhost=self.localhost,
-                    rport="6{}".format(str(self.args.port)[1:]),
-                    chost=self.localhost,
-                    cport="7{}".format(str(self.args.port)[1:]),
+                    rport="7{}".format(str(self.args.port)[1:]),
                 )
             else:
                 info = None
@@ -89,8 +87,6 @@ class ConnectorBase:
             self.port = info["port"]
             self.rhost = info["rhost"]
             self.rport = info["rport"]
-            self.chost = info["chost"]
-            self.cport = info["cport"]
         else:
             self.processor = self.generate_processor(self.args)
             self.host = self.args.host
@@ -112,110 +108,6 @@ class ConnectorBase:
                     exit()
 
 
-class Connector(ConnectorBase):
-    """
-    LRU - least recently used - queue load-balancing broker. Will drain images from
-    Splitter as fast as possible, then distribute to the workers starting with the
-    least-recently used worker, using the REQ-ROUTER protocol
-    """
-
-    def __init__(self, name="zmq_reader", comm=None, args=None, localhost=None):
-        super(Connector, self).__init__(
-            name=name, comm=comm, args=args, localhost=localhost
-        )
-        self.initialize_process()
-
-        self.max_workers = self.args.n_proc
-        self.n_workers = 0
-        self.workers = []
-
-        self.ioloop = IOLoop.instance()
-
-        if self.rank == 1:
-            print("DEBUG: BROKER connected")
-
-    def initialize_zmq_sockets(self):
-        """ Create frontend and backend sockets via ZMQStream utility
-        :return:
-        """
-        # TODO: these need to be vastly less clunky than they are right now
-
-        # Initialize frontend socket (zmq.ROUTER, faces workers), with ZMQStream utility
-        be = ZMQReceiver(
-            name="{}_BE".format(self.name),
-            host=self.host,
-            port=self.port,
-            socket_type="push",
-        )
-        self.backend = make_zmqstream_utility(be.socket)
-
-        # Initialize backend socket (zmq.PULL, faces server), with ZMQStream utility
-        fe = ZMQReceiver(
-            name="{}_FE".format(self.name),
-            host=self.rhost,
-            port=self.rport,
-            socket_type="router",
-            bind=True,
-        )
-        self.frontend = make_zmqstream_utility(fe.socket)
-
-        # set callbacks
-        self.backend.on_recv(self.backend_recv_callback)
-        self.frontend.on_recv(self.frontend_recv_callback)
-
-    def backend_recv_callback(self, msg):
-        """ This will fun whenever backend socket receives a message. The message
-        will be a worker saying "READY", and this function will add the worker to
-        the queue of ready workers. Using the list format ensures that the worker on
-        top of the list would be the least-recently used worker.
-        :param msg: message to backend (zmq.ROUTER) socket
-        """
-
-        # Get worker address
-        worker_id, empty, ready = msg[:3]
-
-        # make sure empty is empty
-        assert empty == b""
-
-        # Add worker to list of ready workers (with failsafes)
-        try:
-            self.n_workers += 1
-            assert self.n_workers == self.max_workers
-        except AssertionError:
-            raise NumberOfWorkersException()
-        else:
-            try:
-                # make sure the worker is ready
-                assert ready == b"READY"
-            except AssertionError:
-                raise WorkerMessageError(ready)
-            else:
-                self.workers.append(worker_id)
-
-    def frontend_recv_callback(self, msg):
-        """ This will run whenever frontend socket receives data from the server,
-        in multipart mode. This function will assign the incoming data to the worker
-        on top of the available list, and pop the worker from the list, exposing the
-        next-least recently used worker.
-        :param msg: message to frontend (zmq.PULL) socket
-        """
-
-        # unpack message
-        client_add, empty, frames = msg
-
-        # if no workers available, drop frame
-        if self.n_workers == 0:
-            return
-
-        # make sure the empty frame is empty
-        assert empty == b""
-
-        # assign work to LRU worker and remove that worker from list
-        self.n_workers -= 1
-        worker_id = self.workers.pop()
-        self.backend.send_multipart([worker_id, b"", client_addr, b"", request])
-
-
 class Reader(ConnectorBase):
     """ ZMQ Reader: requests a single frame (multipart) from the Eiger,
       converts to dictionary format, attaches to a special format class,
@@ -227,7 +119,7 @@ class Reader(ConnectorBase):
         super(Reader, self).__init__(name=name, comm=comm, args=args)
         self.initialize_process()
 
-        if self.rank == 2:
+        if self.rank == 1:
             self.processor.print_params()
 
     def convert_from_stream(self, frames):
@@ -449,7 +341,7 @@ class Reader(ConnectorBase):
                 if self.stop:
                     break
 
-        self.w_socket.close()
+        self.d_socket.close()
 
     def run(self):
         self.process_stream()
@@ -561,7 +453,7 @@ class Collector(ConnectorBase):
             return ui_msg
 
     def collect(self):
-        collector = ZMQReceiver(
+        collector = ZMQStream(
             name=self.name,
             host=self.rhost,
             port=self.rport,
@@ -571,7 +463,7 @@ class Collector(ConnectorBase):
 
         send_to_ui = self.args.send or (self.args.uihost and self.args.uiport)
         if send_to_ui:
-            ui_socket = ZMQReceiver(
+            ui_socket = ZMQStream(
                 name=self.name + "_2C",
                 host=self.args.uihost,
                 port=self.args.uiport,
