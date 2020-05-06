@@ -318,7 +318,7 @@ class Reader(ConnectorBase):
                         time_info = {"total_time": elapsed, "receive_time": fel}
                         info.update(time_info)
                     elif info['state'] == 'series-end':
-                        time.sleep(10)
+                        time.sleep(4)
                         continue
 
                     # send info to collector
