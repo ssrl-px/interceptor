@@ -17,7 +17,7 @@ times = []
 
 def make_mpi_command_line(args):
     # parse presets if appropriate
-    connector_commands = ["lru_run"]
+    connector_commands = ["lru"]
 
     for arg, value in vars(args).items():
         if value and arg not in ['n_proc', 'mpi_bind']:
