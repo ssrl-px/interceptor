@@ -23,9 +23,9 @@ def entry_point():
         if rank == 0:
             script = broker
         elif rank == 1:
-            script = reader
-        else:
             script = collector
+        else:
+            script = reader
         comm_world.barrier()
 
         localhost = MPI.Get_processor_name()
