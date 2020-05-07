@@ -77,7 +77,7 @@ def parse_command_args():
         "--uistype", type=str, help="UI socket type"
     )
     parser.add_argument(
-        "--t",
+        "-t",
         "--timeout",
         type=int,
         default=60,
