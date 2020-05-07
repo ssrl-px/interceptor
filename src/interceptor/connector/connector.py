@@ -10,14 +10,9 @@ Description : Streaming stills processor for live data analysis
 import os
 import time
 
-import zmq
-
-from dxtbx.model.experiment_list import ExperimentListFactory
-
 from iota.components.iota_init import initialize_single_image
 from interceptor.connector.processor import FastProcessor, IOTAProcessor
 from interceptor.connector.stream import ZMQStream
-from interceptor.format import FormatEigerStreamSSRL as FormatStream
 
 
 class ConnectorBase:
@@ -176,7 +171,7 @@ class Reader(ConnectorBase):
                             img_info["run_no"] = part.split(":")[1]
                         if "frame" in part:
                             img_info["frame_idx"] = part.split(":")[1]
-                    img_info['state'] = 'process'
+                    img_info["state"] = "process"
                     return_frames = img_frames
                 except Exception as e:
                     img_info["state"] = "error"
@@ -281,10 +276,10 @@ class Reader(ConnectorBase):
                     self.d_socket.send(b"Hello")
                     expecting_reply = True
                     while expecting_reply:
-                        if self.d_socket.poll(timeout=100):
+                        if self.d_socket.poll(timeout=self.args.timeout*1000):
                             fstart = time.time()
                             frames = self.d_socket.receive(copy=False, flags=0)
-                            fel = time.time() - fstart
+                            recv_time = time.time() - fstart
                             expecting_reply = False
                         else:
                             self.d_socket.reset()
@@ -292,7 +287,8 @@ class Reader(ConnectorBase):
                 else:
                     fstart = time.time()
                     frames = self.d_socket.receive(copy=False, flags=0)
-                    fel = time.time() - fstart
+                    recv_time = time.time() - fstart
+                wait = time.time() - start - recv_time
             except Exception as exp:
                 print("DEBUG: {} CONNECT FAILED! {}".format(self.name, exp))
                 continue
@@ -303,7 +299,7 @@ class Reader(ConnectorBase):
                         print(
                             str(frames[0].bytes[:-1])[3:-2],
                             "({})".format(self.name),
-                            "rcv time: {:.4f} sec".format(fel),
+                            "rcv time: {:.4f} sec".format(recv_time),
                         )
                 else:
 
@@ -312,13 +308,17 @@ class Reader(ConnectorBase):
                     if info is None:
                         print("debug: info is None!")
                         continue
-                    elif info['state'] == 'process':
+                    elif info["state"] == "process":
                         sleep = False
                         info = self.process(info, frame=data, filename=filename)
                         elapsed = time.time() - start
-                        time_info = {"total_time": elapsed, "receive_time": fel}
+                        time_info = {
+                            "total_time": elapsed,
+                            "receive_time": recv_time,
+                            "wait_time": wait,
+                        }
                         info.update(time_info)
-                    elif info['state'] == 'series-end':
+                    elif info["state"] == "series-end":
                         time.sleep(4)
                         continue
 
@@ -358,9 +358,9 @@ class Collector(ConnectorBase):
             # at this point, this message shouldn't show up
             msg = "{} received END-OF-SERIES signal".format(info["proc_name"])
         elif info["state"] == "error":
-            msg = '{} DATA ERROR: {}'.format(info["proc_name"], info["dat_error"])
-        elif info["state"] != 'process':
-            msg = 'DEBUG: {} STATE IS '.format(info["state"])
+            msg = "{} DATA ERROR: {}".format(info["proc_name"], info["dat_error"])
+        elif info["state"] != "process":
+            msg = "DEBUG: {} STATE IS ".format(info["state"])
         else:
             return False
         if self.args.verbose:
@@ -414,15 +414,19 @@ class Collector(ConnectorBase):
     def print_to_stdout(self, info, ui_msg):
         print(
             "*** ({}) RUN {}, FRAME {} ({}):".format(
-                info["proc_name"], info["run_no"], info["frame_idx"], info['full_path']
+                info["proc_name"], info["run_no"], info["frame_idx"], info["full_path"]
             )
         )
         print("  {}".format(ui_msg))
         print(
-            "  TIME: recv = {:.2f} sec,"
+            "  TIME: wait = {:.4f} sec,"
+            " recv = {:.4f} sec,"
             " proc = {:.4f} ,"
             " total = {:.2f} sec".format(
-                info["receive_time"], info["proc_time"], info["total_time"],
+                info["wait_time"],
+                info["receive_time"],
+                info["proc_time"],
+                info["total_time"],
             ),
         )
         print("***\n")
