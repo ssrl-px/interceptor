@@ -28,7 +28,8 @@ def entry_point():
             script = collector
         comm_world.barrier()
 
-        script.entry_point()
+        localhost = MPI.Get_processor_name()
+        script.entry_point(localhost=localhost)
 
 
 if __name__ == "__main__":
