@@ -23,7 +23,7 @@ import argparse
 
 from interceptor import __version__ as intxr_version
 from interceptor import packagefinder
-from interceptor.connector.connector import Reader, Collector
+from interceptor.connector.connector import Reader, Collector, Broker
 
 
 class ExpandPresets(argparse.Action):
