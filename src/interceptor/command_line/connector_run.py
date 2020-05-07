@@ -23,7 +23,7 @@ import argparse
 
 from interceptor import __version__ as intxr_version
 from interceptor import packagefinder
-from interceptor.connector.connector import Reader, Collector, Broker
+from interceptor.connector.connector import Reader, Collector, Connector
 
 
 class ExpandPresets(argparse.Action):
@@ -188,7 +188,9 @@ def entry_point():
         rank = comm_world.Get_rank()
         localhost = MPI.Get_processor_name().split('.')[0]
         if rank == 0:
-            script = Collector(comm=comm_world, args=args, localhost=localhost)
+            script = Connector(comm=comm_world, args=args, localhost=localhost)
+        elif rank == 1:
+            script = Collector(comm=comm_world, args=args)
         else:
             script = Reader(comm=comm_world, args=args)
         comm_world.barrier()
