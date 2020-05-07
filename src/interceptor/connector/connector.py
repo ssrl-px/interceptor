@@ -112,7 +112,7 @@ class ConnectorBase:
                     exit()
 
 
-class Broker(ConnectorBase):
+class Connector(ConnectorBase):
     """
     LRU - least recently used - queue load-balancing broker. Will drain images from
     Splitter as fast as possible, then distribute to the workers starting with the
@@ -120,7 +120,7 @@ class Broker(ConnectorBase):
     """
 
     def __init__(self, name="zmq_reader", comm=None, args=None, localhost=None):
-        super(Broker, self).__init__(
+        super(Connector, self).__init__(
             name=name, comm=comm, args=args, localhost=localhost
         )
         self.initialize_process()

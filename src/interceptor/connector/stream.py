@@ -103,8 +103,35 @@ class ZMQStream:
     """
         return self.socket.close()
 
-
 def make_zmqstream_utility(socket):
     return ZMQStream(socket)
+
+
+def make_socket(host, port, socket_type='pull', bind=False, zmqstream=False, verbose=False, wid='ZMQ_SOCKET'):
+    # assemble URL from host and port
+    url = "tcp://{}:{}".format(host, port)
+
+    # Create socket
+    context = zmq.Context()
+    socket = context.socket(getattr(zmq, socket_type.upper()))
+
+    # Connect to URL
+    socket.connect(url)
+
+    if verbose:
+        print ('{} CONNECTED to {}'.format(wid, url))
+
+    # Bind to port
+    if bind:
+        socket.bind("tcp://*:{}".format(port))
+
+    # Return either a ZMQStream utility or a socket
+    if zmqstream:
+        return ZMQStream(socket)
+    else:
+        return socket
+
+def make_poller():
+    return zmq.Poller()
 
 # -- end
