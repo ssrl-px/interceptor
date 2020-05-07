@@ -159,6 +159,7 @@ class Reader(ConnectorBase):
                         if "master_file" in part:
                             filepath = part.split(":")[1].strip('"')
                             img_info["filename"] = os.path.basename(filepath)
+                            img_info["full_path"] = filepath
                         if "mapping" in part:
                             img_info["mapping"] = part.split(":")[1].strip('"')
                         if "reporting" in part:
@@ -280,7 +281,7 @@ class Reader(ConnectorBase):
                     self.d_socket.send(b"Hello")
                     expecting_reply = True
                     while expecting_reply:
-                        if self.d_socket.poll(timeout=10000):
+                        if self.d_socket.poll(timeout=100):
                             fstart = time.time()
                             frames = self.d_socket.receive(copy=False, flags=0)
                             fel = time.time() - fstart
@@ -412,8 +413,8 @@ class Collector(ConnectorBase):
 
     def print_to_stdout(self, info, ui_msg):
         print(
-            "*** ({}) RUN {}, FRAME {}:".format(
-                info["proc_name"], info["run_no"], info["frame_idx"]
+            "*** ({}) RUN {}, FRAME {} ({}):".format(
+                info["proc_name"], info["run_no"], info["frame_idx"], info['full_path']
             )
         )
         print("  {}".format(ui_msg))
