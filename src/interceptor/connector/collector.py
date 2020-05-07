@@ -16,22 +16,25 @@ from interceptor.connector import stream
 from interceptor.command_line.connector_run import parse_command_args
 
 
-def collect(args):
+def collect(args, localhost="localhost"):
     cport = "7{}".format(str(args.port)[1:])
-    c_socket = stream.make_socket(args.host, cport, socket_type='push', verbose=args.verbose, wid='COLLECTOR')
+    c_socket = stream.make_socket(
+        localhost, cport, socket_type="push", verbose=args.verbose, wid="COLLECTOR"
+    )
 
     while True:
         info = c_socket.recv()
-        print ("*** COLLECTOR: {}".format(info))
+        print("*** COLLECTOR: {}".format(info))
 
 
-def entry_point():
+def entry_point(localhost="localhost"):
     args, _ = parse_command_args().parse_known_args()
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     assert rank == 1
-    collect(args)
+    collect(args, localhost)
+
 
 if __name__ == "__main__":
     entry_point()
