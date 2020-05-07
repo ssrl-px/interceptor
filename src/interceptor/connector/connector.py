@@ -276,7 +276,7 @@ class Reader(ConnectorBase):
                     self.d_socket.send(b"Hello")
                     expecting_reply = True
                     while expecting_reply:
-                        if self.d_socket.poll(timeout=self.args.timeout*1000):
+                        if self.d_socket.poll(timeout=self.args.timeout * 1000):
                             fstart = time.time()
                             frames = self.d_socket.receive(copy=False, flags=0)
                             recv_time = time.time() - fstart
@@ -367,12 +367,10 @@ class Collector(ConnectorBase):
             print(msg)
         return True
 
-    def write_to_file(self, info):
+    def write_to_file(self, rlines):
         with open(self.args.record, "a") as rf:
-            rline = "{:<8} {:<4} {:<10.8f} {}\n".format(
-                info["proc_name"], info["frame_idx"], info["t0"], info["proc_time"],
-            )
-            rf.write(rline)
+            for rline in rlines:
+                rf.write(rline)
 
     def make_result_string(self, info):
         # message to DHS / UI
@@ -396,7 +394,7 @@ class Collector(ConnectorBase):
             )
         )
         reporting = (
-            info["reporting"] if info["reporting"] != "" else "htos_log note zmqDhs"
+            info["reporting"] if info["reporting"] != "" else "htos_note image_score"
         )
         ui_msg = (
             "{0} run {1} frame {2} result {{{3}}} mapping {{{4}}} "
@@ -412,29 +410,27 @@ class Collector(ConnectorBase):
         return ui_msg
 
     def print_to_stdout(self, info, ui_msg):
-        print(
+        lines = [
             "*** ({}) RUN {}, FRAME {} ({}):".format(
                 info["proc_name"], info["run_no"], info["frame_idx"], info["full_path"]
-            )
-        )
-        print("  {}".format(ui_msg))
-        print(
-            "  TIME: wait = {:.4f} sec,"
-            " recv = {:.4f} sec,"
-            " proc = {:.4f} ,"
-            " total = {:.2f} sec".format(
+            ),
+            "  {}".format(ui_msg),
+            "  TIME: wait = {:.4f} sec, recv = {:.4f} sec, "
+            "proc = {:.4f} ,total = {:.2f} sec".format(
                 info["wait_time"],
                 info["receive_time"],
                 info["proc_time"],
                 info["total_time"],
             ),
-        )
-        print("***\n")
+            "***\n",
+        ]
+        for ln in lines:
+            print(ln)
+        if self.args.record:
+            self.write_to_file(lines)
 
     def output_results(self, info, record=False, verbose=False):
         ui_msg = None
-        if record:
-            self.write_to_file(info=info)
         try:
             ui_msg = self.make_result_string(info=info)
         except Exception as exp:
