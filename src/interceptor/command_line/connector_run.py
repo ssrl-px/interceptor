@@ -115,6 +115,9 @@ def parse_command_args():
         "--iota", action="store_true", default=False, help="Use IOTA Processor"
     )
     parser.add_argument(
+        "--debug", action="store_true", default=False, help="Run debug code"
+    )
+    parser.add_argument(
         "-b",
         "--beamline",
         type=str,

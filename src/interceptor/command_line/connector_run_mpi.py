@@ -49,6 +49,7 @@ def make_mpi_command_line(args):
                 str,
                 [
                     "mpirun",
+                    "--enable-recovery",
                     "--cpu-set",
                     cpus,
                     "--bind-to",
@@ -65,6 +66,7 @@ def make_mpi_command_line(args):
                 str,
                 [
                     "mpirun",
+                    "--enable-recovery",
                     "--map-by",
                     "socket",
                     "--bind-to",
