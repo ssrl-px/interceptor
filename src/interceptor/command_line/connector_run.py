@@ -188,16 +188,12 @@ def entry_point():
         rank = comm_world.Get_rank()
         localhost = MPI.Get_processor_name().split('.')[0]
         if rank == 0:
-            script = Collector(comm=comm_world, args=args, localhost=localhost)
+            script = Collector(comm=comm_world, args=args)
         else:
             script = Reader(comm=comm_world, args=args)
         comm_world.barrier()
 
-        if rank == 0:
-            from zmq.eventloop.ioloop import IOLoop
-            IOLoop.instance().start()
-        else:
-            script.run()
+        script.run()
 
 
 if __name__ == "__main__":
