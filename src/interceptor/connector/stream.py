@@ -8,13 +8,14 @@ Description : ZMQ streaming module (customized for Interceptor)
 """
 
 import zmq
-from zmq.eventloop.ioloop import IOLoop
 from zmq.eventloop.zmqstream import ZMQStream
+from zmq.devices.monitoredqueuedevice import MonitoredQueue
+from zmq.utils.strtypes import asbytes
 
 
 class NumberOfWorkersException(Exception):
     def __init__(self):
-        msg = 'ZMQ ERROR: Number of available workers exceeds specified maximum!'
+        msg = "ZMQ ERROR: Number of available workers exceeds specified maximum!"
         Exception.__init__(self, msg)
 
 
@@ -116,11 +117,20 @@ class ZMQReceiver:
     """
         return self.socket.close()
 
+
 def make_zmqstream_utility(socket):
     return ZMQStream(socket)
 
 
-def make_socket(host, port, socket_type='pull', bind=False, zmqstream=False, verbose=False, wid='ZMQ_SOCKET'):
+def make_socket(
+    host,
+    port,
+    socket_type="pull",
+    bind=False,
+    zmqstream=False,
+    verbose=False,
+    wid="ZMQ_SOCKET",
+):
     # assemble URL from host and port
     url = "tcp://{}:{}".format(host, port)
 
@@ -132,7 +142,7 @@ def make_socket(host, port, socket_type='pull', bind=False, zmqstream=False, ver
     socket.connect(url)
 
     if verbose:
-        print ('{} CONNECTED to {}'.format(wid, url))
+        print("{} CONNECTED to {}".format(wid, url))
 
     # Bind to port
     if bind:
@@ -144,7 +154,34 @@ def make_socket(host, port, socket_type='pull', bind=False, zmqstream=False, ver
     else:
         return socket
 
+
 def make_poller():
     return zmq.Poller()
+
+
+def make_queue(host, port, localhost, wid="MQ_000", verbose=False):
+    in_prf = asbytes("in")
+    ou_prf = asbytes("out")
+    mqueue = MonitoredQueue(zmq.PULL, zmq.XREP, zmq.PUSH, in_prf, ou_prf)
+
+    data_url = "tcp://{}:{}".format(host, port)
+    mqueue.bind_in(data_url)
+    read_url = "tcp://{}:6{}".format(localhost, str(port)[1:])
+    mqueue.bind_out(read_url)
+    mntr_url = "tcp://{}:7{}".format(localhost, str(port)[1:])
+    mqueue.bind_mon(mntr_url)
+
+    mqueue.setsockopt_in(zmq.HWM, 1)
+    mqueue.setsockopt_out(zmq.HWM, 1)
+
+    if verbose:
+        print(
+            "{} CONNECTED! IN = {}; OUT = {}; MON = {}".format(
+                wid, data_url, read_url, mntr_url
+            )
+        )
+
+    return mqueue
+
 
 # -- end

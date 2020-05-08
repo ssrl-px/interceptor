@@ -13,7 +13,7 @@ from interceptor.connector import stream
 from interceptor.command_line.connector_run import parse_command_args
 
 
-def initialize_ends(args, wid, localhost='localhost'):
+def initialize_ends(args, wid, localhost="localhost"):
     """initializes front- and backend sockets
 
     Parameters
@@ -40,8 +40,15 @@ def initialize_ends(args, wid, localhost='localhost'):
     return read_end, data_end
 
 
-def main_broker_loop(args, wid, localhost='localhost'):
-    read_end, data_end = initialize_ends(args, wid, localhost)
+def main_queue_loop(args, wid, localhost="localhost"):
+    mqueue = stream.make_queue(
+        args.host, args.port, wid=wid, localhost=localhost, verbose=True
+    )
+    mqueue.start()
+
+
+def main_broker_loop(args, wid, localhost="localhost"):
+    read_end, data_end = initialize_ends(args, wid=wid, localhost=localhost)
 
     # initialize workers
     readers = []
@@ -73,12 +80,13 @@ def main_broker_loop(args, wid, localhost='localhost'):
                 poller.unregister(data_end)
 
 
-def entry_point(localhost='localhost'):
+def entry_point(localhost="localhost"):
     args, _ = parse_command_args().parse_known_args()
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     assert rank == 0
-    main_broker_loop(args, wid="BROKER", localhost=localhost)
+    # main_broker_loop(args, wid="BROKER", localhost=localhost)
+    main_queue_loop(args, wid="MQ_000", localhost=localhost)
 
 
 if __name__ == "__main__":
