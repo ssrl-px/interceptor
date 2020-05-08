@@ -85,8 +85,8 @@ def entry_point(localhost="localhost"):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     assert rank == 0
-    # main_broker_loop(args, wid="BROKER", localhost=localhost)
-    main_queue_loop(args, wid="MQ_000", localhost=localhost)
+    main_broker_loop(args, wid="BROKER", localhost=localhost)
+    # main_queue_loop(args, wid="MQ_000", localhost=localhost)
 
 
 if __name__ == "__main__":
