@@ -15,6 +15,12 @@ from interceptor.connector.processor import FastProcessor, IOTAProcessor
 from interceptor.connector.stream import ZMQStream
 
 
+def debug_segfault():
+    """ Deliberate segfault for debugging purposes """
+    import ctypes
+    ctypes.string_at(1)
+
+
 class ConnectorBase:
     """ Base class for ZMQReader and ZMQCollector classes """
 
