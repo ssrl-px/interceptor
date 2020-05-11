@@ -133,6 +133,14 @@ def make_socket(host, port, socket_type='pull', bind=False, zmqstream=False, ver
         return socket
 
 def make_poller():
+    ''' Makes poller.
+        For reference, when registering sockets to the poller:
+            POLLIN = 1
+            POLLOUT = 2
+            POLLIN|POLLOUT = 3
+            unregister = 0
+    :return: Poller
+    '''
     return zmq.Poller()
 
 # -- end
