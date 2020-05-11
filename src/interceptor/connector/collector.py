@@ -19,7 +19,7 @@ from interceptor.command_line.connector_run import parse_command_args
 def collect(args, localhost="localhost"):
     cport = "7{}".format(str(args.port)[1:])
     c_socket = stream.make_socket(
-        localhost, cport, socket_type="push", verbose=args.verbose, wid="COLLECTOR"
+        localhost, cport, socket_type="pull", verbose=args.verbose, wid="COLLECTOR"
     )
 
     while True:

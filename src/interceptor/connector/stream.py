@@ -114,6 +114,7 @@ def make_socket(host, port, socket_type='pull', bind=False, zmqstream=False, ver
     # Create socket
     context = zmq.Context()
     socket = context.socket(getattr(zmq, socket_type.upper()))
+    socket.identity = wid.encode('ascii')
 
     # Connect to URL
     socket.connect(url)
