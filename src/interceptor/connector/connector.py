@@ -184,7 +184,7 @@ class Reader(ZMQProcessBase):
             else:
                 try:
                     # Get master_file name from header
-                    hdict = utils.decode_header(header=self.header)
+                    hdict = utils.decode_header(header=self.header[0])
                     img_info.update(
                         {
                             "filename": os.path.basename(hdict["master_file"]),
