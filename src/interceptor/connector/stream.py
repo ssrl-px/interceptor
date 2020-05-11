@@ -137,6 +137,7 @@ def make_socket(
     # Create socket
     context = zmq.Context()
     socket = context.socket(getattr(zmq, socket_type.upper()))
+    socket.identity = wid.encode('ascii')
 
     # Connect to URL
     socket.connect(url)

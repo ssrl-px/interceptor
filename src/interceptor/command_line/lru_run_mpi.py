@@ -54,7 +54,7 @@ def make_mpi_command_line(args):
                     "--bind-to",
                     "cpu-list:ordered",
                     "--np",
-                    n_proc,
+                    n_proc+2,
                     *connector_commands,
                 ],
             )
@@ -70,7 +70,7 @@ def make_mpi_command_line(args):
                     "--bind-to",
                     "core",
                     "--np",
-                    args.n_proc,
+                    args.n_proc+2,
                     *connector_commands,
                 ],
             )
@@ -86,32 +86,11 @@ def entry_point():
     if not args.dry_run:
         start = time.time()
         try:
-            if args.time:
-                callback = get_total_time
-            else:
-                callback = None
             result = procrunner.run(
-                command, callback_stdout=callback, working_directory=os.curdir
+                command, working_directory=os.curdir
             )
         except KeyboardInterrupt:
             print("\n*** Terminated with KeyboardInterrupt")
-            if args.time and times:
-                print("*** Total processing time: {:.2f} sec".format(times[-1]))
-                print(
-                    "*** Rate ({} images): {:.2f} Hz".format(
-                        len(times), len(times) / times[-1]
-                    )
-                )
-            print("*** Total runtime: {:.2f} sec".format(time.time() - start))
-            print(" ... deleting temporary files...")
-            curdir = os.path.abspath(os.curdir)
-            temp_files = [
-                f for f in os.listdir(curdir) if os.path.splitext(f)[-1] == ".stream"
-            ]
-            for tfile in temp_files:
-                tpath = os.path.join(curdir, tfile)
-                os.remove(tpath)
-            print("\n~~~ fin ~~~")
 
 
 def get_total_time(ln):

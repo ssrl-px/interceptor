@@ -9,18 +9,15 @@ Description : Broker module
 
 from mpi4py import MPI
 
+import numpy as np
+import zmq
+
 from interceptor.connector import stream
 from interceptor.command_line.connector_run import parse_command_args
 
 
 def initialize_ends(args, wid, localhost="localhost"):
-    """initializes front- and backend sockets
-
-    Parameters
-    ----------
-    args : [namespace]
-        Command line arguments
-    """
+    """ initializes front- and backend sockets """
     wport = "6{}".format(str(args.port)[1:])
     read_end = stream.make_socket(
         host=localhost,
@@ -28,14 +25,14 @@ def initialize_ends(args, wid, localhost="localhost"):
         socket_type="router",
         bind=True,
         verbose=args.verbose,
-        wid="CON_READ_{}".format(wid),
+        wid="{}_READ".format(wid),
     )
     data_end = stream.make_socket(
         host=args.host,
         port=args.port,
         socket_type="pull",
         verbose=args.verbose,
-        wid="CON_DATA_{}".format(wid),
+        wid="{}_DATA".format(wid),
     )
     return read_end, data_end
 
@@ -54,30 +51,36 @@ def main_broker_loop(args, wid, localhost="localhost"):
     readers = []
 
     # create poller
-    poller = stream.make_poller()
+    poller = zmq.Poller()
 
     # register worker-facing end with poller, poll for workers to report as ready
-    poller.register(read_end)
+    poller.register(read_end, zmq.POLLIN)
+    poller.register(data_end, zmq.POLLIN)
 
     while True:
         sockets = dict(poller.poll())
         if read_end in sockets:
             # handle worker activity
             request = read_end.recv_multipart()
-            reader, empty, client = request[
-                :3
-            ]  # not sure what all of the request is...
-
-            if not readers:
-                poller.register(data_end)
+            reader, empty, ready = request
+            # print (reader, ready)
             readers.append(reader)
+            # print (reader, 'appended to readers...', len(readers))
 
         if data_end in sockets:
-            client, empty, frames = data_end.recv_multipart()
-            reader = readers.pop()
-            read_end.send_multipart([reader, b"", client, b"", frames])
-            if not readers:
-                poller.unregister(data_end)
+           frames = data_end.recv_multipart() 
+           if readers:
+              reader = readers.pop()
+              rframes = [reader, b"", b"BROKER", b""]
+              rframes.extend(frames)
+              read_end.send_multipart(rframes)
+           else:
+              # drop frames if no reader available
+              # print ("!!!! dropping image!")
+              continue
+        #else:
+        #   reader = readers.pop()
+        #   read_end.send_multipart([reader, b"", b'STANDBY', b"", b""])
 
 
 def entry_point(localhost="localhost"):

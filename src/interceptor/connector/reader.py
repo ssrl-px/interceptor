@@ -18,7 +18,7 @@ from interceptor.command_line.connector_run import parse_command_args
 def initalize_sockets(args, wid, localhost="localhost"):
     rport = "6{}".format(str(args.port)[1:])
     r_socket = stream.make_socket(
-        host=localhost, port=rport, socket_type=args.stype, verbose=args.verbose,
+        host=localhost, port=rport, socket_type="req", verbose=args.verbose,
         wid=wid
     )
 
@@ -38,17 +38,17 @@ def process_stream(args, wid, localhost="localhost"):
 
     while True:
         r_socket.send(b"READY")
-        addr, empty, frames = r_socket.recv_multipart()
-        if frames != b"STANDBY":
-            results = drain(frames, wid)
-            c_socket.send(results)
+        frames = r_socket.recv_multipart()
+        if frames[0] != b"STANDBY":
+            results = drain(frames[3:], wid)
+            c_socket.send(results.encode('utf-8'))
         else:
             time.sleep(1)
 
 
 def drain(frames, wid):
-    results = "{} | {}".format(str(frames[2].bytes[:-1])[3:-2], "({})".format(wid),)
-    print(results)
+    results = "{} | {}".format(str(frames[2][:-1])[3:-2], "({})".format(wid),)
+    print(results.encode('utf-8'))
     return results
 
 

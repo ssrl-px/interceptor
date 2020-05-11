@@ -12,7 +12,7 @@ import time
 
 from iota.components.iota_init import initialize_single_image
 from interceptor.connector.processor import FastProcessor, IOTAProcessor
-from interceptor.connector.stream import ZMQStream
+from interceptor.connector.stream import ZMQReceiver as ZMQStream
 
 
 def debug_segfault():
