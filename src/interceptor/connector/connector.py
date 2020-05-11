@@ -82,7 +82,7 @@ class Connector(ZMQProcessBase):
         )
         self.poller = stream.make_poller()
 
-    def main_loop(self):
+    def connect_readers(self):
         # register backend and frontend with poller
         self.poller.register(self.read_end, 1)
         self.poller.register(self.data_end, 1)
@@ -108,6 +108,9 @@ class Connector(ZMQProcessBase):
                     print(
                         "WARNING! NO READY READERS! Skipping frame #", frmdict["frame"]
                     )
+
+    def run(self):
+        self.connect_readers()
 
 
 class Reader(ZMQProcessBase):
@@ -283,7 +286,7 @@ class Reader(ZMQProcessBase):
             }
             self.r_socket.send_json(info)
 
-    def process_stream(self):
+    def read_stream(self):
         # Write eiger_*.stream file
         filename = self.write_eiger_file()
 
@@ -341,7 +344,7 @@ class Reader(ZMQProcessBase):
         self.d_socket.close()
 
     def run(self):
-        self.process_stream()
+        self.read_stream()
 
     def abort(self):
         self.stop = True
@@ -448,7 +451,7 @@ class Collector(ZMQProcessBase):
         finally:
             return ui_msg
 
-    def collect(self):
+    def collect_results(self):
         cport = "7{}".format(str(self.args.port)[1:])
         collector = stream.make_socket(
             self.localhost,
@@ -486,7 +489,7 @@ class Collector(ZMQProcessBase):
                         pass
 
     def run(self):
-        self.collect()
+        self.collect_results()
 
 
 # -- end
