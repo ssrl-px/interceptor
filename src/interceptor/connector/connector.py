@@ -117,8 +117,10 @@ class Reader(ZMQProcessBase):
       Collector class.
   """
 
-    def __init__(self, name="zmq_reader", comm=None, args=None):
-        super(Reader, self).__init__(name=name, comm=comm, args=args)
+    def __init__(self, name="zmq_reader", comm=None, args=None, localhost="localhost"):
+        super(Reader, self).__init__(
+            name=name, comm=comm, args=args, localhost=localhost
+        )
         self.processor = FastProcessor(
             last_stage=self.args.last_stage,
             test=self.args.test,
@@ -351,7 +353,7 @@ class Collector(ZMQProcessBase):
       off as a single stream to the UI if requested.
   """
 
-    def __init__(self, name="ZMQ_000", comm=None, args=None, localhost=None):
+    def __init__(self, name="COLLECTOR", comm=None, args=None, localhost=None):
         super(Collector, self).__init__(
             name=name, comm=comm, args=args, localhost=localhost
         )
@@ -448,21 +450,24 @@ class Collector(ZMQProcessBase):
             return ui_msg
 
     def collect(self):
-        collector = ZMQStream(
-            name=self.name,
-            host=self.rhost,
-            port=self.rport,
+        cport = "7{}".format(str(self.args.port)[1:])
+        collector = stream.make_socket(
+            self.localhost,
+            cport,
             socket_type="pull",
+            verbose=self.args.verbose,
             bind=True,
+            wid=self.name,
         )
 
         send_to_ui = self.args.send or (self.args.uihost and self.args.uiport)
         if send_to_ui:
-            ui_socket = ZMQStream(
-                name=self.name + "_2C",
-                host=self.args.uihost,
-                port=self.args.uiport,
-                socket_type=self.args.uistype,
+            ui_socket = stream.make_socket(
+                self.args.uihost,
+                self.args.uiport,
+                socket_type="pull",
+                verbose=self.args.verbose,
+                wid=self.name + "_2UI",
             )
         while True:
             info = collector.receive_json()
