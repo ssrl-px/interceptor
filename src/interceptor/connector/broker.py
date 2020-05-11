@@ -9,12 +9,9 @@ Description : Broker module
 
 from mpi4py import MPI
 
-import numpy as np
-import zmq
-
 from interceptor.connector import stream
 from interceptor.command_line.connector_run import parse_command_args
-
+from interceptor.connector.utils import decode_frame_header
 
 def initialize_ends(args, wid, localhost="localhost"):
     """ initializes front- and backend sockets """
@@ -51,11 +48,11 @@ def main_broker_loop(args, wid, localhost="localhost"):
     readers = []
 
     # create poller
-    poller = zmq.Poller()
+    poller = stream.make_poller()
 
-    # register worker-facing end with poller, poll for workers to report as ready
-    poller.register(read_end, zmq.POLLIN)
-    poller.register(data_end, zmq.POLLIN)
+    # register backend and frontend with poller
+    poller.register(read_end, 1)
+    poller.register(data_end, 1)
 
     while True:
         sockets = dict(poller.poll())
@@ -63,24 +60,18 @@ def main_broker_loop(args, wid, localhost="localhost"):
             # handle worker activity
             request = read_end.recv_multipart()
             reader, empty, ready = request
-            # print (reader, ready)
             readers.append(reader)
-            # print (reader, 'appended to readers...', len(readers))
 
         if data_end in sockets:
-           frames = data_end.recv_multipart() 
-           if readers:
-              reader = readers.pop()
-              rframes = [reader, b"", b"BROKER", b""]
-              rframes.extend(frames)
-              read_end.send_multipart(rframes)
-           else:
-              # drop frames if no reader available
-              # print ("!!!! dropping image!")
-              continue
-        #else:
-        #   reader = readers.pop()
-        #   read_end.send_multipart([reader, b"", b'STANDBY', b"", b""])
+            frames = data_end.recv_multipart()
+            if readers:
+                reader = readers.pop()
+                rframes = [reader, b"", b"BROKER", b""]
+                rframes.extend(frames)
+                read_end.send_multipart(rframes)
+            else:
+                frmdict = decode_frame_header(frames[2])
+                print ("WARNING! NO READY READERS! Skipping frame #", frmdict['frame'])
 
 
 def entry_point(localhost="localhost"):

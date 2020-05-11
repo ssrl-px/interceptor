@@ -7,9 +7,6 @@ Last Changed: 05/06/2020
 Description : Collector module
 """
 
-import os
-import time
-
 from mpi4py import MPI
 
 from interceptor.connector import stream

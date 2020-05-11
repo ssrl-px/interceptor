@@ -15,41 +15,73 @@ from interceptor.connector import stream
 from interceptor.command_line.connector_run import parse_command_args
 
 
-def initalize_sockets(args, wid, localhost="localhost"):
-    rport = "6{}".format(str(args.port)[1:])
-    r_socket = stream.make_socket(
-        host=localhost, port=rport, socket_type="req", verbose=args.verbose,
-        wid=wid
-    )
+class Reader(object):
+    def __init__(self, args, mpi_rank=0, localhost="localhost"):
+        self.id = "RDR_{:03d}".format(mpi_rank)
+        self.args = args
+        self.localhost = localhost
 
-    cport = "7{}".format(str(args.port)[1:])
-    c_socket = stream.make_socket(
-        host=localhost,
-        port=cport,
-        socket_type="push",
-        verbose=args.verbose,
-        wid="{}_2C".format(wid),
-    )
-    return r_socket, c_socket
+        try:
+            self.initialize_sockets()
+        except Exception as e:
+            print ("DEBUG: SOCKET ERROR!")
+            raise e
+
+    def initialize_sockets(self):
+        rport = "6{}".format(str(self.args.port)[1:])
+        self.r_socket = stream.make_socket(
+            host=self.localhost, port=rport, socket_type="req",
+            verbose=self.args.verbose,
+            wid=self.id
+        )
+        self.r_url = "tcp://{}:6{}".format(self.localhost, self.args.port[1:])
+
+        cport = "7{}".format(str(self.args.port)[1:])
+        self.c_socket = stream.make_socket(
+            host=self.localhost,
+            port=cport,
+            socket_type="push",
+            verbose=self.args.verbose,
+            wid="{}_2C".format(self.id),
+        )
+        self.c_url = "tcp://{}:7{}".format(self.localhost, self.args.port[1:])
+
+    def drain(self, frames):
+        results = "{} | {}".format(str(frames[2][:-1])[3:-2], "({})".format(self.id), )
+        print(results.encode('utf-8'))
+        return results
+
+    def convert_from_stream(self, frames):
+
+        # need a better way to reconstruct this URL
+        img_info = {
+            "state": "import",
+            "proc_name": self.id,
+            "proc_url": self.r_url,
+            "run_no": -1,
+            "frame_idx": -1,
+            "mapping": "",
+            "reporting": "",
+            "filename": "",
+        }
+
+        # assuming header per every frame format for now
 
 
-def process_stream(args, wid, localhost="localhost"):
-    r_socket, c_socket = initalize_sockets(args, wid, localhost)
 
-    while True:
-        r_socket.send(b"READY")
-        frames = r_socket.recv_multipart()
-        if frames[0] != b"STANDBY":
-            results = drain(frames[3:], wid)
-            c_socket.send(results.encode('utf-8'))
-        else:
-            time.sleep(1)
+    def process_stream(self):
+        while True:
+            self.r_socket.send(b"READY")
+            frames = self.r_socket.recv_multipart()
+            if frames[0] != b"STANDBY":
+                results = self.drain(frames[3:], self.id)
+                self.c_socket.send(results.encode('utf-8'))
+            else:
+                time.sleep(1)
 
+    def run(self):
+        self.process_stream()
 
-def drain(frames, wid):
-    results = "{} | {}".format(str(frames[2][:-1])[3:-2], "({})".format(wid),)
-    print(results.encode('utf-8'))
-    return results
 
 
 def entry_point(localhost="localhost"):

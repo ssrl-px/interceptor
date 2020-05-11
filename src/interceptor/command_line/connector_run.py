@@ -23,7 +23,7 @@ import argparse
 
 from interceptor import __version__ as intxr_version
 from interceptor import packagefinder
-from interceptor.connector.connector import Reader, Collector
+from interceptor.connector.connector import Connector, Reader, Collector
 
 
 class ExpandPresets(argparse.Action):
@@ -112,9 +112,6 @@ def parse_command_args():
         "--send", action="store_true", default=False, help="Forward results to GUI"
     )
     parser.add_argument(
-        "--iota", action="store_true", default=False, help="Use IOTA Processor"
-    )
-    parser.add_argument(
         "--debug", action="store_true", default=False, help="Run debug code"
     )
     parser.add_argument(
@@ -188,9 +185,11 @@ def entry_point():
         rank = comm_world.Get_rank()
         localhost = MPI.Get_processor_name().split('.')[0]
         if rank == 0:
+            script = Connector(comm=comm_world, args=args, localhost=localhost)
+        elif rank == 1:
             script = Collector(comm=comm_world, args=args, localhost=localhost)
         else:
-            script = Reader(comm=comm_world, args=args)
+            script = Reader(comm=comm_world, args=args, localhost=localhost)
         comm_world.barrier()
 
         script.run()

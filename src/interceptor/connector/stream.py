@@ -157,6 +157,14 @@ def make_socket(
 
 
 def make_poller():
+    ''' Makes poller.
+        For reference, when registering sockets to the poller:
+            POLLIN = 1
+            POLLOUT = 2
+            POLLIN|POLLOUT = 3
+            unregister = 0
+    :return: Poller
+    '''
     return zmq.Poller()
 
 

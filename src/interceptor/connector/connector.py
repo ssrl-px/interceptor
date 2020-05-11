@@ -12,19 +12,20 @@ import time
 
 from iota.components.iota_init import initialize_single_image
 from interceptor.connector.processor import FastProcessor, IOTAProcessor
-from interceptor.connector.stream import ZMQReceiver as ZMQStream
+from interceptor.connector import stream, utils
 
 
 def debug_segfault():
     """ Deliberate segfault for debugging purposes """
     import ctypes
+
     ctypes.string_at(1)
 
 
-class ConnectorBase:
-    """ Base class for ZMQReader and ZMQCollector classes """
+class ZMQProcessBase:
+    """ Base class for Connector, Reader, and Collector classes """
 
-    def __init__(self, comm, args, name="zmq_thread", localhost='localhost'):
+    def __init__(self, comm, args, name="zmq_thread", localhost="localhost"):
         """ Constructor
     :param comm: mpi4py communication instance
     :param args: command line arguments
@@ -45,65 +46,71 @@ class ConnectorBase:
         self.timeout_start = None
         self.args = args
 
-    def generate_processor(self, args):
-        if args.iota:
-            dummy_path = os.path.abspath(os.path.join(os.curdir, "dummy_file.h5"))
-            info, iparams = initialize_single_image(img=dummy_path, paramfile=None)
-            processor = IOTAProcessor(info, iparams, last_stage=args.last_stage)
-        else:
-            processor = FastProcessor(
-                last_stage=args.last_stage, test=args.test, phil_file=args.phil
-            )
-        return processor
 
-    def initialize_process(self):
-        if self.comm:
-            # Generate params, args, etc. if process rank id = 0
-            if self.rank == 0:
-                processor = self.generate_processor(self.args)
-                info = dict(
-                    processor=processor,
-                    args=self.args,
-                    host=self.args.host,
-                    port=self.args.port,
-                    rhost=self.localhost,
-                    rport="7{}".format(str(self.args.port)[1:]),
-                )
-            else:
-                info = None
+class Connector(ZMQProcessBase):
+    """ A ZMQ Broker class, with a zmq.PULL backend (facing a zmq.PUSH Splitter) and
+    a zmq.ROUTER front end (facing zmq.REQ Readers). Is intended to a) get images
+    from Splitter and assign each image to the least-recently used (LRU) Reader,
+    b) handle start-up / shut-down signals, as well as type-of-processing signals
+    from Splitter, c) manage MPI processes, d) serve as a failpoint away from
+    Splitter, which is writing data to files """
 
-            # send info dict to all processes
-            info = self.comm.bcast(info, root=0)
+    def __init__(self, name="CONN", comm=None, args=None, localhost="localhost"):
+        super(Connector, self).__init__(
+            name=name, comm=comm, args=args, localhost=localhost
+        )
+        self.initialize_ends()
+        self.readers = []
 
-            # extract info
-            self.processor = info["processor"]
-            self.args = info["args"]
-            self.host = info["host"]
-            self.port = info["port"]
-            self.rhost = info["rhost"]
-            self.rport = info["rport"]
-        else:
-            self.processor = self.generate_processor(self.args)
-            self.host = self.args.host
-            self.port = self.args.port
+    def initialize_ends(self):
+        """ initializes front- and backend sockets """
+        wport = "6{}".format(str(self.args.port)[1:])
+        self.read_end = stream.make_socket(
+            host=self.localhost,
+            port=wport,
+            socket_type="router",
+            bind=True,
+            verbose=self.args.verbose,
+            wid="{}_READ".format(self.name),
+        )
+        self.data_end = stream.make_socket(
+            host=self.args.host,
+            port=self.args.port,
+            socket_type="pull",
+            verbose=self.args.verbose,
+            wid="{}_DATA".format(self.name),
+        )
+        self.poller = stream.make_poller()
 
-    def signal_stop(self):
-        self.stop = True
-        self.comm.bcast(self.stop, root=0)
+    def main_loop(self):
+        # register backend and frontend with poller
+        self.poller.register(self.read_end, 1)
+        self.poller.register(self.data_end, 1)
 
-    def timeout(self, reset=False):
-        if reset:
-            self.timeout_start = None
-        else:
-            if self.timeout_start is None:
-                self.timeout_start = time.time()
-            else:
-                if time.time() - self.timeout_start >= 30:
-                    print("\n****** TIMED OUT! ******")
-                    exit()
+        while True:
+            sockets = dict(self.poller.poll())
+            if self.read_end in sockets:
+                # handle worker activity
+                request = self.read_end.recv_multipart()
+                if not request[0] in self.readers:
+                    self.readers.append(request[0])
+
+            if self.data_end in sockets:
+                # Receive frames and assign to readers
+                frames = self.data_end.recv_multipart()
+                if self.readers:
+                    reader = self.readers.pop()
+                    rframes = [reader, b"", b"BROKER", b""]
+                    rframes.extend(frames)
+                    self.read_end.send_multipart(rframes)
+                else:
+                    frmdict = utils.decode_frame_header(frames[2])
+                    print(
+                        "WARNING! NO READY READERS! Skipping frame #", frmdict["frame"]
+                    )
 
 
-class Reader(ConnectorBase):
+class Reader(ZMQProcessBase):
     """ ZMQ Reader: requests a single frame (multipart) from the Eiger,
       converts to dictionary format, attaches to a special format class,
       carries out processing, and sends the result via ZMQ connection to the
@@ -112,17 +119,20 @@ class Reader(ConnectorBase):
 
     def __init__(self, name="zmq_reader", comm=None, args=None):
         super(Reader, self).__init__(name=name, comm=comm, args=args)
-        self.initialize_process()
-
-        if self.rank == 1:
+        self.processor = FastProcessor(
+            last_stage=self.args.last_stage,
+            test=self.args.test,
+            phil_file=self.args.phil,
+        )
+        if self.rank == 2:
             self.processor.print_params()
 
     def convert_from_stream(self, frames):
         img_info = {
             "state": "import",
             "proc_name": self.name,
-            "proc_url": "tcp://{}:{}".format(self.host, self.port),
-            "run_no": -1,
+            "proc_url": "tcp://{}:{}".format(self.args.host, self.args.port),
+            "series": -1,
             "frame_idx": -1,
             "mapping": "",
             "reporting": "",
@@ -130,17 +140,26 @@ class Reader(ConnectorBase):
         }
         return_frames = None
 
-        if len(frames) < 2:  # catch end frame
-            framestring = frames[0] if isinstance(frames[0], bytes) else frames[0].bytes
-            if "dseries_end" in str(framestring):
-                img_info["state"] = "series-end"
-        elif len(frames) == 2:  # catch header frame (if applicable)
-            framestring = frames[0] if isinstance(frames[0], bytes) else frames[0].bytes
-            if self.args.header and self.args.htype in str(framestring):
-                self.make_header(frames)
-                img_info["run_no"] = -999
-                img_info["frame_idx"] = -999
-                img_info["state"] = "header-frame"
+        if len(frames) <= 2:  # catch stand-alone header frame or end-of-series frame
+            fdict = utils.decode_header(frames[0])
+            try:
+                assert "htype" in fdict
+            except AssertionError:
+                img_info["state"] = "error"
+                img_info["dat_error"] = 'DATA ERROR: Invalid entry: no "hdict" key!'
+            else:
+                if "dseries_end" in fdict["htype"]:
+                    img_info["state"] = "series-end"
+                elif self.args.htype in fdict["htype"]:
+                    try:
+                        self.make_header(frames)
+                    except Exception as e:
+                        img_info["state"] = "error"
+                        img_info["dat_error"] = "HEADER ERROR: {}".format(str(e))
+                    else:
+                        img_info["series"] = -999
+                        img_info["frame_idx"] = -999
+                        img_info["state"] = "header-frame"
         else:
             try:
                 if not self.args.header:
@@ -155,34 +174,26 @@ class Reader(ConnectorBase):
             else:
                 try:
                     # Get master_file name from header
-                    header_split = str(self.header[0][3:-2]).split(",")
-                    for part in header_split:
-                        if "master_file" in part:
-                            filepath = part.split(":")[1].strip('"')
-                            img_info["filename"] = os.path.basename(filepath)
-                            img_info["full_path"] = filepath
-                        if "mapping" in part:
-                            img_info["mapping"] = part.split(":")[1].strip('"')
-                        if "reporting" in part:
-                            img_info["reporting"] = part.split(":")[1].strip('"')
+                    hdict = utils.decode_header(header=self.header)
+                    img_info.update(
+                        {
+                            "filename": os.path.basename(hdict["master_file"]),
+                            "full_path": hdict["master_file"],
+                            "mapping": hdict["mapping"],
+                            "reporting": hdict["reporting"],
+                        }
+                    )
 
                     # Get frame info from frame
-                    if isinstance(img_frames[0], bytes):
-                        frame_string = str(img_frames[0][:-1])[3:-2]
-                    else:
-                        frame_string = str(img_frames[0].bytes[:-1])[3:-2]
-                    frame_split = frame_string.split(",")
-                    for part in frame_split:
-                        if "series" in part:
-                            img_info["run_no"] = part.split(":")[1]
-                        if "frame" in part:
-                            img_info["frame_idx"] = part.split(":")[1]
+                    fdict = utils.decode_frame_header(img_frames[0])
+                    img_info.update(
+                        {"series": fdict["series"], "frame_idx": fdict["frame"],}
+                    )
                     img_info["state"] = "process"
                     return_frames = img_frames
                 except Exception as e:
                     img_info["state"] = "error"
                     img_info["dat_error"] = "CONVERSION ERROR: {}".format(str(e))
-
         return img_info, return_frames
 
     def make_header(self, frames):
@@ -240,21 +251,24 @@ class Reader(ConnectorBase):
         return filename
 
     def initialize_zmq_sockets(self):
-        # Initialize ZMQ stream listener (aka 'data socket')
         try:
-            self.d_socket = ZMQStream(
-                name=self.name,
-                host=self.host,
-                port=self.port,
-                socket_type=self.args.stype,
+            rport = "6{}".format(str(self.args.port)[1:])
+            self.d_socket = stream.make_socket(
+                host=self.localhost,
+                port=rport,
+                socket_type="req",
+                verbose=self.args.verbose,
+                wid=self.name,
             )
+            proc_url = "tcp://{}:6{}".format(self.localhost, self.args.port[1:])
 
-            # intra-process communication (aka 'result socket')
-            self.r_socket = ZMQStream(
-                name="{}_2C".format(self.name),
-                host=self.rhost,
-                port=self.rport,
+            cport = "7{}".format(str(self.args.port)[1:])
+            self.r_socket = stream.make_socket(
+                host=self.localhost,
+                port=cport,
                 socket_type="push",
+                verbose=self.args.verbose,
+                wid="{}_2C".format(self.name),
             )
         except Exception as e:
             print("SOCKET ERROR: {}".format(e))
@@ -262,7 +276,7 @@ class Reader(ConnectorBase):
         else:
             info = {
                 "proc_name": self.name,
-                "proc_url": "tcp://{}:{}".format(self.host, self.port),
+                "proc_url": proc_url,
                 "state": "connected",
             }
             self.r_socket.send_json(info)
@@ -276,25 +290,18 @@ class Reader(ConnectorBase):
 
         # Start listening for ZMQ stream
         while True:
-            start = time.time()
+            time_info = {
+                "receive_time": 0,
+                "wait_time": 0,
+                "total_time": 0,
+            }
             try:
-                if self.args.stype.lower() == "req":
-                    self.d_socket.send(b"Hello")
-                    expecting_reply = True
-                    while expecting_reply:
-                        if self.d_socket.poll(timeout=self.args.timeout * 1000):
-                            fstart = time.time()
-                            frames = self.d_socket.receive(copy=False, flags=0)
-                            recv_time = time.time() - fstart
-                            expecting_reply = False
-                        else:
-                            self.d_socket.reset()
-                            self.d_socket.send(b"Hello")
-                else:
-                    fstart = time.time()
-                    frames = self.d_socket.receive(copy=False, flags=0)
-                    recv_time = time.time() - fstart
-                wait = time.time() - start - recv_time
+                start = time.time()
+                self.d_socket.send(b"READY")
+                fstart = time.time()
+                frames = self.d_socket.recv_multipart()
+                time_info["receive_time"] = time.time() - fstart
+                time_info["wait_time"] = time.time() - start - time_info["receive_time"]
             except Exception as exp:
                 print("DEBUG: {} CONNECT FAILED! {}".format(self.name, exp))
                 continue
@@ -305,36 +312,29 @@ class Reader(ConnectorBase):
                         print(
                             str(frames[0].bytes[:-1])[3:-2],
                             "({})".format(self.name),
-                            "rcv time: {:.4f} sec".format(recv_time),
+                            "rcv time: {:.4f} sec".format(time_info["receive_time"]),
                         )
                 else:
-
+                    # make data and info dictionaries
                     data, info = self.make_data_dict(frames)
 
+                    # handle different info scenarios
+                    # some unknown error
                     if info is None:
                         print("debug: info is None!")
                         continue
+                    # normal processing info
                     elif info["state"] == "process":
-                        sleep = False
                         info = self.process(info, frame=data, filename=filename)
-                        elapsed = time.time() - start
-                        time_info = {
-                            "total_time": elapsed,
-                            "receive_time": recv_time,
-                            "wait_time": wait,
-                        }
+                        time_info["total_time"] = time.time() - start
                         info.update(time_info)
+                    # end-of-series signal (sleep for four seconds... maybe obsolete)
                     elif info["state"] == "series-end":
                         time.sleep(4)
                         continue
 
                     # send info to collector
                     self.r_socket.send_json(info)
-
-            finally:
-                # stop if called
-                if self.stop:
-                    break
 
         self.d_socket.close()
 
@@ -345,7 +345,7 @@ class Reader(ConnectorBase):
         self.stop = True
 
 
-class Collector(ConnectorBase):
+class Collector(ZMQProcessBase):
     """ Runs as 0-ranked process in MPI; collects all processing results from
       individual Reader processes and prints them to stdout and sends them
       off as a single stream to the UI if requested.
@@ -406,7 +406,7 @@ class Collector(ConnectorBase):
             "{0} run {1} frame {2} result {{{3}}} mapping {{{4}}} "
             "filename {5}".format(
                 reporting,
-                info["run_no"],  # run number
+                info["series"],  # run number
                 info["frame_idx"],  # frame index
                 results,  # processing results
                 info["mapping"],  # mapping from run header
@@ -417,8 +417,8 @@ class Collector(ConnectorBase):
 
     def print_to_stdout(self, info, ui_msg):
         lines = [
-            "*** ({}) RUN {}, FRAME {} ({}):".format(
-                info["proc_name"], info["run_no"], info["frame_idx"], info["full_path"]
+            "*** ({}) SERIES {}, FRAME {} ({}):".format(
+                info["proc_name"], info["series"], info["frame_idx"], info["full_path"]
             ),
             "  {}".format(ui_msg),
             "  TIME: wait = {:.4f} sec, recv = {:.4f} sec, "
