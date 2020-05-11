@@ -441,7 +441,7 @@ class Collector(ZMQProcessBase):
         if self.args.record:
             self.write_to_file(lines)
 
-    def output_results(self, info, record=False, verbose=False):
+    def output_results(self, info, verbose=False):
         ui_msg = None
         try:
             ui_msg = self.make_result_string(info=info)
@@ -474,7 +474,7 @@ class Collector(ZMQProcessBase):
                 wid=self.name + "_2UI",
             )
         while True:
-            info = collector.receive_json()
+            info = collector.recv_json()
             if info:
                 # understand info (if not regular info, don't send to UI)
                 if self.understand_info(info):
@@ -482,7 +482,7 @@ class Collector(ZMQProcessBase):
 
                 # send string to UI (DHS or Interceptor GUI)
                 ui_msg = self.output_results(
-                    info, record=self.args.record, verbose=self.args.verbose
+                    info, verbose=self.args.verbose
                 )
                 if send_to_ui:
                     try:
