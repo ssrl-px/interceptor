@@ -9,10 +9,10 @@ Description : Streaming stills processor for live data analysis
 
 import os
 import time
+import zmq
 
-from iota.components.iota_init import initialize_single_image
-from interceptor.connector.processor import FastProcessor, IOTAProcessor
-from interceptor.connector import stream, utils
+from interceptor.connector.processor import FastProcessor
+from interceptor.connector import utils
 
 
 def debug_segfault():
@@ -30,6 +30,7 @@ class ZMQProcessBase:
     :param comm: mpi4py communication instance
     :param args: command line arguments
     :param name: thread name (for logging mostly)
+    :param localhost: the host of the Collector process (ranked 0)
     """
         self.name = name
         self.comm = comm
@@ -45,6 +46,45 @@ class ZMQProcessBase:
         self.stop = False
         self.timeout_start = None
         self.args = args
+
+    @staticmethod
+    def make_socket(
+            socket_type,
+            wid,
+            host=None,
+            port=None,
+            url=None,
+            bind=False,
+            verbose=False,
+    ):
+        assert (host and port) or url
+
+        # assemble URL from host and port
+        if not url:
+            url = "tcp://{}:{}".format(host, port)
+
+        # Create socket
+        context = zmq.Context()
+        socket = context.socket(getattr(zmq, socket_type.upper()))
+        socket.identity = wid.encode('ascii')
+
+        # Connect to URL
+        socket.connect(url)
+        if verbose:
+            print('{} connected to {}'.format(wid, url))
+
+        # Bind to port
+        if bind:
+            if not port:
+                bind_port = url[-4:]
+            else:
+                bind_port = port
+            bind_url = "tcp://*:{}".format(bind_port)
+            socket.bind(bind_url)
+            if verbose:
+                print('{} bound to {}'.format(wid, bind_url))
+
+        return socket
 
 
 class Connector(ZMQProcessBase):
@@ -65,27 +105,25 @@ class Connector(ZMQProcessBase):
     def initialize_ends(self):
         """ initializes front- and backend sockets """
         wport = "6{}".format(str(self.args.port)[1:])
-        self.read_end = stream.make_socket(
+        self.read_end = self.make_socket(
             host=self.localhost,
             port=wport,
             socket_type="router",
             bind=True,
-            verbose=self.args.verbose,
             wid="{}_READ".format(self.name),
         )
-        self.data_end = stream.make_socket(
+        self.data_end = self.make_socket(
             host=self.args.host,
             port=self.args.port,
             socket_type="pull",
-            verbose=self.args.verbose,
             wid="{}_DATA".format(self.name),
         )
-        self.poller = stream.make_poller()
+        self.poller = zmq.Poller()
 
     def connect_readers(self):
         # register backend and frontend with poller
-        self.poller.register(self.read_end, 1)
-        self.poller.register(self.data_end, 1)
+        self.poller.register(self.read_end, zmq.POLLIN)
+        self.poller.register(self.data_end, zmq.POLLIN)
 
         while True:
             sockets = dict(self.poller.poll())
@@ -267,21 +305,19 @@ class Reader(ZMQProcessBase):
             else:
                 dhost = self.args.host
                 dport = self.args.port
-            self.d_socket = stream.make_socket(
+            self.d_socket = self.make_socket(
                 host=dhost,
                 port=dport,
                 socket_type="req",
-                verbose=self.args.verbose,
                 wid=self.name,
             )
             proc_url = "tcp://{}:6{}".format(self.localhost, self.args.port[1:])
 
             cport = "7{}".format(str(self.args.port)[1:])
-            self.r_socket = stream.make_socket(
+            self.r_socket = self.make_socket(
                 host=self.localhost,
                 port=cport,
                 socket_type="push",
-                verbose=self.args.verbose,
                 wid="{}_2C".format(self.name),
             )
         except Exception as e:
@@ -464,22 +500,20 @@ class Collector(ZMQProcessBase):
 
     def collect_results(self):
         cport = "7{}".format(str(self.args.port)[1:])
-        collector = stream.make_socket(
+        collector = self.make_socket(
             self.localhost,
             cport,
             socket_type="pull",
-            verbose=self.args.verbose,
             bind=True,
             wid=self.name,
         )
 
         send_to_ui = self.args.send or (self.args.uihost and self.args.uiport)
         if send_to_ui:
-            ui_socket = stream.make_socket(
+            ui_socket = self.make_socket(
                 self.args.uihost,
                 self.args.uiport,
                 socket_type="pull",
-                verbose=self.args.verbose,
                 wid=self.name + "_2UI",
             )
         while True:

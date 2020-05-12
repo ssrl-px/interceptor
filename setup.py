@@ -9,7 +9,7 @@ setuptools.setup(
     long_description_content_type="text/x-rst",
     author="Artem Y. Lyubimov",
     author_email="lyubimov@stanford.edu",
-    version="0.15.9",
+    version="0.15.10",
     url="https://github.com/alyubimov/interceptor",
     license="BSD",
     install_requires=[],
@@ -23,8 +23,6 @@ setuptools.setup(
             "connector = interceptor.command_line.connector_run:entry_point",
             "connect_mpi = "
             "interceptor.command_line.connector_run_mpi:entry_point",
-            "lru = interceptor.command_line.lru_run:entry_point",
-            "lru_mpi = interceptor.command_line.lru_run_mpi:entry_point",
         ],
         "gui_scripts": [
             "intxr = interceptor.command_line.ui_run:entry_point",
@@ -37,8 +35,6 @@ setuptools.setup(
             "intxr = intxr",
             "connector = connector",
             "connect_mpi = connect_mpi",
-            "lru = lru",
-            "lru_mpi = lru_mpi",
         ],
     },
     scripts=[],
