@@ -295,7 +295,7 @@ class Reader(ZMQProcessBase):
             fh.write("EIGERSTREAM")
         return filename
 
-    def initialize_zmq_sockets(self):
+    def initialize_zmq_sockets(self, init_r_socket=True):
         try:
             # If the Connector is active, connect the Reader socket to the Connector;
             # if not, connect the Reader socket to the Splitter
@@ -313,13 +313,14 @@ class Reader(ZMQProcessBase):
             )
             proc_url = "tcp://{}:6{}".format(self.localhost, self.args.port[1:])
 
-            cport = "7{}".format(str(self.args.port)[1:])
-            self.r_socket = self.make_socket(
-                socket_type="push",
-                wid="{}_2C".format(self.name),
-                host=self.localhost,
-                port=cport,
-            )
+            if init_r_socket:
+                cport = "7{}".format(str(self.args.port)[1:])
+                self.r_socket = self.make_socket(
+                    socket_type="push",
+                    wid="{}_2C".format(self.name),
+                    host=self.localhost,
+                    port=cport,
+                )
         except Exception as e:
             print("SOCKET ERROR: {}".format(e))
             exit()
@@ -348,12 +349,22 @@ class Reader(ZMQProcessBase):
             try:
                 start = time.time()
                 self.d_socket.send(b"READY")
-                fstart = time.time()
-                frames = self.d_socket.recv_multipart()
-                if self.args.broker:  # if it came from broker, remove first two frames
-                    frames = frames[2:]
-                time_info["receive_time"] = time.time() - fstart
-                time_info["wait_time"] = time.time() - start - time_info["receive_time"]
+                expecting_reply = True
+                while expecting_reply:
+                    if self.d_socket.poll(timeout=self.args.timeout * 1000):
+                        fstart = time.time()
+                        frames = self.d_socket.receive(copy=False, flags=0)
+                        time_info["receive_time"] = time.time() - fstart
+                        time_info["wait_time"] = time.time() - start - time_info[
+                            "receive_time"]
+                        if self.args.broker:  # if it came from broker, remove first two frames
+                            frames = frames[2:]
+                        expecting_reply = False
+                    else:
+                        # close and re-initialize d_socket
+                        self.d_socket.close()
+                        self.initialize_zmq_sockets(init_r_socket=False)
+                        self.d_socket.send(b"Hello")
             except Exception as exp:
                 print("DEBUG: {} CONNECT FAILED! {}".format(self.name, exp))
                 continue
