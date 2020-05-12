@@ -467,10 +467,11 @@ class Collector(ZMQProcessBase):
         )
         return ui_msg
 
-    def print_to_stdout(self, info, ui_msg):
+    def print_to_stdout(self, counter, info, ui_msg):
         lines = [
-            "*** ({}) SERIES {}, FRAME {} ({}):".format(
-                info["proc_name"], info["series"], info["frame_idx"], info["full_path"]
+            "*** [{}] ({}) SERIES {}, FRAME {} ({}):".format(
+                counter, info["proc_name"], info["series"], info["frame_idx"],
+                info["full_path"]
             ),
             "  {}".format(ui_msg),
             "  TIME: wait = {:.4f} sec, recv = {:.4f} sec, "
@@ -487,7 +488,7 @@ class Collector(ZMQProcessBase):
         if self.args.record:
             self.write_to_file(lines)
 
-    def output_results(self, info, verbose=False):
+    def output_results(self, counter, info, verbose=False):
         ui_msg = None
         try:
             ui_msg = self.make_result_string(info=info)
@@ -495,7 +496,7 @@ class Collector(ZMQProcessBase):
             print("PRINT ERROR: ", exp)
         else:
             if verbose:
-                self.print_to_stdout(info=info, ui_msg=ui_msg)
+                self.print_to_stdout(counter=counter, info=info, ui_msg=ui_msg)
         finally:
             return ui_msg
 
@@ -518,7 +519,7 @@ class Collector(ZMQProcessBase):
             )
 
     def collect_results(self):
-
+        counter = 0
         while True:
             info = self.c_socket.recv_json()
             if info:
@@ -528,7 +529,7 @@ class Collector(ZMQProcessBase):
 
                 # send string to UI (DHS or Interceptor GUI)
                 ui_msg = self.output_results(
-                    info, verbose=self.args.verbose
+                    counter, info, verbose=self.args.verbose
                 )
                 if self.args.send or (self.args.uihost and self.args.uiport):
                     try:
