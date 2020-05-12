@@ -407,6 +407,7 @@ class Collector(ZMQProcessBase):
         super(Collector, self).__init__(
             name=name, comm=comm, args=args, localhost=localhost
         )
+        self.initialize_zmq_sockets()
 
     def understand_info(self, info):
         if info["state"] == "connected":
