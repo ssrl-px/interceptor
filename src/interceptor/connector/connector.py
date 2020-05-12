@@ -106,17 +106,17 @@ class Connector(ZMQProcessBase):
         """ initializes front- and backend sockets """
         wport = "6{}".format(str(self.args.port)[1:])
         self.read_end = self.make_socket(
+            socket_type="router",
+            wid="{}_READ".format(self.name),
             host=self.localhost,
             port=wport,
-            socket_type="router",
             bind=True,
-            wid="{}_READ".format(self.name),
         )
         self.data_end = self.make_socket(
-            host=self.args.host,
-            port=self.args.port,
             socket_type="pull",
             wid="{}_DATA".format(self.name),
+            host=self.args.host,
+            port=self.args.port,
         )
         self.poller = zmq.Poller()
 
@@ -306,19 +306,19 @@ class Reader(ZMQProcessBase):
                 dhost = self.args.host
                 dport = self.args.port
             self.d_socket = self.make_socket(
-                host=dhost,
-                port=dport,
                 socket_type="req",
                 wid=self.name,
+                host=dhost,
+                port=dport,
             )
             proc_url = "tcp://{}:6{}".format(self.localhost, self.args.port[1:])
 
             cport = "7{}".format(str(self.args.port)[1:])
             self.r_socket = self.make_socket(
-                host=self.localhost,
-                port=cport,
                 socket_type="push",
                 wid="{}_2C".format(self.name),
+                host=self.localhost,
+                port=cport,
             )
         except Exception as e:
             print("SOCKET ERROR: {}".format(e))
@@ -498,26 +498,28 @@ class Collector(ZMQProcessBase):
         finally:
             return ui_msg
 
-    def collect_results(self):
+    def initialize_zmq_sockets(self):
         cport = "7{}".format(str(self.args.port)[1:])
-        collector = self.make_socket(
-            self.localhost,
-            cport,
+        self.c_socket = self.make_socket(
             socket_type="pull",
-            bind=True,
             wid=self.name,
+            host=self.localhost,
+            port=cport,
+            bind=True,
         )
 
-        send_to_ui = self.args.send or (self.args.uihost and self.args.uiport)
-        if send_to_ui:
-            ui_socket = self.make_socket(
-                self.args.uihost,
-                self.args.uiport,
+        if self.args.send or (self.args.uihost and self.args.uiport):
+            self.ui_socket = self.make_socket(
                 socket_type="pull",
                 wid=self.name + "_2UI",
+                host=self.args.uihost,
+                port=self.args.uiport,
             )
+
+    def collect_results(self):
+
         while True:
-            info = collector.recv_json()
+            info = self.c_socket.recv_json()
             if info:
                 # understand info (if not regular info, don't send to UI)
                 if self.understand_info(info):
@@ -527,9 +529,9 @@ class Collector(ZMQProcessBase):
                 ui_msg = self.output_results(
                     info, verbose=self.args.verbose
                 )
-                if send_to_ui:
+                if self.args.send or (self.args.uihost and self.args.uiport):
                     try:
-                        ui_socket.send_string(ui_msg)
+                        self.ui_socket.send_string(ui_msg)
                     except Exception:
                         pass
 
