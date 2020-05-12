@@ -353,7 +353,7 @@ class Reader(ZMQProcessBase):
                 while expecting_reply:
                     if self.d_socket.poll(timeout=self.args.timeout * 1000):
                         fstart = time.time()
-                        frames = self.d_socket.receive(copy=False, flags=0)
+                        frames = self.d_socket.recv_multipart()
                         time_info["receive_time"] = time.time() - fstart
                         time_info["wait_time"] = time.time() - start - time_info[
                             "receive_time"]
