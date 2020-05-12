@@ -10,7 +10,10 @@ def decode_frame(frame, tags=None):
 
     # extract string and convert to JSON dict
     framebytes = frame if isinstance(frame, bytes) else frame.bytes
-    framestring = framebytes.decode('utf-8')
+    if framebytes[-1] == 0:
+        framestring = framebytes[:-1].decode('utf-8')
+    else:
+        framestring = framebytes.decode('utf-8')
     framedict = json.loads(framestring)
 
     # extract tags
