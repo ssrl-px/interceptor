@@ -34,8 +34,8 @@ def test_zmq_import_image(imported_data):
 
 def test_image_info(imported_data):
     data, info = imported_data
-    assert info['run_no'] == "1"
-    assert info['frame_idx'] == "1"
+    assert info['series'] == 1
+    assert info['frame_idx'] == 1
     assert info['filename'] == 'hdf5_test_0361-000_master.h5'
     assert info['mapping'] == ''
     assert info['reporting'] == ''

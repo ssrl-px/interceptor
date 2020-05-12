@@ -16,20 +16,21 @@ args, _ = parse_command_args().parse_known_args()
 
 
 class MinimalReader(Reader):
-    def __init__(self, name='test'):
+    def __init__(self, name='test', args=None):
         super(MinimalReader, self).__init__(name=name, args=args)
 
-    def run(self):
-        frames = []
+    def make_frames(self):
+        self.frames = []
         img_dir = packagefinder('images', 'test', module='interceptor')
         for n in range(6):
             filename = 'zmq_000001_{:02d}.zmq'.format(n + 1)
             filepath = os.path.join(img_dir, filename)
             with open(filepath, 'rb') as fh:
-                frames.append(fh.read())
+                self.frames.append(fh.read())
 
-        data = self.make_data_dict(frames)
-        return data
+    def run(self):
+        self.make_frames()
+        return self.make_data_dict(self.frames)
 
 
 class FileCollector(Collector):
@@ -39,19 +40,18 @@ class FileCollector(Collector):
 
 @pytest.fixture(scope="module")
 def imported_data():
-    reader = MinimalReader()
+    argstring = '-b 12-1 -e spf_test'.split()
+    test_args, _ = parse_command_args().parse_known_args(argstring)
+    reader = MinimalReader(args=test_args)
     return reader.run()
 
 
 @pytest.fixture(scope='module')
 def proc_for_testing():
-    reader = MinimalReader()
-
     argstring = '-b 12-1 -e mesh'.split()
     test_args, _ = parse_command_args().parse_known_args(argstring)
-
-    processor = reader.generate_processor(test_args)
-    return processor
+    reader = MinimalReader(args=test_args)
+    return reader.processor
 
 
 @pytest.fixture(scope="module")

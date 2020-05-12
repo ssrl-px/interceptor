@@ -195,13 +195,15 @@ class Reader(ZMQProcessBase):
                     )
 
                     # Get frame info from frame
-                    fdict = utils.decode_frame_header(img_frames[0])
+                    fdict = utils.decode_frame_header(img_frames[0][:-1])
                     img_info.update(
                         {"series": fdict["series"], "frame_idx": fdict["frame"],}
                     )
                     img_info["state"] = "process"
                     return_frames = img_frames
                 except Exception as e:
+                    import traceback
+                    traceback.print_exc()
                     img_info["state"] = "error"
                     img_info["dat_error"] = "CONVERSION ERROR: {}".format(str(e))
         return img_info, return_frames
