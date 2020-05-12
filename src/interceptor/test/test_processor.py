@@ -50,9 +50,9 @@ def test_output(print_info):
     print (print_info)
     assert (
         print_info
-        == "htos_log note zmqDhs run 1 frame 1 "
-           "result {731 0 13 1.64 0 1.00 P4 78.82 78.82 37.19 90.00 90.00 90.00 {}} "
-           "mapping {} filename hdf5_test_0361-000_master.h5"
+        == "htos_note image_score run 1 frame 1 result {731 0 11 1.93 0 1.00 P4 78.82 "
+           "78.82 37.19 90.00 90.00 90.00 {}} mapping {} filename hdf5_test_0361-000_"
+           "master.h5"
     )
 
 
