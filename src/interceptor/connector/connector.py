@@ -318,7 +318,9 @@ class Reader(ZMQProcessBase):
                 start = time.time()
                 self.d_socket.send(b"READY")
                 fstart = time.time()
-                frames = self.d_socket.recv_multipart()[2:] # omit first two items
+                frames = self.d_socket.recv_multipart()
+                if self.args.broker:  # if it came from broker, remove first two frames
+                    frames = frames[2:]
                 time_info["receive_time"] = time.time() - fstart
                 time_info["wait_time"] = time.time() - start - time_info["receive_time"]
             except Exception as exp:
