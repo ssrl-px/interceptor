@@ -259,10 +259,17 @@ class Reader(ZMQProcessBase):
 
     def initialize_zmq_sockets(self):
         try:
-            rport = "6{}".format(str(self.args.port)[1:])
+            # If the Connector is active, connect the Reader socket to the Connector;
+            # if not, connect the Reader socket to the Splitter
+            if self.args.broker:
+                dhost = self.localhost
+                dport = "6{}".format(str(self.args.port)[1:])
+            else:
+                dhost = self.args.host
+                dport = self.args.port
             self.d_socket = stream.make_socket(
-                host=self.localhost,
-                port=rport,
+                host=dhost,
+                port=dport,
                 socket_type="req",
                 verbose=self.args.verbose,
                 wid=self.name,

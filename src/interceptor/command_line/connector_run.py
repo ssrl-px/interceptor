@@ -163,6 +163,12 @@ def parse_command_args():
         help="Measure time per frame and output when run is terminated",
     )
     parser.add_argument(
+        "--broker",
+        action="store_true",
+        default=False,
+        help="Insert a broker in between Readers and Splitter",
+    )
+    parser.add_argument(
         "--drain",
         action="store_true",
         default=False,
@@ -185,9 +191,12 @@ def entry_point():
         rank = comm_world.Get_rank()
         localhost = MPI.Get_processor_name().split('.')[0]
         if rank == 0:
-            script = Connector(comm=comm_world, args=args, localhost=localhost)
+                script = Collector(comm=comm_world, args=args, localhost=localhost)
         elif rank == 1:
-            script = Collector(comm=comm_world, args=args, localhost=localhost)
+            if args.broker:
+                script = Connector(comm=comm_world, args=args, localhost=localhost)
+            else:
+                script = Reader(comm=comm_world, args=args, localhost=localhost)
         else:
             script = Reader(comm=comm_world, args=args, localhost=localhost)
         comm_world.barrier()
