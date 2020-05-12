@@ -523,11 +523,11 @@ class Collector(ZMQProcessBase):
         while True:
             info = self.c_socket.recv_json()
             if info:
-                counter += 1
-
                 # understand info (if not regular info, don't send to UI)
                 if self.understand_info(info):
                     continue
+                else:
+                    counter += 1
 
                 # send string to UI (DHS or Interceptor GUI)
                 ui_msg = self.output_results(
