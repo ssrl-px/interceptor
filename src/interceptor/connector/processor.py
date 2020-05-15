@@ -515,10 +515,10 @@ class FastProcessor(Processor):
                         scorer = ImageScorer(experiments, observed)
                         info["n_spots"] = scorer.n_spots
                         info["hres"] = scorer.hres
+                        info["score"] = scorer.calculate_score()
                         info["n_ice_rings"] = scorer.n_ice_rings
                         info["n_overloads"] = scorer.n_overloads
                         info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
-                        info["score"] = scorer.calculate_score()
                     except Exception as e:
                         info["n_spots"] = observed.size()
                         info["scr_error"] = "scoring error: {}".format(e)
