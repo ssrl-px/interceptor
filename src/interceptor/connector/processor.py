@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 """
 Author      : Lyubimov, A.Y.
 Created     : 03/31/2020
-Last Changed: 03/31/2020
+Last Changed: 05/15/2020
 Description : Streaming stills processor for live data analysis
 """
 
@@ -31,8 +31,6 @@ from cctbx import uctbx
 from cctbx.miller import index_generator
 
 from interceptor.format import FormatEigerStreamSSRL
-from iota.components.iota_image import ImageImporter
-from iota.components.iota_processing import IOTAImageProcessor
 from iota.components.iota_utils import Capturing
 
 # Custom PHIL for processing with DIALS stills processor
@@ -317,68 +315,6 @@ class ImageScorer(object):
             print("SCORER: {} overloaded reflections".format(self.n_overloads))
 
         return score
-
-
-class IOTAProcessor(object):
-    def __init__(self, info, params, last_stage):
-        self.importer = ImageImporter(info=info, write_output=False)
-        self.integrator = IOTAImageProcessor(
-            iparams=params, write_pickle=False, write_logs=False, last_stage=last_stage
-        )
-
-    def import_and_process(self, input_entry):
-        img_object = self.importer.run(input_entry)
-        if img_object.status == "imported":
-            with Capturing() as junk_output:
-                img_object = self.integrator.run(img_object)
-        img_object.status = "final"
-        return img_object
-
-    def process(self, experiments, info):
-        # Get (and print) information from experiments
-        try:
-            imgset = experiments.imagesets()[0]
-            beam = imgset.get_beam()
-            s0 = beam.get_s0()
-            detector = imgset.get_detector()[0]
-            info["beamXY"] = detector.get_beam_centre_px(s0)
-            info["dist"] = detector.get_distance()
-        except Exception as err:
-            info["img_error"] = "Could not get beam center coords: {}" "".format(
-                str(err)
-            )
-        errors = []
-        input_entry = [
-            info["frame_idx"],
-            "dummy_file.h5",
-            info["frame_idx"],
-            experiments,
-        ]
-        img_object = self.import_and_process(input_entry)
-        info["n_spots"] = img_object.final["spots"]
-        info["n_indexed"] = img_object.final["indexed"]
-        info["hres"] = img_object.final["res"]
-        info["lres"] = img_object.final["lres"]
-        info["sg"] = img_object.final["sg"]
-        info["uc"] = " ".join(
-            [
-                "{:.2f}".format(img_object.final["a"]),
-                "{:.2f}".format(img_object.final["b"]),
-                "{:.2f}".format(img_object.final["c"]),
-                "{:.2f}".format(img_object.final["alpha"]),
-                "{:.2f}".format(img_object.final["beta"]),
-                "{:.2f}".format(img_object.final["gamma"]),
-            ]
-        )
-        if img_object.fail:
-            errors = [img_object.fail]
-            errors.extend(img_object.errors)
-        info["prc_error"] = ";".join(errors)
-        return info
-
-    def run(self, data, filename, info):
-        experiments, e_time = make_experiments(data, filename)
-        return self.process(experiments, info)
 
 
 class FastProcessor(Processor):

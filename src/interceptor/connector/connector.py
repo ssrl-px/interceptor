@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 """
 Author      : Lyubimov, A.Y.
 Created     : 03/31/2020
-Last Changed: 03/31/2020
+Last Changed: 05/15/2020
 Description : Streaming stills processor for live data analysis
 """
 
