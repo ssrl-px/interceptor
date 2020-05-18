@@ -1,5 +1,8 @@
 # Interceptor
 
+[![PyPI release](https://img.shields.io/pypi/v/intxr.svg)](https://pypi.org/project/intxr/)
+![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
+
 ## Overview
 
 The Interceptor is a suite of programs used to provide real-time analysis of x-ray diffraction data as it’s collected at a beamline facility. Originally intended to support serial crystallography experiment, the Interceptor is now seen as applicable to a growing variety of use cases.
