@@ -547,8 +547,9 @@ class Collector(ZMQProcessBase):
                 if self.args.send or (self.args.uihost and self.args.uiport):
                     try:
                         self.ui_socket.send_string(ui_msg)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        print ('UI SEND ERROR: ', e)
+
 
     def run(self):
         self.collect_results()
