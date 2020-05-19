@@ -311,7 +311,7 @@ class Reader(ZMQProcessBase):
                 host=dhost,
                 port=dport,
             )
-            proc_url = "tcp://{}:6{}".format(self.localhost, self.args.port[1:])
+            proc_url = "tcp://{}:{}".format(dhost, dport)
 
             if init_r_socket:
                 cport = "7{}".format(str(self.args.port)[1:])
@@ -523,7 +523,7 @@ class Collector(ZMQProcessBase):
 
         if self.args.send or (self.args.uihost and self.args.uiport):
             self.ui_socket = self.make_socket(
-                socket_type="pull",
+                socket_type="push",
                 wid=self.name + "_2UI",
                 host=self.args.uihost,
                 port=self.args.uiport,
