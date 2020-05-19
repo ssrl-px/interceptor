@@ -80,7 +80,7 @@ def parse_command_args():
         "-t",
         "--timeout",
         type=int,
-        default=60,
+        default=None,
         help="ZMQ Request timeout in seconds (when data not coming)",
     )
     parser.add_argument(
