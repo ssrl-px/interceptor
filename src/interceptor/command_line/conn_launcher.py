@@ -40,7 +40,7 @@ def entry_point():
             exit()
         else:
             localhost = MPI.Get_processor_name().split('.')[0]
-            NPROCS = args.n_procs
+            NPROCS = args.n_proc
             COMMAND = ['interceptor'] * NPROCS
             ARGS = [iargs] * NPROCS
             MAXPROCS = NPROCS
