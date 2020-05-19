@@ -23,6 +23,8 @@ setuptools.setup(
             "connector = interceptor.command_line.connector_run:entry_point",
             "connect_mpi = "
             "interceptor.command_line.connector_run_mpi:entry_point",
+            "interceptor = interceptor.command_line.conn_child:entry_point",
+            "interceptor_mpi = interceptor.command_line.conn_launcher:entry_point",
         ],
         "gui_scripts": [
             "intxr = interceptor.command_line.ui_run:entry_point",
@@ -35,6 +37,8 @@ setuptools.setup(
             "intxr = intxr",
             "connector = connector",
             "connect_mpi = connect_mpi",
+            "interceptor = interceptor",
+            "interceptor_mpi = interceptor_mpi",
         ],
     },
     scripts=[],
