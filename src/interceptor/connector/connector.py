@@ -230,12 +230,13 @@ class Reader(ZMQProcessBase):
                     # Get frame info from frame
                     fdict = utils.decode_frame_header(img_frames[0][:-1])
                     img_info.update(
-                        {"series": fdict["series"], "frame_idx": fdict["frame"],}
+                        {"series": fdict["series"], "frame_idx": fdict["frame"], }
                     )
                     img_info["state"] = "process"
                     return_frames = img_frames
                 except Exception as e:
                     import traceback
+
                     traceback.print_exc()
                     img_info["state"] = "error"
                     img_info["dat_error"] = "CONVERSION ERROR: {}".format(str(e))
@@ -419,7 +420,6 @@ class Collector(ZMQProcessBase):
         super(Collector, self).__init__(
             name=name, comm=comm, args=args, localhost=localhost
         )
-        self.initialize_zmq_sockets()
 
     def understand_info(self, info):
         if info["state"] == "connected":
@@ -513,6 +513,7 @@ class Collector(ZMQProcessBase):
             return ui_msg
 
     def initialize_zmq_sockets(self):
+        print('-- DEBUG: initializing c_socket')
         cport = "7{}".format(str(self.args.port)[1:])
         self.c_socket = self.make_socket(
             socket_type="pull",
@@ -549,11 +550,39 @@ class Collector(ZMQProcessBase):
                     try:
                         self.ui_socket.send_string(ui_msg)
                     except Exception as e:
-                        print ('UI SEND ERROR: ', e)
+                        print('UI SEND ERROR: ', e)
 
+    def make_command_line(self):
+        # parse presets if appropriate
+        connector_commands = ["interceptor"]
+        for arg, value in vars(self.args).items():
+            if value and arg not in ["n_proc", 'mpi_bind']:
+                if value is True:
+                    cmd_list = ["--{}".format(arg)]
+                else:
+                    cmd_list = ["--{}".format(arg), value]
+                connector_commands.extend(cmd_list)
+        connector_commands.extend(['--n_proc', '1'])
+        return connector_commands
+
+    def spawn_readers(self):
+        iargs = self.make_command_line()
+        NPROCS = self.args.n_proc
+        COMMAND = ['interceptor'] * NPROCS
+        ARGS = [iargs] * NPROCS
+        MAXPROCS = 1
+        children = self.comm.Spawn_multiple(
+            COMMAND,
+            ARGS,
+            MAXPROCS,
+            root=0,
+        )
+        # children.Barrier()
+        # children.bcast(self.localhost, root=0)
 
     def run(self):
+        self.spawn_readers()
+        self.initialize_zmq_sockets()
         self.collect_results()
-
 
 # -- end

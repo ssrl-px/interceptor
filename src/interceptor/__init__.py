@@ -12,6 +12,27 @@ else:
     import importlib_resources as pkg_resources
 
 
+def make_command_line(program, args, exclude=None):
+    """ Take args and convert into a procrunner command list (i.e. starting with
+    program name, then each arg and value as separate list items)
+    :param args: command-line args Namespace object
+    :param program: program command (string), e.g. "interceptor"
+    :param exclude: args to be excluded
+    :return:
+    """
+    if not exclude:
+        exclude = []
+    commands = [program]
+    for arg, value in vars(args).items():
+        if value and arg not in exclude:
+            if value is True:
+                cmd_list = ["--{}".format(arg)]
+            else:
+                cmd_list = ["--{}".format(arg), value]
+            commands.extend(cmd_list)
+    return commands
+
+
 class PackageFinderException(Exception):
     def __init__(self, msg):
         Exception.__init__(self, msg)

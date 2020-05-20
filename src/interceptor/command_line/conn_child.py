@@ -6,16 +6,16 @@ Created     : 03/31/2020
 Last Changed: 04/20/2020
 Description : ZMQ Connector launched with MPI. For example:
 
-To run on 10 cores at host 'bl121proc00', receiving from port 8121, running 
+To run on 10 cores at host 'bl121proc00', receiving from port 8121, running
 only spotfinding, text output to stdout, not forwarding to a GUI:
 
-mpirun --map-by core --bind-to core -np 10 python connector --host 
+mpirun --map-by core --bind-to core -np 10 python connector --host
 bl121proc00 --port 8121 --last_stage spotfinding --verbose
 
 The same run as above, with forwarding to a GUI on port 9998:
 
-mpirun --map-by core --bind-to core -np 10 python connector --host 
-bl121proc00 --port 8121 --last_stage spotfinding --verbose 
+mpirun --map-by core --bind-to core -np 10 python connector --host
+bl121proc00 --port 8121 --last_stage spotfinding --verbose
 --uihost=localhost --uiport=9998 --uistype='push'
 """
 
@@ -189,7 +189,6 @@ def entry_point():
         localhost = "localhost"
         comm = MPI.Comm.Get_parent()
         script = Reader(comm=comm, args=args, localhost=localhost)
-        print ('DEBUG: process #{} spawned!'.format(comm.Get_rank()))
         script.run()
 
 

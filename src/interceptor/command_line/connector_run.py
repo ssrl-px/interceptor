@@ -131,7 +131,7 @@ def parse_command_args():
         action=ExpandPresets,
         default=argparse.SUPPRESS,
         help='Experiment preset (e.g. "injector") will select number of '
-        "processors and extent of processing",
+             "processors and extent of processing",
     )
     parser.add_argument(
         "-u",
@@ -141,7 +141,7 @@ def parse_command_args():
         action=ExpandPresets,
         default=argparse.SUPPRESS,
         help='UI preset (e.g. "gui") will select to which port and host the output '
-        "is sent",
+             "is sent",
     )
     parser.add_argument(
         "-r",
@@ -191,7 +191,7 @@ def entry_point():
         rank = comm_world.Get_rank()
         localhost = MPI.Get_processor_name().split('.')[0]
         if rank == 0:
-                script = Collector(comm=comm_world, args=args, localhost=localhost)
+            script = Collector(comm=comm_world, args=args, localhost=localhost)
         elif rank == 1:
             if args.broker:
                 script = Connector(comm=comm_world, args=args, localhost=localhost)
