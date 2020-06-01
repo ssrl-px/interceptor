@@ -395,7 +395,7 @@ class Reader(ZMQProcessBase):
                     # end-of-series signal (sleep for four seconds... maybe obsolete)
                     elif info["state"] == "series-end":
                         time.sleep(4)
-                        continue
+                        # continue
 
                     # send info to collector
                     self.r_socket.send_json(info)
@@ -421,18 +421,32 @@ class Collector(ZMQProcessBase):
         )
         self.initialize_zmq_sockets()
 
+        self.readers = {}
+
     def understand_info(self, info):
+        reader_idx = info['proc_name']
         if info["state"] == "connected":
+            # add reader index to dictionary of active readers with state "ON"
+            self.readers[reader_idx] = 'CONNECTED'
             msg = "{} CONNECTED to {}".format(info["proc_name"], info["proc_url"])
         elif info["state"] == "series-end":
-            # at this point, this message shouldn't show up
-            msg = "{} received END-OF-SERIES signal".format(info["proc_name"])
-        elif info["state"] == "error":
-            msg = "{} DATA ERROR: {}".format(info["proc_name"], info["dat_error"])
-        elif info["state"] != "process":
-            msg = "DEBUG: {} STATE IS ".format(info["state"])
+            # change reader index in dictionary of active readers to "EOS"
+            self.readers[reader_idx] = 'IDLE'
+            n_idle_readers = len([r for r, s in self.readers.items() if s == 'IDLE'])
+            n_total = self.comm.Get_size()
+            msg = "{} received END-OF-SERIES signal ({} / {} idle)".format(
+                reader_idx,
+                n_idle_readers,
+                n_total,
+            )
         else:
-            return False
+            self.readers[reader_idx] = 'WORKING'
+            if info["state"] == "error":
+                msg = "{} DATA ERROR: {}".format(info["proc_name"], info["dat_error"])
+            elif info["state"] != "process":
+                msg = "DEBUG: {} STATE IS ".format(info["state"])
+            else:
+                return False
         if self.args.verbose:
             print(msg)
         return True
