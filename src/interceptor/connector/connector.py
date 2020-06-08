@@ -11,6 +11,11 @@ import os
 import time
 import zmq
 
+from threading import Thread
+import logging
+
+logger = logging.getLogger(__name__)
+
 from interceptor.connector.processor import FastProcessor
 from interceptor.connector import utils
 
@@ -419,16 +424,37 @@ class Collector(ZMQProcessBase):
         super(Collector, self).__init__(
             name=name, comm=comm, args=args, localhost=localhost
         )
-        self.initialize_zmq_sockets()
-
         self.readers = {}
+        self.advance_stdout = False  # an awkward way to advance stdout
+
+    def monitor_splitter_messages(self):
+        # listen for messages from the splitter monitor port
+        # todo: it occurs to me that this can be used for a variety of purposes!
+        mport = "5{}".format(str(self.args.port)[1:])
+        self.m_socket = self.make_socket(
+            socket_type="sub",
+            wid=self.name + "_M",
+            host=self.args.host,
+            port=mport,
+            bind=True,
+            verbose=True,
+        )
+        self.m_socket.setsockopt(zmq.SUBSCRIBE, b'')
+        while True:
+            if self.advance_stdout:
+                self.carriage_return()
+            msg = self.m_socket.recv()
+            print('debug: message received: \n', msg)
+            self.advance_stdout = True
 
     def understand_info(self, info):
         reader_idx = info['proc_name']
         if info["state"] == "connected":
             # add reader index to dictionary of active readers with state "ON"
-            self.readers[reader_idx] = 'CONNECTED'
+            self.readers[reader_idx] = 'IDLE'
             msg = "{} CONNECTED to {}".format(info["proc_name"], info["proc_url"])
+            if len(self.readers) == self.comm.Get_size() - 1:
+                msg += '\n{} Readers connected'.format(len(self.readers))
         elif info["state"] == "series-end":
             # change reader index in dictionary of active readers to "EOS"
             self.readers[reader_idx] = 'IDLE'
@@ -448,7 +474,7 @@ class Collector(ZMQProcessBase):
             else:
                 return False
         if self.args.verbose:
-            print(msg)
+            logger.info(msg)
         return True
 
     def write_to_file(self, rlines):
@@ -545,6 +571,7 @@ class Collector(ZMQProcessBase):
             )
 
     def collect_results(self):
+        self.initialize_zmq_sockets()
         counter = 0
         while True:
             info = self.c_socket.recv_json()
@@ -567,7 +594,10 @@ class Collector(ZMQProcessBase):
 
 
     def run(self):
-        self.collect_results()
+        report_thread = Thread(target=self.collect_results)
+        monitor_thread = Thread(target=self.monitor_splitter_messages)
+        report_thread.start()
+        monitor_thread.start()
 
 
 # -- end
