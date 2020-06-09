@@ -11,6 +11,8 @@ import os
 import time
 import zmq
 
+from threading import Thread
+
 from interceptor.connector.processor import FastProcessor
 from interceptor.connector import utils
 
@@ -230,12 +232,13 @@ class Reader(ZMQProcessBase):
                     # Get frame info from frame
                     fdict = utils.decode_frame_header(img_frames[0][:-1])
                     img_info.update(
-                        {"series": fdict["series"], "frame_idx": fdict["frame"],}
+                        {"series": fdict["series"], "frame_idx": fdict["frame"], }
                     )
                     img_info["state"] = "process"
                     return_frames = img_frames
                 except Exception as e:
                     import traceback
+
                     traceback.print_exc()
                     img_info["state"] = "error"
                     img_info["dat_error"] = "CONVERSION ERROR: {}".format(str(e))
@@ -348,7 +351,7 @@ class Reader(ZMQProcessBase):
             }
             try:
                 start = time.time()
-                self.d_socket.send(b"READY")
+                self.d_socket.send(self.name.encode('utf-8'))
                 expecting_reply = True
                 while expecting_reply:
                     timeout = self.args.timeout * 1000 if self.args.timeout else None
@@ -419,22 +422,77 @@ class Collector(ZMQProcessBase):
         super(Collector, self).__init__(
             name=name, comm=comm, args=args, localhost=localhost
         )
-        self.initialize_zmq_sockets()
+        self.readers = {}
+        self.advance_stdout = False
+
+    def monitor_splitter_messages(self):
+        # listen for messages from the splitter monitor port
+        # todo: it occurs to me that this can be used for a variety of purposes!
+        mport = "5{}".format(str(self.args.port)[1:])
+        self.m_socket = self.make_socket(
+            socket_type="sub",
+            wid=self.name + "_M",
+            host=self.args.host,
+            port=mport,
+            bind=True,
+            verbose=True,
+        )
+        self.m_socket.setsockopt(zmq.SUBSCRIBE, b'')
+        while True:
+            msg = self.m_socket.recv()
+            if msg:
+                print('\n*** RUN FINISHED! ***\n')
+                print(time.strftime('%b %d %Y %I:%M:%S %p'))
+                msg_dict = utils.decode_frame(msg, tags='requests')
+                checked_in = msg_dict['requests']
+                print('{} of {} Readers are IDLE'.format(
+                    len(checked_in),
+                    len(self.readers),
+                ),
+                    flush=True)
+                silent_readers = []
+                for rdr in self.readers.keys():
+                    if rdr not in checked_in:
+                        time_silent = time.time() - self.readers[rdr]['start_time']
+                        silent_readers.append((rdr, time_silent))
+                if silent_readers:
+                    print('{} Readers did not check in:'.format(len(silent_readers)))
+                    for rdr in silent_readers:
+                        print('  {} silent for {:.1f} seconds'.format(rdr[0], rdr[1]))
+
+                self.advance_stdout = True
 
     def understand_info(self, info):
+        reader_name = info['proc_name']
         if info["state"] == "connected":
-            msg = "{} CONNECTED to {}".format(info["proc_name"], info["proc_url"])
+            # add reader index to dictionary of active readers with state "ON"
+            self.readers[reader_name] = {
+                'name': reader_name,
+                'status': 'IDLE',
+                'start_time': time.time(),
+            }
+            msg = "{} CONNECTED to {}".format(reader_name, info["proc_url"])
+            if len(self.readers) == self.comm.Get_size() - 1:
+                msg = '{} Readers connected ({})'.format(
+                    len(self.readers),
+                    time.strftime('%b %d %Y %I:%M:%S %p'),
+                )
+                self.advance_stdout = True
         elif info["state"] == "series-end":
-            # at this point, this message shouldn't show up
-            msg = "{} received END-OF-SERIES signal".format(info["proc_name"])
-        elif info["state"] == "error":
-            msg = "{} DATA ERROR: {}".format(info["proc_name"], info["dat_error"])
-        elif info["state"] != "process":
-            msg = "DEBUG: {} STATE IS ".format(info["state"])
+            # change reader index in dictionary of active readers to "EOS"
+            self.readers[reader_name]['status'] = 'IDLE'
+            msg = "{} received END-OF-SERIES signal".format(reader_name)
         else:
-            return False
+            self.readers[reader_name]['status'] = 'WORKING'
+            if info["state"] == "error":
+                msg = "{} DATA ERROR: {}".format(info["proc_name"], info["dat_error"])
+            elif info["state"] != "process":
+                msg = "DEBUG: {} STATE IS ".format(info["state"])
+            else:
+                return False
+
         if self.args.verbose:
-            print(msg)
+            print(msg, flush=True)
         return True
 
     def write_to_file(self, rlines):
@@ -531,29 +589,36 @@ class Collector(ZMQProcessBase):
             )
 
     def collect_results(self):
+        self.initialize_zmq_sockets()
         counter = 0
         while True:
-            info = self.c_socket.recv_json()
-            if info:
-                # understand info (if not regular info, don't send to UI)
-                if self.understand_info(info):
-                    continue
-                else:
-                    counter += 1
+            if self.c_socket.poll(timeout=500):
+                info = self.c_socket.recv_json()
+                if info:
+                    # understand info (if not regular info, don't send to UI)
+                    if self.understand_info(info):
+                        continue
+                    else:
+                        counter += 1
 
-                # send string to UI (DHS or Interceptor GUI)
-                ui_msg = self.output_results(
-                    counter, info, verbose=self.args.verbose
-                )
-                if self.args.send or (self.args.uihost and self.args.uiport):
-                    try:
-                        self.ui_socket.send_string(ui_msg)
-                    except Exception as e:
-                        print ('UI SEND ERROR: ', e)
-
+                    # send string to UI (DHS or Interceptor GUI)
+                    ui_msg = self.output_results(
+                        counter, info, verbose=self.args.verbose
+                    )
+                    if self.args.send or (self.args.uihost and self.args.uiport):
+                        try:
+                            self.ui_socket.send_string(ui_msg)
+                        except Exception as e:
+                            print('UI SEND ERROR: ', e)
+            else:
+                if self.advance_stdout:
+                    self.advance_stdout = False
+                    print('', flush=True)
 
     def run(self):
-        self.collect_results()
-
+        report_thread = Thread(target=self.collect_results)
+        monitor_thread = Thread(target=self.monitor_splitter_messages)
+        report_thread.start()
+        monitor_thread.start()
 
 # -- end
