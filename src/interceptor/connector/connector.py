@@ -445,21 +445,30 @@ class Collector(ZMQProcessBase):
                 print(time.strftime('%b %d %Y %I:%M:%S %p'))
                 msg_dict = utils.decode_frame(msg, tags='requests')
                 checked_in = msg_dict['requests']
-                print('{} of {} Readers are IDLE'.format(
-                    len(checked_in),
-                    len(self.readers),
-                ),
-                    flush=True)
-                silent_readers = []
+                hung_readers = []
+                down_readers = []
                 for rdr in self.readers.keys():
-                    if rdr not in checked_in:
-                        time_silent = time.time() - self.readers[rdr]['start_time']
-                        silent_readers.append((rdr, time_silent))
-                if silent_readers:
-                    print('{} Readers did not check in:'.format(len(silent_readers)))
-                    for rdr in silent_readers:
-                        print('  {} silent for {:.1f} seconds'.format(rdr[0], rdr[1]))
-
+                    if not rdr in checked_in.keys():
+                        down_readers.append(rdr)
+                    elif not "series_end" in checked_in[rdr]:
+                        hung_readers.append(rdr)
+                if hung_readers:
+                    print('{} Readers down during this run:'.format(len(hung_readers)))
+                    for rdr in hung_readers:
+                        lt = time.localtime(self.readers[rdr]['last_reported'])
+                        silent_since = time.strftime('%b %d %Y %I:%M:%S %p', lt)
+                        print('  {} silent since {}'.format(rdr, silent_since))
+                if down_readers:
+                    print('{} Readers are permanently down:'.format(len(down_readers)))
+                    for rdr in down_readers:
+                        lt = time.localtime(self.readers[rdr]['last_reported'])
+                        silent_since = time.strftime('%b %d %Y %I:%M:%S %p', lt)
+                        print('  {} down since {}'.format(rdr, silent_since))
+                idle_readers = len(self.readers) - len(hung_readers) - len(down_readers)
+                print('{} of {} Readers are CONNECTED and IDLE'.format(
+                    idle_readers,
+                    len(self.readers), ),
+                    flush=True)
                 self.advance_stdout = True
 
     def understand_info(self, info):
