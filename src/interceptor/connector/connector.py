@@ -596,6 +596,7 @@ class Collector(ZMQProcessBase):
                 host=self.args.uihost,
                 port=self.args.uiport,
             )
+            self.ui_socket.setsockopt(zmq.HWM, 5)
 
     def collect_results(self):
         self.initialize_zmq_sockets()
