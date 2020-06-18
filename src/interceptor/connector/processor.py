@@ -111,21 +111,50 @@ class ImageScorer(object):
         # calculate d-spacings
         self.ref_d_star_sq = flex.pow2(self.refl["rlp"].norms())
         self.d_spacings = uctbx.d_star_sq_as_d(self.ref_d_star_sq)
-        print ('debug: d_spacings = ', self.d_spacings.size())
         self.d_min = flex.min(self.d_spacings)
-
-
-        # calculate per-image stats
-        # self.stats = per_image_analysis.stats_per_image(self.experiments[0], self.refl)
-        self.hres = per_image_analysis.estimate_resolution_limit_distl_method2(self.refl)[0]
-#       self.hres = per_image_analysis.estimate_resolution_limit(self.refl)
-        self.n_spots = len(self.refl)
 
         # initialize desired parameters (so that can back out without having to
         # re-run functions)
         self.n_ice_rings = 0
         self.mean_spot_shape_ratio = 1
         self.n_overloads = self.count_overloads()
+        self.hres = 99.9
+        self.n_spots = 0
+
+    def filter_by_resolution(self, refl, d_min, d_max):
+        d_star_sq = flex.pow2(refl["rlp"].norms())
+        d_spacings = uctbx.d_star_sq_as_d(d_star_sq)
+        filter = flex.bool(len(d_spacings), False)
+        filter = filter | (d_spacings >= d_min) & (d_spacings <= d_max)
+        return filter
+
+    def calculate_stats(self, verbose=False):
+        # TODO: make this configurable
+        # Only accept "good" spots based on specific parameters
+
+        # 1. No ice
+        ice_sel = per_image_analysis.ice_rings_selection(self.refl)
+        spots_no_ice = self.refl.select(~ice_sel)
+
+        # 2. Falls between 40 - 4.5A
+        res_lim_sel = self.filter_by_resolution(refl=spots_no_ice, d_min=4.5, d_max=40)
+        spots_res_lim = spots_no_ice.select(res_lim_sel)
+
+        # Saturation / distance are already filtered by the spotfinder
+        self.n_spots = spots_res_lim.size()
+
+        # Estimate resolution by spots that aren't ice (susceptible to poor ice ring
+        # location)
+        if self.n_spots > 10:
+            self.hres = per_image_analysis.estimate_resolution_limit(spots_no_ice)
+        else:
+            self.hres = 99.9
+
+        if verbose:
+            print ('SCORER: no. spots total = ', self.refl.size())
+            print ('SCORER: no. spots (no ice) = ', spots_no_ice.size())
+            print ('SCORER: no. spots (no ice, w/in res limits) = ',
+                   spots_res_lim.size())
 
     def count_overloads(self):
         """ A function to determine the number of overloaded spots """
@@ -239,6 +268,9 @@ class ImageScorer(object):
         :return: score = final score
         """
         score = 0
+
+        # Calculate # of spots and resolution here
+        self.calculate_stats(verbose=verbose)
 
         # calculate score by resolution using heuristic
         res_score = [
