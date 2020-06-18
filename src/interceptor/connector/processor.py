@@ -151,10 +151,10 @@ class ImageScorer(object):
             self.hres = 99.9
 
         if verbose:
-            print ('SCORER: no. spots total = ', self.refl.size())
-            print ('SCORER: no. spots (no ice) = ', spots_no_ice.size())
-            print ('SCORER: no. spots (no ice, w/in res limits) = ',
-                   spots_res_lim.size())
+            print('SCORER: no. spots total = ', self.refl.size())
+            print('SCORER: no. spots (no ice) = ', spots_no_ice.size())
+            print('SCORER: no. spots (no ice, w/in res limits) = ',
+                  spots_res_lim.size())
 
     def count_overloads(self):
         """ A function to determine the number of overloaded spots """
@@ -305,7 +305,8 @@ class ImageScorer(object):
             score += 1
 
         if verbose:
-            print("SCORER: max intensity (15-4Ã) = {}, score = {}".format(max_I, score))
+            print("SCORER: max intensity (15-4ÃÂ) = {}, score = {}".format(max_I,
+                                                                             score))
 
         # evaluate ice ring presence
         n_ice_rings = self.count_ice_rings(verbose=verbose)
@@ -351,7 +352,7 @@ class ImageScorer(object):
 
 class FastProcessor(Processor):
     def __init__(
-        self, last_stage="spotfinding", min_Bragg=10, phil_file=None, test=False
+            self, last_stage="spotfinding", min_Bragg=10, phil_file=None, test=False
     ):
         self.last_stage = last_stage
         self.min_Bragg = min_Bragg
@@ -481,9 +482,9 @@ class FastProcessor(Processor):
                 if observed.size() > 10:
                     try:
                         scorer = ImageScorer(experiments, observed)
+                        info["score"] = scorer.calculate_score()
                         info["n_spots"] = scorer.n_spots
                         info["hres"] = scorer.hres
-                        info["score"] = scorer.calculate_score()
                         info["n_ice_rings"] = scorer.n_ice_rings
                         info["n_overloads"] = scorer.n_overloads
                         info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
@@ -492,7 +493,9 @@ class FastProcessor(Processor):
                         info["scr_error"] = "scoring error: {}".format(e)
                 else:
                     info["n_spots"] = observed.size()
-                    info["spf_error"] = "spotfinding error: insufficient spots found ({})!".format(observed.size())
+                    info[
+                        "spf_error"] = "spotfinding error: insufficient spots found ({})!".format(
+                        observed.size())
 
         # if last stage was selected to be "spotfinding", stop here
         if self.last_stage == "spotfinding" or info["n_spots"] <= self.min_Bragg:
