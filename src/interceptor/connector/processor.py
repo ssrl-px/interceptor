@@ -133,7 +133,7 @@ class ImageScorer(object):
         # Only accept "good" spots based on specific parameters
 
         # 1. No ice
-        ice_sel = per_image_analysis.ice_rings_selection(self.refl)
+        ice_sel = per_image_analysis.ice_rings_selection(self.refl, width=0.02)
         spots_no_ice = self.refl.select(~ice_sel)
 
         # 2. Falls between 40 - 4.5A
@@ -256,7 +256,10 @@ class ImageScorer(object):
                 )
             )
 
-        return np.max(intensities)
+        try:
+            return np.max(intensities)
+        except ValueError:
+            return 0
 
     def calculate_score(self, verbose=False):
         """ This *more or less* replicates the scoring approach from libdistl
@@ -309,7 +312,7 @@ class ImageScorer(object):
                                                                              score))
 
         # evaluate ice ring presence
-        n_ice_rings = self.count_ice_rings(verbose=verbose)
+        n_ice_rings = self.count_ice_rings(width=0.04, verbose=verbose)
         if n_ice_rings >= 4:
             score -= 3
         elif 4 > n_ice_rings >= 2:
