@@ -30,6 +30,7 @@ from dxtbx.model.experiment_list import ExperimentListFactory
 from cctbx import uctbx
 from cctbx.miller import index_generator
 
+from interceptor import packagefinder, read_config_file, Processing_config
 from interceptor.format import FormatEigerStreamSSRL
 from iota.components.iota_utils import Capturing
 
@@ -63,7 +64,7 @@ indexing {
   }
   stills {
     indexer = Auto *stills sequences
-    method_list = fft1d real_space_grid_search
+    method_list = fft3d fft1d real_space_grid_search
   }
   basis_vector_combinations {
     max_combinations = 10
@@ -99,9 +100,10 @@ def make_experiments(data, filename):
 
 
 class ImageScorer(object):
-    def __init__(self, experiments, observed):
+    def __init__(self, experiments, observed, config):
         self.experiments = experiments
         self.observed = observed
+        self.cfg = config
 
         # extract reflections and map to reciprocal space
         self.refl = observed.select(observed["id"] == 0)
@@ -122,6 +124,10 @@ class ImageScorer(object):
         self.n_spots = 0
 
     def filter_by_resolution(self, refl, d_min, d_max):
+        if d_min is None:
+            d_min = 0.1
+        if d_max is None:
+            d_max = 99
         d_star_sq = flex.pow2(refl["rlp"].norms())
         d_spacings = uctbx.d_star_sq_as_d(d_star_sq)
         filter = flex.bool(len(d_spacings), False)
@@ -129,19 +135,27 @@ class ImageScorer(object):
         return filter
 
     def calculate_stats(self, verbose=False):
-        # TODO: make this configurable
-        # Only accept "good" spots based on specific parameters
+        # Only accept "good" spots based on specific parameters, if selected
 
         # 1. No ice
-        ice_sel = per_image_analysis.ice_rings_selection(self.refl)
-        spots_no_ice = self.refl.select(~ice_sel)
+        if self.cfg.spf_ice_filter:
+            ice_sel = per_image_analysis.ice_rings_selection(self.refl)
+            spots_no_ice = self.refl.select(~ice_sel)
+        else:
+            spots_no_ice = self.refl
 
         # 2. Falls between 40 - 4.5A
-        res_lim_sel = self.filter_by_resolution(refl=spots_no_ice, d_min=4.5, d_max=40)
-        spots_res_lim = spots_no_ice.select(res_lim_sel)
+        if self.cfg.spf_good_spots_only:
+            res_lim_sel = self.filter_by_resolution(
+                refl=spots_no_ice,
+                d_min=self.cfg.spf_d_min,
+                d_max=self.cfg.spf_d_max)
+            good_spots = spots_no_ice.select(res_lim_sel)
+        else:
+            good_spots = spots_no_ice
 
         # Saturation / distance are already filtered by the spotfinder
-        self.n_spots = spots_res_lim.size()
+        self.n_spots = good_spots.size()
 
         # Estimate resolution by spots that aren't ice (susceptible to poor ice ring
         # location)
@@ -152,9 +166,14 @@ class ImageScorer(object):
 
         if verbose:
             print('SCORER: no. spots total = ', self.refl.size())
-            print('SCORER: no. spots (no ice) = ', spots_no_ice.size())
-            print('SCORER: no. spots (no ice, w/in res limits) = ',
-                  spots_res_lim.size())
+            if self.cfg.spf_ice_filter:
+                print('SCORER: no. spots (no ice) = ', spots_no_ice.size())
+                no_ice = 'no ice, '
+            else:
+                no_ice = ''
+            if self.cfg.spf_good_spots_only:
+                print('SCORER: no. spots ({}w/in res limits) = '.format(no_ice),
+                      good_spots.size())
 
     def count_overloads(self):
         """ A function to determine the number of overloaded spots """
@@ -305,8 +324,7 @@ class ImageScorer(object):
             score += 1
 
         if verbose:
-            print("SCORER: max intensity (15-4ÃÂ) = {}, score = {}".format(max_I,
-                                                                             score))
+            print("SCORER: max intensity (15-4Å) = {}, score = {}".format(max_I, score))
 
         # evaluate ice ring presence
         n_ice_rings = self.count_ice_rings(verbose=verbose)
@@ -352,25 +370,37 @@ class ImageScorer(object):
 
 class FastProcessor(Processor):
     def __init__(
-            self, last_stage="spotfinding", min_Bragg=10, phil_file=None, test=False
+            self,
+            run_mode='DEFAULT',
+            configfile=None,
+            test=False,
     ):
-        self.last_stage = last_stage
-        self.min_Bragg = min_Bragg
+        if configfile:
+            self.config_dict = read_config_file(configfile)
+        else:
+            self.config_dict = packagefinder('processing.cfg', 'connector',
+                                             read_config=True)
+        self.processing_mode = 'spotfinding'
         self.test = test
-        params, self.dials_phil = self.generate_params(phil_file)
+        self.run_mode = None
+
+        # generate processing config params
+        if configfile:
+            p_config = read_config_file(configfile)
+        else:
+            p_config = packagefinder('processing.cfg', 'connector', read_config=True)
+        self.cfg = Processing_config(**p_config[run_mode])
+
+        # Generate DIALS Stills Processor params
+        params, self.dials_phil = self.generate_params()
+
+        # Initialize Stills Processor
         Processor.__init__(self, params=params)
 
-        self.params.indexing.stills.method_list = [
-            "fft3d",
-            "fft1d",
-            "real_space_grid_search",
-        ]
-        self.params.significance_filter.enable = True
-        self.params.significance_filter.isigi_cutoff = 1
-
-    def generate_params(self, phil_file=None):
-        if phil_file:
-            with open(phil_file, "r") as pf:
+    def generate_params(self):
+        # read in DIALS settings from PHIL file
+        if self.cfg.processing_phil_file:
+            with open(self.cfg.processing_phil_file, "r") as pf:
                 target_phil = ip.parse(pf.read())
         else:
             target_phil = ip.parse(custom_param_string)
@@ -479,9 +509,9 @@ class FastProcessor(Processor):
                 info["spf_error"] = "spotfinding error: {}".format(str(err))
                 return info
             else:
-                if observed.size() > 10:
+                if observed.size() > 10 and self.cfg.spf_calculate_score:
                     try:
-                        scorer = ImageScorer(experiments, observed)
+                        scorer = ImageScorer(experiments, observed, config=self.cfg)
                         info["score"] = scorer.calculate_score()
                         info["n_spots"] = scorer.n_spots
                         info["hres"] = scorer.hres
@@ -498,7 +528,8 @@ class FastProcessor(Processor):
                         observed.size())
 
         # if last stage was selected to be "spotfinding", stop here
-        if self.last_stage == "spotfinding" or info["n_spots"] <= self.min_Bragg:
+        if self.cfg.processing_mode == "spotfinding" or info["n_spots"] <= \
+                self.min_Bragg:
             return info
 
         # Indexing
@@ -526,7 +557,7 @@ class FastProcessor(Processor):
                     info["uc"] = uc
 
         # if last step was 'indexing', stop here
-        if "index" in self.last_stage:
+        if "index" in self.cfg.processing_mode:
             return info
 
     def run(self, data, filename, info):

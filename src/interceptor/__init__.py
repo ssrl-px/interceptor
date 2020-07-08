@@ -3,6 +3,7 @@ __version__ = "0.18.4"
 import os
 import platform
 import configparser
+from collections import namedtuple
 
 ver = platform.python_version_tuple()
 
@@ -11,6 +12,17 @@ if int(ver[0]) >= 3 and int(ver[1]) >= 7:
 else:
     import importlib_resources as pkg_resources
 
+# created namedtuple objects for various config options
+Startup_config = namedtuple(
+    'Startup_config',
+    'beamline custom_keys host port stype uihost uiport uistype send_to_ui n_proc '
+    'timeout mpi_bind processing_config_file output_config_file',
+)
+Processing_config = namedtuple(
+    'Processing_config',
+    'processing_key processing_mode processing_phil_file spf_calculate_score spf_d_max '
+    'spf_d_min spf_good_spots_only spf_ice_filter',
+)
 
 class PackageFinderException(Exception):
     def __init__(self, msg):
@@ -51,8 +63,7 @@ def packagefinder(filename, package, module=None, read_config=False, return_text
             raise PackageFinderException(msg)
 
         if read_config:
-            config = configparser.ConfigParser()
-            config.read(resource_filepath)
+            config = read_config_file(resource_filepath)
             return config
         else:
             return resource_filepath
@@ -131,5 +142,11 @@ def import_resources(configs, package):
     else:
         filename = check_extension(configs)
         return packagefinder(filename, package=package, read_config=True)
+
+
+def read_config_file(filepath):
+    config = configparser.ConfigParser()
+    config.read(filepath)
+    return config
 
 # -- end
