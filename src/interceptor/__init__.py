@@ -142,7 +142,7 @@ class CustomParser(configparser.ConfigParser):
         value = self._get_conv(
             section, option, str, raw=raw, vars=vars, fallback=fallback, **kwargs
         )
-        if value.lower().replace(" ", "") == "none":
+        if value and value.lower().replace(" ", "") == "none":
             return None
         else:
             return value
