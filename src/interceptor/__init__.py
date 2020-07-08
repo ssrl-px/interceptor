@@ -3,7 +3,6 @@ __version__ = "0.18.4"
 import os
 import platform
 import configparser
-from collections import namedtuple
 
 ver = platform.python_version_tuple()
 
@@ -12,18 +11,6 @@ if int(ver[0]) >= 3 and int(ver[1]) >= 7:
 else:
     import importlib_resources as pkg_resources
 
-# created namedtuple objects for various config options
-Startup_config = namedtuple(
-    'Startup_config',
-    'beamline custom_keys filepath_key run_mode_key run_mode_key_index host port stype '
-    'uihost uiport uistype send_to_ui timeout processing_config_file output_delimiter '
-    'output_format',
-)
-Processing_config = namedtuple(
-    'Processing_config',
-    'processing_mode processing_phil_file spf_calculate_score spf_d_max spf_d_min '
-    'spf_good_spots_only spf_ice_filter',
-)
 
 class PackageFinderException(Exception):
     def __init__(self, msg):
@@ -145,9 +132,26 @@ def import_resources(configs, package):
         return packagefinder(filename, package=package, read_config=True)
 
 
+class CustomParser(configparser.ConfigParser):
+    def __init__(self):
+        super(CustomParser, self).__init__()
+
+    def getstr(
+        self, section, option, *, raw=False, vars=None, fallback=object(), **kwargs
+    ):
+        value = self._get_conv(
+            section, option, str, raw=raw, vars=vars, fallback=fallback, **kwargs
+        )
+        if value.lower().replace(" ", "") == "none":
+            return None
+        else:
+            return value
+
+
 def read_config_file(filepath):
-    config = configparser.ConfigParser()
+    config = CustomParser()
     config.read(filepath)
     return config
+
 
 # -- end

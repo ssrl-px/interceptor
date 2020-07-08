@@ -30,7 +30,7 @@ from dxtbx.model.experiment_list import ExperimentListFactory
 from cctbx import uctbx
 from cctbx.miller import index_generator
 
-from interceptor import packagefinder, read_config_file, Processing_config
+from interceptor import packagefinder, read_config_file
 from interceptor.format import FormatEigerStreamSSRL
 from iota.components.iota_utils import Capturing
 
@@ -124,10 +124,9 @@ class ImageScorer(object):
         self.n_spots = 0
 
     def filter_by_resolution(self, refl, d_min, d_max):
-        if d_min is None:
-            d_min = 0.1
-        if d_max is None:
-            d_max = 99
+        d_min = float(d_min) if d_min is not None else 0.1
+        d_max = float(d_max) if d_max is not None else 99
+
         d_star_sq = flex.pow2(refl["rlp"].norms())
         d_spacings = uctbx.d_star_sq_as_d(d_star_sq)
         filter = flex.bool(len(d_spacings), False)
@@ -138,18 +137,18 @@ class ImageScorer(object):
         # Only accept "good" spots based on specific parameters, if selected
 
         # 1. No ice
-        if self.cfg.spf_ice_filter:
+        if self.cfg.getboolean("spf_ice_filter"):
             ice_sel = per_image_analysis.ice_rings_selection(self.refl)
             spots_no_ice = self.refl.select(~ice_sel)
         else:
             spots_no_ice = self.refl
 
         # 2. Falls between 40 - 4.5A
-        if self.cfg.spf_good_spots_only:
+        if self.cfg.getboolean('spf_good_spots_only'):
             res_lim_sel = self.filter_by_resolution(
                 refl=spots_no_ice,
-                d_min=self.cfg.spf_d_min,
-                d_max=self.cfg.spf_d_max)
+                d_min=self.cfg.getstr('spf_d_min'),
+                d_max=self.cfg.getstr('spf_d_max'))
             good_spots = spots_no_ice.select(res_lim_sel)
         else:
             good_spots = spots_no_ice
@@ -384,8 +383,7 @@ class FastProcessor(Processor):
             p_config = read_config_file(configfile)
         else:
             p_config = packagefinder('processing.cfg', 'connector', read_config=True)
-        config_dict = {k:v for k, v in p_config[run_mode].items()}
-        self.cfg = Processing_config(**config_dict)
+        self.cfg = p_config[run_mode]
 
         # Generate DIALS Stills Processor params
         params, self.dials_phil = self.generate_params()
@@ -395,8 +393,8 @@ class FastProcessor(Processor):
 
     def generate_params(self):
         # read in DIALS settings from PHIL file
-        if self.cfg.processing_phil_file:
-            with open(self.cfg.processing_phil_file, "r") as pf:
+        if self.cfg.getstr('processing_phil_file'):
+            with open(self.cfg.getstr('processing_phil_file'), "r") as pf:
                 target_phil = ip.parse(pf.read())
         else:
             target_phil = ip.parse(custom_param_string)
@@ -505,7 +503,7 @@ class FastProcessor(Processor):
                 info["spf_error"] = "spotfinding error: {}".format(str(err))
                 return info
             else:
-                if observed.size() > 10 and self.cfg.spf_calculate_score:
+                if observed.size() > 10 and self.cfg.getboolean('spf_calculate_score'):
                     try:
                         scorer = ImageScorer(experiments, observed, config=self.cfg)
                         info["score"] = scorer.calculate_score()
@@ -524,7 +522,7 @@ class FastProcessor(Processor):
                         observed.size())
 
         # if last stage was selected to be "spotfinding", stop here
-        if self.cfg.processing_mode == "spotfinding" or info["n_spots"] <= \
+        if self.cfg.getstr('processing_mode') == "spotfinding" or info["n_spots"] <= \
                 self.min_Bragg:
             return info
 
@@ -553,7 +551,7 @@ class FastProcessor(Processor):
                     info["uc"] = uc
 
         # if last step was 'indexing', stop here
-        if "index" in self.cfg.processing_mode:
+        if "index" in self.cfg.getstr('processing_mode'):
             return info
 
     def run(self, data, filename, info):
