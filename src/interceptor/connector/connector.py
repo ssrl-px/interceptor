@@ -221,7 +221,9 @@ class Reader(ZMQProcessBase):
                         img_info["frame"] = -999
                         img_info["state"] = "header-frame"
         else:
-            img_frames = frames
+            hdr_frames = frames[:2]
+            img_frames = frames[2:]
+            self.make_header(frames=hdr_frames)
             try:
                 # Get custom keys (if any) from header
                 hdict = utils.decode_header(header=self.header[0])
