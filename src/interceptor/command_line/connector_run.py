@@ -82,7 +82,7 @@ def parse_command_args():
     )
     parser.add_argument(
         "-b",
-        "--beamline", type=str, default='default', help="Beamline of the experiment",
+        "--beamline", type=str, default='DEFAULT', help="Beamline of the experiment",
     )
     parser.add_argument(
         "-r",
