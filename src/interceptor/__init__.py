@@ -15,13 +15,13 @@ else:
 # created namedtuple objects for various config options
 Startup_config = namedtuple(
     'Startup_config',
-    'beamline custom_keys host port stype uihost uiport uistype send_to_ui n_proc '
-    'timeout mpi_bind processing_config_file output_config_file',
+    'beamline custom_keys filepath_key host port stype uihost uiport uistype '
+    'send_to_ui timeout processing_config_file output_delimiter output_format',
 )
 Processing_config = namedtuple(
     'Processing_config',
-    'processing_key processing_mode processing_phil_file spf_calculate_score spf_d_max '
-    'spf_d_min spf_good_spots_only spf_ice_filter',
+    'processing_mode processing_phil_file spf_calculate_score spf_d_max spf_d_min '
+    'spf_good_spots_only spf_ice_filter',
 )
 
 class PackageFinderException(Exception):
