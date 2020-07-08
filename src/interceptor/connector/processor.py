@@ -375,11 +375,6 @@ class FastProcessor(Processor):
             configfile=None,
             test=False,
     ):
-        if configfile:
-            self.config_dict = read_config_file(configfile)
-        else:
-            self.config_dict = packagefinder('processing.cfg', 'connector',
-                                             read_config=True)
         self.processing_mode = 'spotfinding'
         self.test = test
         self.run_mode = None
@@ -389,7 +384,8 @@ class FastProcessor(Processor):
             p_config = read_config_file(configfile)
         else:
             p_config = packagefinder('processing.cfg', 'connector', read_config=True)
-        self.cfg = Processing_config(**p_config[run_mode])
+        config_dict = {k:v for k, v in p_config[run_mode].items()}
+        self.cfg = Processing_config(**config_dict)
 
         # Generate DIALS Stills Processor params
         params, self.dials_phil = self.generate_params()

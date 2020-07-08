@@ -57,7 +57,10 @@ class ZMQProcessBase:
             s_config = read_config_file(self.args.config_file)
         else:
             s_config = packagefinder('startup.cfg', 'connector', read_config=True)
-        self.cfg = Startup_config(**s_config[self.args.beamline])
+
+        # convert to namedtuple because 1) not easily mutable, 2) can call attributes
+        config_dict = {k:v for k, v in s_config[self.args.beamline].items()}
+        self.cfg = Startup_config(**config_dict)
 
     @staticmethod
     def make_socket(
