@@ -15,8 +15,9 @@ else:
 # created namedtuple objects for various config options
 Startup_config = namedtuple(
     'Startup_config',
-    'beamline custom_keys filepath_key host port stype uihost uiport uistype '
-    'send_to_ui timeout processing_config_file output_delimiter output_format',
+    'beamline custom_keys filepath_key run_mode_key run_mode_key_index host port stype '
+    'uihost uiport uistype send_to_ui timeout processing_config_file output_delimiter '
+    'output_format',
 )
 Processing_config = namedtuple(
     'Processing_config',
