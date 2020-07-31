@@ -51,8 +51,7 @@ def packagefinder(filename, package, module=None, read_config=False, return_text
             raise PackageFinderException(msg)
 
         if read_config:
-            config = configparser.ConfigParser()
-            config.read(resource_filepath)
+            config = read_config_file(resource_filepath)
             return config
         else:
             return resource_filepath
@@ -131,5 +130,28 @@ def import_resources(configs, package):
     else:
         filename = check_extension(configs)
         return packagefinder(filename, package=package, read_config=True)
+
+
+class CustomParser(configparser.ConfigParser):
+    def __init__(self):
+        super(CustomParser, self).__init__()
+
+    def getstr(
+        self, section, option, *, raw=False, vars=None, fallback=object(), **kwargs
+    ):
+        value = self._get_conv(
+            section, option, str, raw=raw, vars=vars, fallback=fallback, **kwargs
+        )
+        if value and value.lower().replace(" ", "") == "none":
+            return None
+        else:
+            return value
+
+
+def read_config_file(filepath):
+    config = CustomParser()
+    config.read(filepath)
+    return config
+
 
 # -- end

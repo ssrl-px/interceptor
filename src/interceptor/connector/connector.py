@@ -13,6 +13,7 @@ import zmq
 
 from threading import Thread
 
+from interceptor import packagefinder, read_config_file
 from interceptor.connector.processor import FastProcessor
 from interceptor.connector import utils
 
@@ -48,6 +49,17 @@ class ZMQProcessBase:
         self.stop = False
         self.timeout_start = None
         self.args = args
+        self.generate_config()
+
+    def generate_config(self):
+        # generate startup config params
+        if self.args.config_file:
+            s_config = read_config_file(self.args.config_file)
+        else:
+            s_config = packagefinder('startup.cfg', 'connector', read_config=True)
+
+        # convert to namedtuple because 1) not easily mutable, 2) can call attributes
+        self.cfg = s_config[self.args.beamline]
 
     @staticmethod
     def make_socket(
@@ -106,7 +118,7 @@ class Connector(ZMQProcessBase):
 
     def initialize_ends(self):
         """ initializes front- and backend sockets """
-        wport = "6{}".format(str(self.args.port)[1:])
+        wport = "6{}".format(str(self.cfg.getstr('port'))[1:])
         self.read_end = self.make_socket(
             socket_type="router",
             wid="{}_READ".format(self.name),
@@ -117,8 +129,8 @@ class Connector(ZMQProcessBase):
         self.data_end = self.make_socket(
             socket_type="pull",
             wid="{}_DATA".format(self.name),
-            host=self.args.host,
-            port=self.args.port,
+            host=self.cfg.getstr('host'),
+            port=self.cfg.getstr('port'),
         )
         self.poller = zmq.Poller()
 
@@ -164,10 +176,13 @@ class Reader(ZMQProcessBase):
         super(Reader, self).__init__(
             name=name, comm=comm, args=args, localhost=localhost
         )
+        self.generate_processor()
+
+    def generate_processor(self, run_mode='DEFAULT'):
         self.processor = FastProcessor(
-            last_stage=self.args.last_stage,
+            run_mode=run_mode,
+            configfile=self.cfg.getstr('processing_config_file'),
             test=self.args.test,
-            phil_file=self.args.phil,
         )
         if self.rank == 2:
             self.processor.print_params()
@@ -176,12 +191,12 @@ class Reader(ZMQProcessBase):
         img_info = {
             "state": "import",
             "proc_name": self.name,
-            "proc_url": "tcp://{}:{}".format(self.args.host, self.args.port),
+            "proc_url": "tcp://{}:{}".format(self.cfg.getstr('host'), self.cfg.getstr(
+                'port')),
             "series": -1,
-            "frame_idx": -1,
+            "frame": -1,
+            "run_mode": None,
             "mapping": "",
-            "reporting": "",
-            "filename": "",
         }
         return_frames = None
 
@@ -195,7 +210,7 @@ class Reader(ZMQProcessBase):
             else:
                 if "dseries_end" in fdict["htype"]:
                     img_info["state"] = "series-end"
-                elif self.args.htype in fdict["htype"]:
+                elif self.cfg.getstr('header_type') in fdict["htype"]:
                     try:
                         self.make_header(frames)
                     except Exception as e:
@@ -203,45 +218,36 @@ class Reader(ZMQProcessBase):
                         img_info["dat_error"] = "HEADER ERROR: {}".format(str(e))
                     else:
                         img_info["series"] = -999
-                        img_info["frame_idx"] = -999
+                        img_info["frame"] = -999
                         img_info["state"] = "header-frame"
         else:
+            hdr_frames = frames[:2]
+            img_frames = frames[2:]
+            self.make_header(frames=hdr_frames)
             try:
-                if not self.args.header:
-                    hdr_frames = frames[:2]
-                    img_frames = frames[2:]
-                    self.make_header(frames=hdr_frames)
-                else:
-                    img_frames = frames
+                # Get custom keys (if any) from header
+                hdict = utils.decode_header(header=self.header[0])
+                custom_keys = self.cfg.getstr('custom_keys').split(',')
+                for ckey in custom_keys:
+                    if ckey == self.cfg.getstr('filepath_key'):
+                        img_info['filename'] = os.path.basename(hdict[ckey])
+                        img_info['full_path'] = hdict[ckey]
+                    else:
+                        if self.cfg.getstr('processing_key') in ckey:
+                            p_idx = self.cfg.getstr('processing_index')
+                            img_info["run_mode"] = hdict[ckey].split('.')[p_idx]
+                        img_info[ckey] = hdict[ckey]
+
+                # Get frame info from frame
+                fdict = utils.decode_frame_header(img_frames[0][:-1])
+                img_info.update(
+                    {"series": fdict["series"], "frame": fdict["frame"], }
+                )
+                img_info["state"] = "process"
+                return_frames = img_frames
             except Exception as e:
                 img_info["state"] = "error"
-                img_info["dat_error"] = "HEADER ERROR: {}".format(str(e))
-            else:
-                try:
-                    # Get master_file name from header
-                    hdict = utils.decode_header(header=self.header[0])
-                    img_info.update(
-                        {
-                            "filename": os.path.basename(hdict["master_file"]),
-                            "full_path": hdict["master_file"],
-                            "mapping": hdict["mapping"],
-                            "reporting": hdict["reporting"],
-                        }
-                    )
-
-                    # Get frame info from frame
-                    fdict = utils.decode_frame_header(img_frames[0][:-1])
-                    img_info.update(
-                        {"series": fdict["series"], "frame_idx": fdict["frame"], }
-                    )
-                    img_info["state"] = "process"
-                    return_frames = img_frames
-                except Exception as e:
-                    import traceback
-
-                    traceback.print_exc()
-                    img_info["state"] = "error"
-                    img_info["dat_error"] = "CONVERSION ERROR: {}".format(str(e))
+                img_info["dat_error"] = "CONVERSION ERROR: {}".format(str(e))
         return img_info, return_frames
 
     def make_header(self, frames):
@@ -304,10 +310,10 @@ class Reader(ZMQProcessBase):
             # if not, connect the Reader socket to the Splitter
             if self.args.broker:
                 dhost = self.localhost
-                dport = "6{}".format(str(self.args.port)[1:])
+                dport = "6{}".format(str(self.cfg.getstr('port'))[1:])
             else:
-                dhost = self.args.host
-                dport = self.args.port
+                dhost = self.cfg.getstr('host')
+                dport = self.cfg.getstr('port')
             self.d_socket = self.make_socket(
                 socket_type="req",
                 wid=self.name,
@@ -317,7 +323,7 @@ class Reader(ZMQProcessBase):
             proc_url = "tcp://{}:{}".format(dhost, dport)
 
             if init_r_socket:
-                cport = "7{}".format(str(self.args.port)[1:])
+                cport = "7{}".format(str(self.cfg.getstr('port'))[1:])
                 self.r_socket = self.make_socket(
                     socket_type="push",
                     wid="{}_2C".format(self.name),
@@ -354,7 +360,7 @@ class Reader(ZMQProcessBase):
                 self.d_socket.send(self.name.encode('utf-8'))
                 expecting_reply = True
                 while expecting_reply:
-                    timeout = self.args.timeout * 1000 if self.args.timeout else None
+                    timeout = self.cfg.getstr('timeout') * 1000 if self.cfg.getstr('timeout') else None
                     if self.d_socket.poll(timeout=timeout):
                         fstart = time.time()
                         frames = self.d_socket.recv_multipart()
@@ -428,11 +434,11 @@ class Collector(ZMQProcessBase):
     def monitor_splitter_messages(self):
         # listen for messages from the splitter monitor port
         # todo: it occurs to me that this can be used for a variety of purposes!
-        mport = "5{}".format(str(self.args.port)[1:])
+        mport = "5{}".format(str(self.cfg.getstr('port'))[1:])
         self.m_socket = self.make_socket(
             socket_type="sub",
             wid=self.name + "_M",
-            host=self.args.host,
+            host=self.cfg.getstr('host'),
             port=mport,
             bind=True,
             verbose=True,
@@ -510,7 +516,7 @@ class Collector(ZMQProcessBase):
                 rf.write(rline)
 
     def make_result_string(self, info):
-        # message to DHS / UI
+        # Collect results and errors
         err_list = [
             info[e] for e in info if ("error" in e or "comment" in e) and info[e] != ""
         ]
@@ -530,26 +536,43 @@ class Collector(ZMQProcessBase):
                 errors,  # errors
             )
         )
-        reporting = (
-            info["reporting"] if info["reporting"] != "" else "htos_note image_score"
-        )
-        ui_msg = (
-            "{0} run {1} frame {2} result {{{3}}} mapping {{{4}}} "
-            "filename {5}".format(
-                reporting,
-                info["series"],  # run number
-                info["frame_idx"],  # frame index
-                results,  # processing results
-                info["mapping"],  # mapping from run header
-                info["filename"],  # master file
-            )
-        )
+
+        # read out config format (if no path specified, read from default config file)
+        if self.cfg.output_delimiter:
+            delimiter = '{} '.format(self.cfg.getstr('output_delimiter'))
+        else:
+            delimiter = ' '
+        format_keywords = self.cfg.getstr('output_format').split(',')
+
+        # assemble and return message to UI
+        ui_msg = ''
+        for kw in format_keywords:
+            brackets = ['{}', '()', '[]']
+            if any(brkt in kw for brkt in brackets):
+                keyword, bracket = kw.split(' ')
+            else:
+                keyword = kw
+                bracket = None
+            try:
+                if 'result' not in keyword:
+                    value = info[keyword]
+                else:
+                    value = results
+            except KeyError:
+                pass
+            else:
+                if bracket:
+                    item = '{0} {1}{2}{3}{4}'.format(keyword, delimiter, bracket[0],
+                                                     value, bracket[1])
+                else:
+                    item = '{0} {1}{2}'.format(keyword, delimiter, value)
+                ui_msg += item
         return ui_msg
 
     def print_to_stdout(self, counter, info, ui_msg):
         lines = [
             "*** [{}] ({}) SERIES {}, FRAME {} ({}):".format(
-                counter, info["proc_name"], info["series"], info["frame_idx"],
+                counter, info["proc_name"], info["series"], info["frame"],
                 info["full_path"]
             ),
             "  {}".format(ui_msg),
@@ -580,7 +603,7 @@ class Collector(ZMQProcessBase):
             return ui_msg
 
     def initialize_zmq_sockets(self):
-        cport = "7{}".format(str(self.args.port)[1:])
+        cport = "7{}".format(str(self.cfg.getstr('port'))[1:])
         self.c_socket = self.make_socket(
             socket_type="pull",
             wid=self.name,
@@ -589,12 +612,13 @@ class Collector(ZMQProcessBase):
             bind=True,
         )
 
-        if self.args.send or (self.args.uihost and self.args.uiport):
+        if self.cfg.getboolean('send_to_ui') or (self.cfg.getstr('uihost') and
+                                                 self.cfg.getstr('uiport')):
             self.ui_socket = self.make_socket(
                 socket_type="push",
                 wid=self.name + "_2UI",
-                host=self.args.uihost,
-                port=self.args.uiport,
+                host=self.cfg.getstr('uihost'),
+                port=self.cfg.getstr('uiport'),
             )
             self.ui_socket.setsockopt(zmq.SNDTIMEO, 1000)
 
@@ -615,7 +639,8 @@ class Collector(ZMQProcessBase):
                     ui_msg = self.output_results(
                         counter, info, verbose=self.args.verbose
                     )
-                    if self.args.send or (self.args.uihost and self.args.uiport):
+                    if self.cfg.getboolean('send_to_ui') or (self.cfg.getstr(
+                            'uihost') and self.cfg.getstr('uiport')):
                         try:
                             self.ui_socket.send_string(ui_msg)
                         except Exception as e:

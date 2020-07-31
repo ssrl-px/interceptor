@@ -38,27 +38,7 @@ class TestArgs:
         commands = self.make_command_line("")
         assert (
             " ".join(commands)
-            == "--n_proc 10 --host localhost --port 9999 --stype req --timeout 60 "
-               "--last_stage spotfinding"
-        )
-
-    def test_presets_sans_ui(self):
-        argstring = "-b 12-1 -e mesh"
-        commands = self.make_command_line(argstring)
-        assert (
-            " ".join(commands)
-            == "--n_proc 144 --host bl121splitter --port 8121 --stype req --timeout 60 "
-               "--last_stage indexing"
-        )
-
-    def test_presets_with_ui(self):
-        argstring = "-b 12-1 -e jet -u bl12-1"
-        commands = self.make_command_line(argstring)
-        assert (
-            " ".join(commands)
-            == "--n_proc 190 --host bl121splitter --port 8121 --stype req "
-               "--uihost blctl121 --uiport 9998 --uistype push --timeout 60 "
-               "--last_stage spotfinding"
+            == "--n_proc 10 --beamline default"
         )
 
     def test_default_with_mpi(self):
@@ -66,29 +46,17 @@ class TestArgs:
         assert (
             " ".join(command)
             == "mpirun --enable-recovery --map-by socket --bind-to core --np 10 "
-               "connector --host localhost --port 9999 --stype req --timeout 60 "
-               "--last_stage spotfinding"
+               "connector --beamline default"
         )
 
-    def test_presets_with_mpi(self):
-        command = self.make_mpi_command_line("-b 12-1 -e jet -u gui")
-        assert (
-            " ".join(command)
-            == "mpirun --enable-recovery --map-by socket --bind-to core --np 190 "
-               "connector --host bl121splitter --port 8121 --stype req --uihost "
-               "localhost --uiport 9997 --uistype push --timeout 60 --last_stage "
-               "spotfinding"
-        )
 
     def test_mpi_with_binding(self):
-        argstring = "--mpi_bind 0, 3, 12, 24-47, 72-191 -b 12-1 -e jet -u bl12-1"
+        argstring = "--mpi_bind 0, 3, 12, 24-47, 72-191 -b 12-1"
         command = self.make_mpi_command_line(argstring)
         assert (
             " ".join(command)
             == "mpirun --enable-recovery --cpu-set 0,3,12,24-47,72-191 --bind-to "
-               "cpu-list:ordered --np 147 connector --host bl121splitter --port 8121 "
-               "--stype req --uihost blctl121 --uiport 9998 --uistype push --timeout 60 "
-               "--last_stage spotfinding"
+               "cpu-list:ordered --np 147 connector --beamline 12-1"
         )
 
     def command_line_test(self):

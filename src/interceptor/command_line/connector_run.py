@@ -30,7 +30,7 @@ class ExpandPresets(argparse.Action):
     def __init__(self, option_strings, dest, nargs=1, **kwargs):
         self.filename = kwargs.pop('filename', None)
         if not self.filename:
-            raise ValueError("Preset filename must be specified")
+            raise ValueError("A filename needs to be provided")
         if nargs != 1:
             raise ValueError("Nargs must be equal to one")
         super(ExpandPresets, self).__init__(option_strings, dest, **kwargs)
@@ -59,43 +59,6 @@ def parse_command_args():
         "-n", "--n_proc", type=int, default=10, help="Number of processors"
     )
     parser.add_argument(
-        "--host", type=str, default='localhost', help="ZMQ server to listen to",
-    )
-    parser.add_argument(
-        "--port", type=str, default=9999, help="Port to listen to"
-    )
-    parser.add_argument(
-        "--stype", type=str, default='req', help="Socket type"
-    )
-    parser.add_argument(
-        "--uihost", type=str, help="UI host server to send to"
-    )
-    parser.add_argument(
-        "--uiport", type=str, help="UI port to send to"
-    )
-    parser.add_argument(
-        "--uistype", type=str, help="UI socket type"
-    )
-    parser.add_argument(
-        "-t",
-        "--timeout",
-        type=int,
-        default=None,
-        help="ZMQ Request timeout in seconds (when data not coming)",
-    )
-    parser.add_argument(
-        "--last_stage",
-        type=str,
-        default="spotfinding",
-        help='"Spotfinding", "indexing", or "integration" works',
-    )
-    parser.add_argument(
-        "--phil",
-        type=str,
-        default=None,
-        help="Absolute path to file with PHIL settings",
-    )
-    parser.add_argument(
         "--mpi_bind",
         type=str,
         nargs="*",
@@ -103,45 +66,23 @@ def parse_command_args():
         help='List of cpus to which the processes will bind (e.g. "1-10,20-54");'
              ' will supersede the --n_proc value even from preset',
     )
-    parser.add_argument("--header", action="store_true", default=False)
     parser.add_argument("--test", action="store_true", default=False)
     parser.add_argument(
         "--verbose", action="store_true", default=False, help="Print output to stdout"
     )
     parser.add_argument(
-        "--send", action="store_true", default=False, help="Forward results to GUI"
-    )
-    parser.add_argument(
         "--debug", action="store_true", default=False, help="Run debug code"
     )
     parser.add_argument(
+        "-c",
+        "--config_file",
+        type=str,
+        default=None,
+        help='Provide a beamline-specific startup config filepath',
+    )
+    parser.add_argument(
         "-b",
-        "--beamline",
-        type=str,
-        filename='beamlines.cfg',
-        action=ExpandPresets,
-        default=argparse.SUPPRESS,
-        help='Beamline filename (e.g. "12-1") will select host and port',
-    )
-    parser.add_argument(
-        "-e",
-        "--experiment",
-        type=str,
-        filename='experiments.cfg',
-        action=ExpandPresets,
-        default=argparse.SUPPRESS,
-        help='Experiment preset (e.g. "injector") will select number of '
-        "processors and extent of processing",
-    )
-    parser.add_argument(
-        "-u",
-        "--ui",
-        type=str,
-        filename='ui.cfg',
-        action=ExpandPresets,
-        default=argparse.SUPPRESS,
-        help='UI preset (e.g. "gui") will select to which port and host the output '
-        "is sent",
+        "--beamline", type=str, default='DEFAULT', help="Beamline of the experiment",
     )
     parser.add_argument(
         "-r",

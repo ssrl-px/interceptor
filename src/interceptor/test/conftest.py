@@ -42,7 +42,7 @@ class FileCollector(Collector):
 
 @pytest.fixture(scope="module")
 def imported_data():
-    argstring = '-b 12-1 -e spf_test'.split()
+    argstring = '-b default'.split()
     test_args, _ = parse_command_args().parse_known_args(argstring)
     reader = MinimalReader(args=test_args)
     return reader.run()
