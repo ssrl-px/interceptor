@@ -165,12 +165,12 @@ class ImageScorer(object):
 
         if verbose:
             print('SCORER: no. spots total = ', self.refl.size())
-            if self.cfg.spf_ice_filter:
+            if self.cfg.getboolean('spf_ice_filter'):
                 print('SCORER: no. spots (no ice) = ', spots_no_ice.size())
                 no_ice = 'no ice, '
             else:
                 no_ice = ''
-            if self.cfg.spf_good_spots_only:
+            if self.cfg.getboolean('spf_good_spots_only'):
                 print('SCORER: no. spots ({}w/in res limits) = '.format(no_ice),
                       good_spots.size())
 
@@ -274,7 +274,10 @@ class ImageScorer(object):
                 )
             )
 
-        return np.max(intensities)
+        if intensities:
+            return np.max(intensities)
+        else:
+            return 0
 
     def calculate_score(self, verbose=False):
         """ This *more or less* replicates the scoring approach from libdistl
@@ -323,7 +326,8 @@ class ImageScorer(object):
             score += 1
 
         if verbose:
-            print("SCORER: max intensity (15-4Å) = {}, score = {}".format(max_I, score))
+            print(
+                "SCORER: max intensity (15-4Ã) = {}, score = {}".format(max_I, score))
 
         # evaluate ice ring presence
         n_ice_rings = self.count_ice_rings(verbose=verbose)
@@ -376,7 +380,7 @@ class FastProcessor(Processor):
     ):
         self.processing_mode = 'spotfinding'
         self.test = test
-        self.run_mode = None
+        self.run_mode = run_mode
 
         # generate processing config params
         if configfile:
@@ -503,18 +507,23 @@ class FastProcessor(Processor):
                 info["spf_error"] = "spotfinding error: {}".format(str(err))
                 return info
             else:
-                if observed.size() > 10 and self.cfg.getboolean('spf_calculate_score'):
+                if observed.size() > 10:
+                    scorer = ImageScorer(experiments, observed, config=self.cfg)
                     try:
-                        scorer = ImageScorer(experiments, observed, config=self.cfg)
-                        info["score"] = scorer.calculate_score()
+                        if self.cfg.getboolean('spf_calculate_score'):
+                            info["score"] = scorer.calculate_score()
+                        else:
+                            info["score"] = -999
+                            scorer.calculate_stats()
+                    except Exception as e:
+                        info["n_spots"] = 0
+                        info["scr_error"] = "scoring error: {}".format(e)
+                    else:
                         info["n_spots"] = scorer.n_spots
                         info["hres"] = scorer.hres
                         info["n_ice_rings"] = scorer.n_ice_rings
                         info["n_overloads"] = scorer.n_overloads
                         info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
-                    except Exception as e:
-                        info["n_spots"] = observed.size()
-                        info["scr_error"] = "scoring error: {}".format(e)
                 else:
                     info["n_spots"] = observed.size()
                     info[
