@@ -1,4 +1,4 @@
-07.02.2020 - staff-level config capability
+07.31.2020 - staff-level config capability
 
 This branch makes is possible for beamline staff to customize the configuration of the
 Interceptor using beamline- or facility-specific config files that can be located
@@ -13,12 +13,11 @@ Features:
     - changed connector_run_mpi.py to reflect this
 
 2. Script to generate default config files in desired location
+    - still need to do this
 
-3. Generating startup options from config file parameters
+3. Optional reading of custom Eiger header keys that carry per-image processing commands
 
-4. Optional reading of custom Eiger header keys that carry per-image processing commands
-
-5. Output config (in startup.cfg) that allows staff to craft beamline-specific output
+4. Output config (in startup.cfg) that allows staff to craft beamline-specific output
 strings
     - hardcoded result string for now
     - read output and assemble output string from provided keywords, with specified
