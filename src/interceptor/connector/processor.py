@@ -330,7 +330,7 @@ class ImageScorer(object):
                 "SCORER: max intensity (15-4Ã) = {}, score = {}".format(max_I, score))
 
         # evaluate ice ring presence
-        n_ice_rings = self.count_ice_rings(verbose=verbose)
+        n_ice_rings = self.count_ice_rings(width=0.04, verbose=verbose)
         if n_ice_rings >= 4:
             score -= 3
         elif 4 > n_ice_rings >= 2:
