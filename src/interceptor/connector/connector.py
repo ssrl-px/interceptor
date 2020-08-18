@@ -227,14 +227,15 @@ class Reader(ZMQProcessBase):
             try:
                 # Get custom keys (if any) from header
                 hdict = utils.decode_header(header=self.header[0])
-                custom_keys = self.cfg.getstr('custom_keys').split(',')
+                custom_keys = [k.strip() for k in
+                               self.cfg.getstr('custom_keys').split(',')]
                 for ckey in custom_keys:
                     if ckey == self.cfg.getstr('filepath_key'):
                         img_info['filename'] = os.path.basename(hdict[ckey])
                         img_info['full_path'] = hdict[ckey]
                     else:
-                        if self.cfg.getstr('processing_key') in ckey:
-                            p_idx = self.cfg.getstr('processing_index')
+                        if self.cfg.getstr('run_mode_key') in ckey:
+                            p_idx = self.cfg.getint('run_mode_key_index')
                             img_info["run_mode"] = hdict[ckey].split('.')[p_idx]
                         img_info[ckey] = hdict[ckey]
 
@@ -292,6 +293,11 @@ class Reader(ZMQProcessBase):
 
     def process(self, info, frame, filename):
         s_proc = time.time()
+        # regenerate processor if necessary
+        if info['run_mode'] != self.processor.run_mode:
+            self.generate_processor(run_mode=info['run_mode'])
+
+        # process image
         info = self.processor.run(data=frame, filename=filename, info=info)
         info["proc_time"] = time.time() - s_proc
         return info
@@ -360,7 +366,8 @@ class Reader(ZMQProcessBase):
                 self.d_socket.send(self.name.encode('utf-8'))
                 expecting_reply = True
                 while expecting_reply:
-                    timeout = self.cfg.getstr('timeout') * 1000 if self.cfg.getstr('timeout') else None
+                    timeout = self.cfg.getstr('timeout') * 1000 if self.cfg.getstr(
+                        'timeout') else None
                     if self.d_socket.poll(timeout=timeout):
                         fstart = time.time()
                         frames = self.d_socket.recv_multipart()
@@ -538,35 +545,45 @@ class Collector(ZMQProcessBase):
         )
 
         # read out config format (if no path specified, read from default config file)
-        if self.cfg.output_delimiter:
+        if self.cfg.getstr('output_delimiter') is not None:
             delimiter = '{} '.format(self.cfg.getstr('output_delimiter'))
         else:
             delimiter = ' '
         format_keywords = self.cfg.getstr('output_format').split(',')
+        format_keywords = [i.strip() for i in format_keywords]
 
         # assemble and return message to UI
         ui_msg = ''
         for kw in format_keywords:
+            keyword = kw
+            bracket = None
             brackets = ['{}', '()', '[]']
-            if any(brkt in kw for brkt in brackets):
-                keyword, bracket = kw.split(' ')
-            else:
-                keyword = kw
-                bracket = None
+            split_kw = kw.split(' ')
+            if len(split_kw) == 2 and split_kw[1] in brackets:
+                keyword = split_kw[0]
+                bracket = split_kw[1]
+
             try:
-                if 'result' not in keyword:
-                    value = info[keyword]
-                else:
+                if kw.startswith('[') and kw.endswith(']'):
+                    keyword = ''
+                    value = info[kw[1:-1]]
+                elif 'result' in keyword:
                     value = results
-            except KeyError:
-                pass
-            else:
-                if bracket:
-                    item = '{0} {1}{2}{3}{4}'.format(keyword, delimiter, bracket[0],
-                                                     value, bracket[1])
                 else:
-                    item = '{0} {1}{2}'.format(keyword, delimiter, value)
-                ui_msg += item
+                    value = info[keyword]
+            except KeyError as e:
+                raise e
+            else:
+                if keyword == '':
+                    item = value
+                elif bracket:
+                    item = '{0} {1}{2}{3}'.format(keyword, bracket[0],
+                                                  value, bracket[1])
+                else:
+                    item = '{0} {1}'.format(keyword, value)
+                if format_keywords.index(kw) == len(format_keywords) - 1:
+                    delimiter = ''
+                ui_msg += item + delimiter
         return ui_msg
 
     def print_to_stdout(self, counter, info, ui_msg):
@@ -595,6 +612,9 @@ class Collector(ZMQProcessBase):
         try:
             ui_msg = self.make_result_string(info=info)
         except Exception as exp:
+            import traceback
+
+            traceback.print_exc()
             print("PRINT ERROR: ", exp)
         else:
             if verbose:

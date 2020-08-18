@@ -327,7 +327,8 @@ class ImageScorer(object):
 
         if verbose:
             print(
-                "SCORER: max intensity (15-4Ã) = {}, score = {}".format(max_I, score))
+                "SCORER: max intensity (15-4ÃÂ) = {}, score = {}".format(max_I,
+                                                                           score))
 
         # evaluate ice ring presence
         n_ice_rings = self.count_ice_rings(width=0.04, verbose=verbose)
@@ -532,7 +533,7 @@ class FastProcessor(Processor):
 
         # if last stage was selected to be "spotfinding", stop here
         if self.cfg.getstr('processing_mode') == "spotfinding" or info["n_spots"] <= \
-                self.min_Bragg:
+                self.cfg.getint('min_Bragg_peaks'):
             return info
 
         # Indexing
