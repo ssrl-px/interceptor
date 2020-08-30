@@ -553,7 +553,13 @@ class Collector(ZMQProcessBase):
         format_keywords = [i.strip() for i in format_keywords]
 
         # assemble and return message to UI
-        ui_msg = ''
+        try:
+            ui_msg = info[self.cfg.getstr('output_prefix_key')]
+        except KeyError:
+            ui_msg = ''
+        if ui_msg == '':
+            ui_msg = self.cfg.getstr('default_output_prefix')
+        ui_msg += ' '
         for kw in format_keywords:
             keyword = kw
             bracket = None
@@ -639,6 +645,7 @@ class Collector(ZMQProcessBase):
                 wid=self.name + "_2UI",
                 host=self.cfg.getstr('uihost'),
                 port=self.cfg.getstr('uiport'),
+                verbose=True
             )
             self.ui_socket.setsockopt(zmq.SNDTIMEO, 1000)
 
