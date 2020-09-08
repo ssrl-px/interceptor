@@ -9,8 +9,8 @@ setuptools.setup(
     long_description_content_type="text/x-rst",
     author="Artem Y. Lyubimov",
     author_email="lyubimov@stanford.edu",
-    version="0.19.3",
-    url="https://github.com/alyubimov/interceptor",
+    version="0.20.0",
+    url="https://github.com/ssrl-px/interceptor",
     license="BSD",
     install_requires=[],
     package_dir={"": "src"},
@@ -20,21 +20,21 @@ setuptools.setup(
     },
     entry_points={
         "console_scripts": [
-            "connector = interceptor.command_line.connector_run:entry_point",
-            "connect_mpi = "
+            "intxr.connect = interceptor.command_line.connector_run:entry_point",
+            "intxr.connect_mpi = "
             "interceptor.command_line.connector_run_mpi:entry_point",
         ],
         "gui_scripts": [
-            "intxr = interceptor.command_line.ui_run:entry_point",
+            "intxr.gui = interceptor.command_line.ui_run:entry_point",
         ],
         "dxtbx.format": [
             "FormatEigerStreamSSRL:FormatEigerStream = "
             "interceptor.format.FormatEigerStreamSSRL:FormatEigerStreamSSRL",
         ],
         "libtbx.dispatcher.script": [
-            "intxr = intxr",
-            "connector = connector",
-            "connect_mpi = connect_mpi",
+            "intxr.gui = intxr.gui",
+            "intxr.connect = intxr.connect",
+            "intxr.connect_mpi = intxr.connect_mpi",
         ],
     },
     scripts=[],
