@@ -9,7 +9,7 @@ The Interceptor is a suite of programs used to provide real-time analysis of x-r
 
 The Interceptor is composed of the following modules:
 
-1. *Splitter* - a C++ program that accepts a ZeroMQ stream from the detector, writes the raw image data to an HDF5 file, and forwards the ZeroMQ stream to the processing modules
+1. *Splitter* - a C++ program that accepts a ZeroMQ stream from the detector, writes the raw image data to an HDF5 file, and forwards the ZeroMQ stream to the processing modules [*IMPORTANT: This program is NOT included in this distribution; it's assumed that a detector datastream-processing program already exists. Contact the author(s) if you'd like to install/configure the SSRL Splitter at your facility.*)
 2. *ZMQ Connector* - a Python program that opens a ZeroMQ socket connection to the specified URL. There are two types of Connectors:
   -*ZMQ Reader* - uses request-reply protocol to request a single image (in multipart format) from the Splitter, and processes it using DIALS algorithms; tabulates results and pushes the JSON-formatted dictionary to the
   -*ZMQ Collector* - uses push-pull protocol to pull a single result string from the Reader. Depending on settings, will print information to stdout and/or forward a specially formatted result string to either beamline control software or the stand-alone Interceptor GUI for display
