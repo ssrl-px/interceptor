@@ -106,7 +106,12 @@ Here's the full listing of command-line options:
 
 ## Config files
 
-It's recommended that the Interceptor is configured via dedicated configuration files. Two are necessary (at this point): a startup config file that contains the settings for the Interceptor processes (socket addresses, custom header keys to watch for, output format, etc.) and a processing config file that contains settings for different processing modes. The startup config file can contain settings for multiple beamlines, e.g.:
+Interceptor is configured via dedicated configuration files. Two are necessary: a startup config file that contains the settings for the Interceptor processes (socket addresses, custom header keys to watch for, output format, etc.) and a processing config file that contains settings for different processing modes. 
+
+
+### Startup configuration
+
+The startup config file can contain settings for multiple beamlines, e.g.:
 
     [DEFAULT]
     beamline = None
@@ -126,6 +131,8 @@ It's recommended that the Interceptor is configured via dedicated configuration 
     processing_config_file = None
     output_delimiter = None
     output_format = reporting, series, frame, result {}, mapping {}, filename
+    output_prefix_key = reporting
+    default_output_prefix = RESULTS:
   
     [10-1A]
     beamline = 10-1A
@@ -139,6 +146,7 @@ It's recommended that the Interceptor is configured via dedicated configuration 
     uiport = 9997
     send_to_ui = True
     processing_config_file = /home/blcentral/config/test_proc.cfg
+    
   
     [10-1B]
     beamline = 10-1B
@@ -153,6 +161,37 @@ It's recommended that the Interceptor is configured via dedicated configuration 
     send_to_ui = True
     processing_config_file = /home/blcentral/config/test_proc.cfg`
 
+The options are:
+```
+    beamline               - name/number of beamline (should match the --beamline option when starting Interceptor)
+    custom_keys            - keys in the 'global' header that are added after data exit the detector
+    filepath_key           - header key (if any) that specifies the filepath for each image
+    run_mode_key           - header key (if any) that specifies the type of diffraction experiment (used to adjust processing options)
+    run_mode_key_index     - if string under run_mode_key is delimited, specify which part of that string refers to the actual run mode
+    host                   - hostname for the source of the ZMQ data stream
+    port                   - port number for the source of the ZMQ datastream
+    stype                  - type of ZMQ socket (default is REQ, with data stream source assumed to be REP) 
+    uihost                 - hostname for the machine where GUI will be run
+    uiport                 - port for the machine where GUI will be run
+    uistype                - type of ZMQ socket for reporting to GUI (default is PUSH, Interceptor GUI uses a PULL socket)
+    send_to_ui             - toggle whether to send info to GUI (if info is sent but no GUI is running, PUSH socket may hang)
+    timeout                - polling timeout for datastream ZMQ socket (default of None should suffice for most applications)
+    header_type            - value for the 'htype' key in frame header that denotes an image frame
+    processing_config_file - absolute path to the processing configuration file (below)
+    output_delimiter       - delimiter for the output string (default is None, which is interpreted as a single whitespace)
+    output_format          - a delimited string of items to be included in the output; acceptable keys are:
+                               ~ 'series'   - series or run number
+                               ~ 'frame'    - image frame number
+                               ~ 'filename' - filename (not the full filepath) of the image
+                               ~ 'result'   - a string with processing results
+                               ~ any custom key from the global header that carries pertinent information that should be displayed
+                               ~ a keyword with curly brackets (e.g. "result {}") is displayed as the key followed by value in curly brackets
+    output_prefix_key      - one of the header keys, the value under which will be printed as the output prefix
+    default_output_prefix  - default output prefix if output_prefix_key value is not supplied
+```
+
+### Processing configuration
+
 The processing file (specified in the startup config file) can be used for multiple beamlines; alternatively, if settings for the same processing mode differ between beamlines, multiple processing config files can be written. The processing file looks like this:
 
     [DEFAULT]
@@ -163,6 +202,7 @@ The processing file (specified in the startup config file) can be used for multi
     spf_d_min = None
     spf_good_spots_only = False
     spf_ice_filter = True
+    min_Bragg_peaks = 10
     
     [rastering]
     spf_calculate_score = True
@@ -178,6 +218,18 @@ The processing file (specified in the startup config file) can be used for multi
     spf_good_spots_only = True
     spf_ice_filter = True
 
+
+The options are:
+```
+    processing_mode      - 'spotfinding' will only run spotfinding; 'indexing' will try to index each individual frame
+    processing_phil_file - absolute path to a PHIL-formatted file with DIALS processing options
+    spf_calculate_score  - calculate image quality score from found spots (for each image)
+    spf_d_max            - low resolution cutoff for spotfinding
+    spf_d_min            - high resolution cutoff for spotfinding
+    spf_good_spots_only  - for scoring purposes, filter spots that fall outside resolution limits
+    spf_ice_filter       - filter out spots that fall within ice diffraction rings
+    min_Bragg_peaks      - minimum number of Bragg picks required to consider the image a "hit"
+```
 
 
 ## MPI
