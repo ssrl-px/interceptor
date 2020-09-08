@@ -16,6 +16,80 @@ The Interceptor is composed of the following modules:
 3. *FastProcessor* - a subclass of the DIALS Stills Processor (for now) that can process an image partially or fully and report its results. Instantiated once for every ZMQ Reader.
 4. *Interceptor GUI* - A user-friendly front end that allows users and/or staff to monitor the processing results. Currently, the idea is that it’ll be used if BluIce is not used for the purpose. Whether to enable the Interceptor GUI to be used independently of BluIce is under discussion. (It depends on whether the GUI will contain additional features of interest to users or staff.)
 
+The Interceptor is currently designed as a plugin for DIALS 2 / 3; it also requires that MPI is installed and enabled on the processing cluster where it's installed and used.
+
+
+## Installation
+
+Interceptor is a work in progress. As such it's currently only been shown to work with developer installations of DIALS 2.2 or 3.1.1.  If a suitable version of DIALS is already installed, skip to step 5; if PyZMQ, mpi4py, and bitshuffle are already enabled with this vesion of DIALS, skip to step 8.
+
+### Installing DIALS (developer version):
+
+1. Create a fresh folder ad download the bootstrap.py file:
+
+```
+wget https://github.com/dials/dials/releases/download/v3.1.0/bootstrap.py
+```
+
+2. If don’t have wget:
+
+```
+curl https://github.com/dials/dials/releases/download/v3.1.0/bootstrap.py > bootstrap.py
+```
+
+3. On Debian 10 ONLY, run the following (can copy/paste to a shell script and run all at once); on CentOS 6/7 or MacOS, can skip to step 4 (not tested on any other OS):
+```
+mkdir -p modules/lib
+mkdir -p build/include
+cp -av /usr/lib/x86_64-linux-gnu/libGL.so* modules/lib
+cp -av /usr/lib/x86_64-linux-gnu/libGLU.so* modules/lib
+cp -av /usr/include/GL build/include
+cp -av /usr/include/KHR build/include
+```
+
+4. Run the bootstrap script:
+```
+python3 bootstrap.py
+```
+
+### Installing PyZMQ, mpi4py, and bitshuffle:
+
+5. In the DIALS install folder, source the paths (if you have DIALS installed as a module, in a container, etc., you may have to source it in a different manner):
+```
+source ./dials
+```
+
+6. Install PyZMQ and mpi4py:
+```
+libtbx.pip install zmq mpi4py
+```
+
+7. `bitshuffle` has to be installed within the miniconda environment (conda.csh for cshell, conda.sh for bash):
+```
+source miniconda/etc/profile.d/conda.csh
+conda activate $PWD/conda_base
+conda install -c cctbx -y bitshuffle --no-deps
+conda deactivate
+```
+
+### Installing Interceptor:
+
+8. At this stage, install interceptor directly from GitHub; it’s recommended to install an editable version under the modules/ subfolder under the DIALS install folder. From the same DIALS install folder, issue:
+```
+libtbx.pip install -e git+https://github.com/ssrl-px/interceptor.git#egg=intxr --src=modules
+```
+
+9. Incorporate Interceptor into DIALS configuration:
+```
+libtbx.configure intxr
+```
+
+10. At this point you might have to repeat step 5, to make sure that the Interceptor launch shortcuts are available. These are as follows:
+```
+intxr.connect     # launches a single instance
+intxr.connect_mpi # launch the full program with MPI
+intxr.gui         # launch the Interceptor GUI
+```
 
 ## Process Launch
 
