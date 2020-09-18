@@ -508,7 +508,7 @@ class FastProcessor(Processor):
                 info["spf_error"] = "SPF ERROR: {}".format(str(err))
                 return info
             else:
-                if observed.size() > 10:
+                if observed.size() >= self.cfg.getint('min_Bragg_peaks'):
                     scorer = ImageScorer(experiments, observed, config=self.cfg)
                     try:
                         if self.cfg.getboolean('spf_calculate_score'):
@@ -527,9 +527,13 @@ class FastProcessor(Processor):
                         info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
                 else:
                     info["n_spots"] = observed.size()
-                    info[
-                        "spf_error"] = "Too few ({}) spots found!".format(
-                        observed.size())
+
+        # Doing it here because scoring can reject spots within ice rings, which can
+        # drop the number below the minimal limit
+        if info['n_spots'] < self.cfg.getint('min_Bragg_peaks'):
+            info[
+                "spf_error"] = "Too few ({}) spots found!".format(
+                observed.size())
 
         # if last stage was selected to be "spotfinding", stop here
         if self.cfg.getstr('processing_mode') == "spotfinding" or info["n_spots"] <= \
