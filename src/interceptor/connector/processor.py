@@ -505,7 +505,7 @@ class FastProcessor(Processor):
             try:
                 observed = self.find_spots(experiments)
             except Exception as err:
-                info["spf_error"] = "spotfinding error: {}".format(str(err))
+                info["spf_error"] = "SPF ERROR: {}".format(str(err))
                 return info
             else:
                 if observed.size() > 10:
@@ -518,7 +518,7 @@ class FastProcessor(Processor):
                             scorer.calculate_stats()
                     except Exception as e:
                         info["n_spots"] = 0
-                        info["scr_error"] = "scoring error: {}".format(e)
+                        info["scr_error"] = "SCORING ERROR: {}".format(e)
                     else:
                         info["n_spots"] = scorer.n_spots
                         info["hres"] = scorer.hres
@@ -528,7 +528,7 @@ class FastProcessor(Processor):
                 else:
                     info["n_spots"] = observed.size()
                     info[
-                        "spf_error"] = "spotfinding error: insufficient spots found ({})!".format(
+                        "spf_error"] = "Too few ({}) spots found!".format(
                         observed.size())
 
         # if last stage was selected to be "spotfinding", stop here
