@@ -388,7 +388,11 @@ class FastProcessor(Processor):
             p_config = read_config_file(configfile)
         else:
             p_config = packagefinder('processing.cfg', 'connector', read_config=True)
-        self.cfg = p_config[run_mode]
+
+        try:
+            self.cfg = p_config[run_mode]
+        except KeyError:
+            self.cfg = p_config['DEFAULT']
 
         # Generate DIALS Stills Processor params
         params, self.dials_phil = self.generate_params()
