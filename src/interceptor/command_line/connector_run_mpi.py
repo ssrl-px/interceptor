@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 """
 Author      : Lyubimov, A.Y.
 Created     : 04/06/2020
-Last Changed: 05/15/2020
+Last Changed: 10/14/2020
 Description : Launches multiple ZMQ Connector instances via MPI
 """
 
@@ -12,6 +12,7 @@ import time
 import procrunner
 
 from interceptor.command_line.connector_run import parse_command_args
+
 times = []
 
 
@@ -37,7 +38,7 @@ def make_mpi_command_line(args):
                 if len(rng) == 2:
                     start = int(rng[0])
                     end = int(rng[1])
-                    estimated_nproc += len(range(start, end+1))
+                    estimated_nproc += len(range(start, end + 1))
                 else:
                     estimated_nproc += 1
             else:
@@ -49,6 +50,8 @@ def make_mpi_command_line(args):
                 str,
                 [
                     "mpirun",
+                    "--report-pid",
+                    ".current_process_id",
                     "--enable-recovery",
                     "--cpu-set",
                     cpus,
@@ -66,6 +69,8 @@ def make_mpi_command_line(args):
                 str,
                 [
                     "mpirun",
+                    "--report-pid",
+                    ".current_process_id",
                     "--enable-recovery",
                     "--map-by",
                     "socket",
@@ -85,6 +90,21 @@ def entry_point():
     command = make_mpi_command_line(args)
     # run mpi
     print(" ".join(command))
+    try:
+        with open('.current_process_id') as pidf:
+            cpid = pidf.read()[:-1]
+        print("Found Interceptor process with PID {}. Terminating.".format(cpid))
+        try:
+            kill_cmd = ['kill', '-9', cpid]
+            result = procrunner.run(kill_cmd)
+            os.remove('.current_process_id')
+        except Exception as e:
+            print(
+                "ERROR: Could not terminate process with PID {}, due to error: {}".format(
+                    cpid, e))
+    except FileNotFoundError:
+        pass
+
     if not args.dry_run:
         start = time.time()
         try:
