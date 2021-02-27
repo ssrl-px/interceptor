@@ -509,7 +509,10 @@ class FastProcessor(Processor):
             try:
                 observed = self.find_spots(experiments)
             except Exception as err:
+                import traceback
+                spf_tb = traceback.format_exc()
                 info["spf_error"] = "SPF ERROR: {}".format(str(err))
+                info['spf_error_tback'] = spf_tb
                 return info
             else:
                 if observed.size() >= self.cfg.getint('min_Bragg_peaks'):
@@ -539,10 +542,15 @@ class FastProcessor(Processor):
                 "spf_error"] = "Too few ({}) spots found!".format(
                 observed.size())
 
-        # if last stage was selected to be "spotfinding", stop here
+        # if last stage was selected to be "spotfinding", stop here; otherwise
+        # perform a speed check before proceeding to indexing
         if self.cfg.getstr('processing_mode') == "spotfinding" or info["n_spots"] <= \
                 self.cfg.getint('min_Bragg_peaks'):
             return info
+        else:
+            exposure_time_cutoff = self.cfg.getfloat('exposure_time_cutoff')
+            if exposure_time_cutoff > info['exposure_time']:
+                return info
 
         # Indexing
         with Capturing() as idx_output:

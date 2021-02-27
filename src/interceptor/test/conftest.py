@@ -42,7 +42,7 @@ class FileCollector(Collector):
 
 @pytest.fixture(scope="module")
 def imported_data():
-    argstring = '-b default'.split()
+    argstring = '-b test'.split()
     test_args, _ = parse_command_args().parse_known_args(argstring)
     reader = MinimalReader(args=test_args)
     return reader.run()
@@ -50,7 +50,7 @@ def imported_data():
 
 @pytest.fixture(scope='module')
 def proc_for_testing():
-    argstring = '-b 12-1 -e mesh'.split()
+    argstring = '-b test'.split()
     test_args, _ = parse_command_args().parse_known_args(argstring)
     reader = MinimalReader(args=test_args)
     return reader.processor

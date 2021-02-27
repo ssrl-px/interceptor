@@ -100,6 +100,8 @@ class ZMQProcessBase:
 
         return socket
 
+    def broadcast(self, data):
+        self.comm.bcast(data, root=0)
 
 class Connector(ZMQProcessBase):
     """ A ZMQ Broker class, with a zmq.PULL backend (facing a zmq.PUSH Splitter) and
@@ -197,6 +199,7 @@ class Reader(ZMQProcessBase):
             "frame": -1,
             "run_mode": None,
             "mapping": "",
+            'exposure_time': 0.1,
         }
         return_frames = None
 
@@ -227,17 +230,22 @@ class Reader(ZMQProcessBase):
             try:
                 # Get custom keys (if any) from header
                 hdict = utils.decode_header(header=self.header[0])
-                custom_keys = [k.strip() for k in
-                               self.cfg.getstr('custom_keys').split(',')]
-                for ckey in custom_keys:
-                    if ckey == self.cfg.getstr('filepath_key'):
-                        img_info['filename'] = os.path.basename(hdict[ckey])
-                        img_info['full_path'] = hdict[ckey]
-                    else:
-                        if self.cfg.getstr('run_mode_key') in ckey:
-                            p_idx = self.cfg.getint('run_mode_key_index')
-                            img_info["run_mode"] = hdict[ckey].split('.')[p_idx]
-                        img_info[ckey] = hdict[ckey]
+                custom_keys_string = self.cfg.getstr('custom_keys')
+                if custom_keys_string is not None:
+                    custom_keys = [k.strip() for k in custom_keys_string.split(',')]
+                    for ckey in custom_keys:
+                        if ckey == self.cfg.getstr('filepath_key'):
+                            img_info['filename'] = os.path.basename(hdict[ckey])
+                            img_info['full_path'] = hdict[ckey]
+                        else:
+                            if self.cfg.getstr('run_mode_key') in ckey:
+                                p_idx = self.cfg.getint('run_mode_key_index')
+                                img_info["run_mode"] = hdict[ckey].split('.')[p_idx]
+                            img_info[ckey] = hdict[ckey]
+
+                # Get exposure time (frame time) from header
+                hdict_1 = utils.decode_frame(frame=self.header[1])
+                img_info['exposure_time'] = float(hdict_1['frame_time'])
 
                 # Get frame info from frame
                 fdict = utils.decode_frame_header(img_frames[0][:-1])
@@ -482,7 +490,13 @@ class Collector(ZMQProcessBase):
                     idle_readers,
                     len(self.readers), ),
                     flush=True)
+                self.send_check_in_info(hung_readers, down_readers)
                 self.advance_stdout = True
+
+    def send_check_in_info(self, hung_readers, down_readers):
+        down_readers.extend(hung_readers)
+        down_dict = {"down_readers" : down_readers}
+        self.broadcast(data=down_dict)
 
     def understand_info(self, info):
         reader_name = info['proc_name']
@@ -568,7 +582,6 @@ class Collector(ZMQProcessBase):
             if len(split_kw) == 2 and split_kw[1] in brackets:
                 keyword = split_kw[0]
                 bracket = split_kw[1]
-
             try:
                 if kw.startswith('[') and kw.endswith(']'):
                     keyword = ''

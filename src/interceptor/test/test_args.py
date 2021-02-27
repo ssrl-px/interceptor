@@ -38,15 +38,16 @@ class TestArgs:
         commands = self.make_command_line("")
         assert (
             " ".join(commands)
-            == "--n_proc 10 --beamline default"
+            == "--n_proc 10 --beamline DEFAULT"
         )
 
     def test_default_with_mpi(self):
         command = self.make_mpi_command_line("")
         assert (
             " ".join(command)
-            == "mpirun --enable-recovery --map-by socket --bind-to core --np 10 "
-               "connector --beamline default"
+            == "mpirun --report-pid .current_process_id --enable-recovery --map-by "
+               "socket --bind-to core --np 10 "
+               "intxr.connect --beamline DEFAULT"
         )
 
 
@@ -55,8 +56,9 @@ class TestArgs:
         command = self.make_mpi_command_line(argstring)
         assert (
             " ".join(command)
-            == "mpirun --enable-recovery --cpu-set 0,3,12,24-47,72-191 --bind-to "
-               "cpu-list:ordered --np 147 connector --beamline 12-1"
+            == "mpirun --report-pid .current_process_id --enable-recovery --cpu-set "
+               "0,3,12,24-47,72-191 --bind-to "
+               "cpu-list:ordered --np 147 intxr.connect --beamline 12-1"
         )
 
     def command_line_test(self):

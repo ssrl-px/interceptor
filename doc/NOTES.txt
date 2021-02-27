@@ -1,35 +1,16 @@
-07.31.2020 - staff-level config capability
+02.26.2021 - processing speed limit; fixed tests
 
-This branch makes is possible for beamline staff to customize the configuration of the
-Interceptor using beamline- or facility-specific config files that can be located
-anywhere.
+- added processing speed limit
+    - if indexing is turned on, it will only work below the selected exposure time
+    cutoff
+    - added exposure_time_cutoff option to startup.cfg (default = 0.1s)
+    - i.e. if collecting faster than 10 Hz, will only use spotfinding even if indexing
+    is selected
 
-Features:
+- added logic that will bypass the finding and addition of special keys (and values) if
+custom_keys is None
 
-1. Config filepath command-line options
-    - only the startup.cfg (or equivalent) path to be specified; processing.cfg to be
-    included in startup.cfg
-    - removed all host / port / ui, etc. command-line args
-    - changed connector_run_mpi.py to reflect this
+- fixed all tests to work with all of the changes accumulated since last year
 
-2. Script to generate default config files in desired location
-    - still need to do this
+02.26.2021
 
-3. Optional reading of custom Eiger header keys that carry per-image processing commands
-
-4. Output config (in startup.cfg) that allows staff to craft beamline-specific output
-strings
-    - hardcoded result string for now
-    - read output and assemble output string from provided keywords, with specified
-    delimiter
-    - include checking for values in brackets
-
-Other changes:
-
-1. Streamlined config files
-    - combined beamlines.cfg and ui.cfg into startup.cfg, added relevant settings
-    - replaced experiments.cfg with processing.cfg
-
-2. Different way to read config files
-    - moved configparser code to separate read_config() function
-    - can call that from packagefinder or separately (if filepath is provided)
