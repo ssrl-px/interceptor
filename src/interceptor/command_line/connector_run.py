@@ -66,6 +66,26 @@ def parse_command_args():
         help='List of cpus to which the processes will bind (e.g. "1-10,20-54");'
              ' will supersede the --n_proc value even from preset',
     )
+    parser.add_argument(
+        "-r", "--rank",
+        type=int,
+        default=0,
+        help='Approximates MPI rank, where 0 launches the Collector, while any other '
+             'number would launch a worker with that number as part of ID'
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        nargs="*",
+        default=None,
+        help='List of hosts on which to launch Interceptor workers',
+    )
+    parser.add_argument(
+        "--hostfile",
+        type=str,
+        default=None,
+        help='Filepath for a list of hosts on which to launch Interceptor workers',
+    )
     parser.add_argument("--test", action="store_true", default=False)
     parser.add_argument(
         "--verbose", action="store_true", default=False, help="Print output to stdout"
@@ -85,7 +105,6 @@ def parse_command_args():
         "--beamline", type=str, default='DEFAULT', help="Beamline of the experiment",
     )
     parser.add_argument(
-        "-r",
         "--record",
         type=str,
         default=None,
@@ -120,6 +139,8 @@ def parse_command_args():
 
 
 def entry_point():
+    args, _ = parse_command_args().parse_known_args()
+    localhost = None
     try:
         from mpi4py import MPI
     except ImportError as ie:
@@ -128,7 +149,6 @@ def entry_point():
     else:
         comm_world = MPI.COMM_WORLD
     if comm_world is not None:
-        args, _ = parse_command_args().parse_known_args()
         rank = comm_world.Get_rank()
         localhost = MPI.Get_processor_name().split('.')[0]
         if rank == 0:
@@ -141,8 +161,18 @@ def entry_point():
         else:
             script = Reader(comm=comm_world, args=args, localhost=localhost)
         comm_world.barrier()
+    else:
+        if args.rank == 0:
+            script = Collector(args=args, localhost=localhost)
+        elif args.rank == 1:
+            if args.broker:
+                script = Connector(args=args, localhost=localhost)
+            else:
+                script = Reader(args=args, localhost=localhost)
+        else:
+            script = Reader(args=args, localhost=localhost)
 
-        script.run()
+    script.run()
 
 
 if __name__ == "__main__":

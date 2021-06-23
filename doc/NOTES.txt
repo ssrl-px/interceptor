@@ -1,16 +1,8 @@
-02.26.2021 - processing speed limit; fixed tests
+06.23.2021 - 0.22.0
 
-- added processing speed limit
-    - if indexing is turned on, it will only work below the selected exposure time
-    cutoff
-    - added exposure_time_cutoff option to startup.cfg (default = 0.1s)
-    - i.e. if collecting faster than 10 Hz, will only use spotfinding even if indexing
-    is selected
+- Added a "rank" option to startup options to launch individual Interceptor processes
+without MPI; rank of 0 launches Collector, any other rank launches a worker (unless the
+broker option is selected, and then rank 1 launches Connector)
 
-- added logic that will bypass the finding and addition of special keys (and values) if
-custom_keys is None
-
-- fixed all tests to work with all of the changes accumulated since last year
-
-02.26.2021
-
+- Added "host" and "hostfile" options to run MPI on a different host, but that's not
+working very well

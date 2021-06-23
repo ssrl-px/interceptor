@@ -43,8 +43,8 @@ class ZMQProcessBase:
             self.rank = comm.Get_rank()  # each process in MPI has a unique id
             self.size = comm.Get_size()  # number of processes running in this job
         else:
-            self.rank = 0
-            self.size = 0
+            self.rank = args.rank
+            self.size = args.n_proc
 
         self.stop = False
         self.timeout_start = None
@@ -101,7 +101,8 @@ class ZMQProcessBase:
         return socket
 
     def broadcast(self, data):
-        self.comm.bcast(data, root=0)
+        if self.comm:
+            self.comm.bcast(data, root=0)
 
 class Connector(ZMQProcessBase):
     """ A ZMQ Broker class, with a zmq.PULL backend (facing a zmq.PUSH Splitter) and

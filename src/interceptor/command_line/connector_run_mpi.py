@@ -21,12 +21,22 @@ def make_mpi_command_line(args):
     connector_commands = ["intxr.connect"]
 
     for arg, value in vars(args).items():
-        if value and arg not in ['n_proc', 'mpi_bind']:
+        if value and arg not in ['n_proc', 'mpi_bind', 'host', 'hostfile']:
             if value is True:
                 cmd_list = ["--{}".format(arg)]
             else:
                 cmd_list = ["--{}".format(arg), value]
             connector_commands.extend(cmd_list)
+
+    # host and hostfile (for specifying multiple hosts)
+    hosting_list = []
+    if args.hostfile:
+        hostfile = '--hostfile ' + args.hostfile
+        hosting_list.append(hostfile)
+    if args.host:
+        hosts = '--host ' + ','.join(args.host)
+        hosting_list.append(hosts)
+    hosting = ' '.join(hosting_list) if hosting_list else ''
 
     # mpi command
     if args.mpi_bind:
@@ -53,6 +63,7 @@ def make_mpi_command_line(args):
                     "--report-pid",
                     ".current_process_id",
                     "--enable-recovery",
+                    hosting,
                     "--cpu-set",
                     cpus,
                     "--bind-to",
@@ -72,6 +83,7 @@ def make_mpi_command_line(args):
                     "--report-pid",
                     ".current_process_id",
                     "--enable-recovery",
+                    hosting,
                     "--map-by",
                     "socket",
                     "--bind-to",

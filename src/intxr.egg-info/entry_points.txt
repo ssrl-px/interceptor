@@ -1,15 +1,15 @@
 [console_scripts]
-connect_mpi = interceptor.command_line.connector_run_mpi:entry_point
-connector = interceptor.command_line.connector_run:entry_point
+intxr.connect = interceptor.command_line.connector_run:entry_point
+intxr.connect_mpi = interceptor.command_line.connector_run_mpi:entry_point
 
 [dxtbx.format]
 FormatEigerStreamSSRL:FormatEigerStream = interceptor.format.FormatEigerStreamSSRL:FormatEigerStreamSSRL
 
 [gui_scripts]
-intxr = interceptor.command_line.ui_run:entry_point
+intxr.gui = interceptor.command_line.ui_run:entry_point
 
 [libtbx.dispatcher.script]
-connect_mpi = connect_mpi
-connector = connector
-intxr = intxr
+intxr.connect = intxr.connect
+intxr.connect_mpi = intxr.connect_mpi
+intxr.gui = intxr.gui
 
