@@ -140,7 +140,7 @@ def parse_command_args():
 
 def entry_point():
     args, _ = parse_command_args().parse_known_args()
-    localhost = None
+    localhost = 'localhost'
     try:
         from mpi4py import MPI
     except ImportError as ie:
