@@ -104,6 +104,7 @@ class ZMQProcessBase:
         if self.comm:
             self.comm.bcast(data, root=0)
 
+
 class Connector(ZMQProcessBase):
     """ A ZMQ Broker class, with a zmq.PULL backend (facing a zmq.PUSH Splitter) and
     a zmq.ROUTER front end (facing zmq.REQ Readers). Is intended to a) get images
@@ -334,6 +335,7 @@ class Reader(ZMQProcessBase):
                 wid=self.name,
                 host=dhost,
                 port=dport,
+                verbose=self.args.verbose,
             )
             proc_url = "tcp://{}:{}".format(dhost, dport)
 
@@ -344,6 +346,7 @@ class Reader(ZMQProcessBase):
                     wid="{}_2C".format(self.name),
                     host=self.localhost,
                     port=cport,
+                    verbose=self.args.verbose,
                 )
         except Exception as e:
             print("SOCKET ERROR: {}".format(e))
@@ -496,7 +499,7 @@ class Collector(ZMQProcessBase):
 
     def send_check_in_info(self, hung_readers, down_readers):
         down_readers.extend(hung_readers)
-        down_dict = {"down_readers" : down_readers}
+        down_dict = {"down_readers": down_readers}
         self.broadcast(data=down_dict)
 
     def understand_info(self, info):
