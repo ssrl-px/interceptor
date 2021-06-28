@@ -86,12 +86,16 @@ def parse_command_args():
         default=None,
         help='Filepath for a list of hosts on which to launch Interceptor workers',
     )
+    parser.add_argument(
+        "--collector_host",
+        type=str,
+        default=None,
+        help='The URL (host:port) for the Collector module for workers to connect to',
+    )
+
     parser.add_argument("--test", action="store_true", default=False)
     parser.add_argument(
         "--verbose", action="store_true", default=False, help="Print output to stdout"
-    )
-    parser.add_argument(
-        "--no_mpi", action="store_true", default=False, help="Turn off MPI"
     )
     parser.add_argument(
         "--debug", action="store_true", default=False, help="Run debug code"
@@ -167,11 +171,6 @@ def entry_point():
     else:
         if args.rank == 0:
             script = Collector(args=args, localhost=localhost)
-        elif args.rank == 1:
-            if args.broker:
-                script = Connector(args=args, localhost=localhost)
-            else:
-                script = Reader(args=args, localhost=localhost)
         else:
             script = Reader(args=args, localhost=localhost)
         script.run()

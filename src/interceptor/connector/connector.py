@@ -340,11 +340,16 @@ class Reader(ZMQProcessBase):
             proc_url = "tcp://{}:{}".format(dhost, dport)
 
             if init_r_socket:
+                # if collector_host option exists, use it
+                if self.args.collector_host:
+                    chost = self.args.collector_host
+                else:
+                    chost = self.localhost
                 cport = "7{}".format(str(self.cfg.getstr('port'))[1:])
                 self.r_socket = self.make_socket(
                     socket_type="push",
                     wid="{}_2C".format(self.name),
-                    host=self.localhost,
+                    host=chost,
                     port=cport,
                     verbose=self.args.verbose,
                 )
