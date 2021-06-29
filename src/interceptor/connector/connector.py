@@ -517,7 +517,7 @@ class Collector(ZMQProcessBase):
                 'start_time': time.time(),
             }
             msg = "{} CONNECTED to {}".format(reader_name, info["proc_url"])
-            if len(self.readers) == self.comm.Get_size() - 1:
+            if len(self.readers) == self.size - 1:
                 msg = '{} Readers connected ({})'.format(
                     len(self.readers),
                     time.strftime('%b %d %Y %I:%M:%S %p'),
