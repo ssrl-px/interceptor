@@ -9,7 +9,7 @@ setuptools.setup(
     long_description_content_type="text/x-rst",
     author="Artem Y. Lyubimov",
     author_email="lyubimov@stanford.edu",
-    version="0.22.5",
+    version="0.23.0",
     url="https://github.com/ssrl-px/interceptor",
     license="BSD",
     install_requires=[],
@@ -23,6 +23,7 @@ setuptools.setup(
             "intxr.connect = interceptor.command_line.connector_run:entry_point",
             "intxr.connect_mpi = "
             "interceptor.command_line.connector_run_mpi:entry_point",
+            "intxr.strategy = interceptor.command_line.strategy_process:entry_point"
         ],
         "gui_scripts": [
             "intxr.gui = interceptor.command_line.ui_run:entry_point",
@@ -35,6 +36,7 @@ setuptools.setup(
             "intxr.gui = intxr.gui",
             "intxr.connect = intxr.connect",
             "intxr.connect_mpi = intxr.connect_mpi",
+            "intxr.strategy = intxr.strategy"
         ],
     },
     scripts=[],

@@ -12,8 +12,9 @@ import time  # noqa: F401; keep around for testing
 
 import numpy as np
 
-from cctbx import sgtbx
+from cctbx import sgtbx, crystal
 from iotbx import phil as ip
+from spotfinder.array_family import flex
 
 from dials.command_line.stills_process import Processor, phil_scope as dials_scope
 from dials.command_line.refine_bravais_settings import (
@@ -34,60 +35,15 @@ from interceptor import packagefinder, read_config_file
 from interceptor.format import FormatEigerStreamSSRL
 from iota.components.iota_utils import Capturing
 
-# Custom PHIL for processing with DIALS stills processor
-custom_param_string = """
-output {
-  experiments_filename = None
-  indexed_filename = None
-  strong_filename = None
-  refined_experiments_filename = None
-  integrated_experiments_filename = None
-  integrated_filename = None
-  profile_filename = None
-  integration_pickle = None
-}
-spotfinder {
-  filter {
-    max_spot_size = 1000
-  }
-  threshold {
-    algorithm = *dispersion dispersion_extended
-    dispersion {
-      gain = 1
-      global_threshold = 0
-    }
-  }
-}
-indexing {
-  refinement_protocol {
-    d_min_start = 2.0
-  }
-  stills {
-    indexer = Auto *stills sequences
-    method_list = fft3d fft1d real_space_grid_search
-  }
-  basis_vector_combinations {
-    max_combinations = 10
-  }
-}
-integration {
-  background {
-    simple {
-      outlier {
-        algorithm = *null nsigma truncated normal plane tukey
-      }
-    }
-  }
-}
-significance_filter {
-  enable = True
-  d_min = None
-  n_bins = 20
-  isigi_cutoff = 1.0
-}
-"""
-custom_phil = ip.parse(custom_param_string)
-custom_params = dials_scope.fetch(source=custom_phil).extract()
+from dials.util.options import OptionParser, flatten_experiments
+from dials.util.multi_dataset_handling import generate_experiment_identifiers
+from dials.util.options import flatten_experiments
+from dials.command_line.index import index
+from dials.command_line.integrate import run_integration
+from dials.command_line import refine_bravais_settings as rbs
+
+import json
+
 
 
 def make_experiments(data, filename):
@@ -379,6 +335,61 @@ class FastProcessor(Processor):
             configfile=None,
             test=False,
     ):
+        # Custom PHIL for processing with DIALS stills processor
+        custom_param_string = """
+        output {
+          experiments_filename = None
+          indexed_filename = None
+          strong_filename = None
+          refined_experiments_filename = None
+          integrated_experiments_filename = None
+          integrated_filename = None
+          profile_filename = None
+          integration_pickle = None
+        }
+        spotfinder {
+          filter {
+            max_spot_size = 1000
+          }
+          threshold {
+            algorithm = *dispersion dispersion_extended
+            dispersion {
+              gain = 1
+              global_threshold = 0
+            }
+          }
+        }
+        indexing {
+          refinement_protocol {
+            d_min_start = 2.0
+          }
+          stills {
+            indexer = Auto *stills sequences
+            method_list = fft3d fft1d real_space_grid_search
+          }
+          basis_vector_combinations {
+            max_combinations = 10
+          }
+        }
+        integration {
+          background {
+            simple {
+              outlier {
+                algorithm = *null nsigma truncated normal plane tukey
+              }
+            }
+          }
+        }
+        significance_filter {
+          enable = True
+          d_min = None
+          n_bins = 20
+          isigi_cutoff = 1.0
+        }
+        """
+        custom_phil = ip.parse(custom_param_string)
+        custom_params = dials_scope.fetch(source=custom_phil).extract()
+
         self.processing_mode = 'spotfinding'
         self.test = test
         self.run_mode = run_mode
