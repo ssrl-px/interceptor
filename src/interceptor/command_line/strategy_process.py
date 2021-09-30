@@ -20,8 +20,8 @@ from dials.command_line.refine import run_dials_refine
 from dials.command_line import refine_bravais_settings as rbs
 from dials.util.options import  flatten_experiments
 from dials.util.multi_dataset_handling import generate_experiment_identifiers
-from dials.command_line.export_best import BestExporter
 
+from interceptor.connector import CustomBestExporter
 from interceptor.connector import StrategyProcessor
 
 # Custom PHIL for spotfinding
@@ -167,6 +167,18 @@ class Script(object):
         if self.verbose:
             print ("Spotfinding DONE: found {} spots total".format(observed.size()))
 
+        # Populate spotfinding results
+        spotfinding_dict = {}
+        for i, experiment in enumerate(experiments):
+            refl = observed.select(observed["id"] == i)
+            overloads = refl.select(refl.is_overloaded(experiments) == True)
+            spf_dict = {
+                'imagefile'         : experiment.imageset.paths()[0],
+                'spotTotal'         : len(refl),
+                'inResOverlSpots'   : len(overloads)
+            }
+            spotfinding_dict.update({i + 1: spf_dict})
+
         # index
         if self.verbose:
             print ("Indexing...")
@@ -182,45 +194,95 @@ class Script(object):
                   crystals[0].get_unit_cell())
             print("{} indexed reflections".format(len(indexed)))
 
-        # refine Bravais settings and reindex
+        # refine Bravais settings
         if self.verbose:
             print ("Determining the likeliest space group...")
-        solution = self.processor.refine_bravais_settings(
+        P1_solution, highest_sym_solution = self.processor.refine_bravais_settings(
             experiments=experiments,
             indexed=indexed,
             params=custom_brv_params
         )
-        experiments, reindexed = self.processor.reindex(
-            solution=solution,
-            reflections=indexed,
-            experiments=experiments
-        )
-        if self.verbose:
-            print(experiments[0].crystal, "\n")
-            print ("{} reindexed reflections".format(len(reindexed)))
+        # the below can be expanded to all acceptable solutions
+        solutions = [P1_solution, highest_sym_solution]
 
-        # integrate
-        if self.verbose:
-            print ("Integrating...")
-        integrated, experiments = self.processor.integrate(
-            experiments=experiments,
-            indexed=reindexed,
-            params=custom_int_params
-        )
-        if self.verbose:
-            print ("{} integrated reflections".format(len(integrated)))
+        # Reindex and integrate for all Bravais solutions
+        solutions_dict = {}
+        for i, solution in enumerate(solutions):
+            experiments, reindexed = self.processor.reindex(
+                solution=solution,
+                reflections=indexed,
+                experiments=experiments
+            )
+            crystal = experiments.crystals()[0]
+            if self.verbose:
+                print(crystal, "\n")
+                print ("{} reindexed reflections".format(len(reindexed)))
 
-        # export BEST parameters
+            # populate index / reindex results
+            uc = crystal.get_unit_cell()
+            idx_dict = {
+                "id": solution.setting_number,
+                "metricfit": solution['max_angular_difference'],
+                "rmsd": solution.rmsd,
+                "spots": solution.Nmatches,
+                "crystalsystem": solution['system'],
+                "lattice": solution['bravais'],
+                "unitcell": uc.parameters(),
+                "volume": uc.volume(),
+            }
+
+            # integrate
+            if self.verbose:
+                print ("Integrating...")
+            integrated, experiments = self.processor.integrate(
+                experiments=experiments,
+                indexed=reindexed,
+                params=custom_int_params
+            )
+            if self.verbose:
+                print ("{} integrated reflections".format(len(integrated)))
+
+            crystal = experiments.crystals()[0]
+
+            # export BEST parameters
+            if self.verbose:
+                print('exporting results...')
+            custom_exp_params.output.prefix = "best{}".format(i+1)
+            exporter = CustomBestExporter(
+                params=custom_exp_params,
+                reflections=[integrated],
+                experiments=experiments
+            )
+
+            datfile, parfile, hkl1, hkl2 = exporter.export()
+
+            s_dict = {
+
+                "matrix"            : crystal.get_A(),  # UB matrix
+                "dataForBest"       : os.path.abspath(os.path.join(os.curdir, datfile)),
+                "paramFileForBest"  : os.path.abspath(os.path.join(os.curdir, parfile)),
+                "hkl1"              : os.path.abspath(os.path.join(os.curdir, hkl1)),
+                "hkl2"              : os.path.abspath(os.path.join(os.curdir, hkl2)),
+                "indexResult"       : idx_dict,
+            }
+            solutions_dict.update({solution.setting_number: s_dict})
+
+        # collate other information
+        crystal = experiments.crystals()[0]
+        info_dict = {
+            "imagefiles"    : self.imagefiles,
+            "spotfinding"   : spotfinding_dict,
+            "solutions"     : solutions_dict,
+        }
+
+        with open('info.json', "w") as jf:
+            json.dump(info_dict, jf)
+
         if self.verbose:
-            print('exporting results...')
-        exporter = BestExporter(
-            params=custom_exp_params,
-            reflections=[integrated],
-            experiments=experiments
-        )
-        exporter.export()
-        if self.verbose:
-            print ('ALL DONE!')
+            print ("\n*****")
+            info_print = json.dumps(info_dict, indent=1)
+            print(info_print)
+
 
 
 def entry_point():

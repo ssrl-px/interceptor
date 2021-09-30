@@ -10,10 +10,46 @@ from dials.util.options import flatten_experiments
 from dials.command_line.index import index
 from dials.command_line.integrate import run_integration
 from dials.command_line.refine import run_dials_refine
+from dials.command_line.export_best import BestExporter
 
 from dials.command_line import refine_bravais_settings as rbs
 from cctbx import sgtbx, crystal
-import json
+
+from iota.components.iota_utils import Capturing
+
+
+class CustomBestExporter(BestExporter):
+    def __init__(self, params, experiments, reflections):
+        super().__init__(params, experiments, reflections)
+
+    def export(self):
+        """
+        Export the files
+        """
+        from dials.util import best
+
+        experiment = self.experiments[0]
+        reflections = self.reflections[0]
+        partiality = reflections["partiality"]
+        sel = partiality >= self.params.min_partiality
+        if sel.count(True) == 0:
+            raise Sorry(
+                "No reflections remaining after filtering for minimum partiality ("
+                "min_partiality={.2f})".format(self.params.min_partiality)
+            )
+        reflections = reflections.select(sel)
+
+        imageset = experiment.imageset
+        prefix = self.params.output.prefix
+        idx_prefix = "{}_".format(prefix)
+
+        with Capturing() as junk_output:
+            best.write_background_file(f"{prefix}.dat", imageset, n_bins=self.params.n_bins)
+            best.write_integrated_hkl(idx_prefix, reflections)
+            best.write_par_file(f"{prefix}.par", experiment)
+
+        return f"{prefix}.dat", f"{prefix}.par", "{}_1.hkl".format(prefix), \
+               "{}_2.hkl".format(prefix)
 
 
 class StrategyProcessor(object):
@@ -63,6 +99,7 @@ class StrategyProcessor(object):
                                      refined_settings}
         rbs.bravais_lattice_to_space_group_table(possible_bravais_settings)
 
+        # Pick out the highest-symmetry solution
         lattice_to_sg_number = {
             "aP": 1,
             "mP": 3,
@@ -88,6 +125,7 @@ class StrategyProcessor(object):
         highest_sym_solutions = [
             s for s in refined_settings if s["bravais"] == highest_sym_lattice
         ]
+
         if len(highest_sym_solutions) > 1:
             highest_sym_solution = sorted(
                 highest_sym_solutions, key=lambda x: x["max_angular_difference"]
@@ -95,7 +133,13 @@ class StrategyProcessor(object):
         else:
             highest_sym_solution = highest_sym_solutions[0]
 
-        return highest_sym_solution
+        # Pick out the refined P1 solution
+        P1_solution = [
+            s for s in refined_settings if s["bravais"] == 'aP'
+        ][0]
+
+        return P1_solution, highest_sym_solution
+
 
     def reindex(self, solution, reflections, experiments):
         # Reindex with new Bravais Lattice solution
@@ -165,7 +209,6 @@ class StrategyProcessor(object):
 
     def integrate_images(self, experiments, indexed, params):
         indexed, _ = self.process_reference(indexed)
-        print('debug: {} indexed reflections remaining'.format(len(indexed)))
 
         # Get the integrator from the input parameters
         from dials.algorithms.integration.integrator import create_integrator
