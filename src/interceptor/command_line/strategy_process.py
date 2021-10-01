@@ -24,6 +24,35 @@ from dials.util.multi_dataset_handling import generate_experiment_identifiers
 from interceptor.connector import CustomBestExporter
 from interceptor.connector import StrategyProcessor
 
+phil_scope = ip.parse(
+    """
+    output {
+        strong_filename = None
+        experiments_filename = None
+        indexed_filename = None
+        refined_experiments_filename = None
+        integrated_experiments_filename = None
+        integrated_filename = None
+        profile_filename = None
+        integration_pickle = None
+    }
+    spotfinder {
+      filter {
+        max_spot_size = 1000
+      }
+      threshold {
+        algorithm = *dispersion dispersion_extended
+        dispersion {
+          gain = 1
+          global_threshold = 0
+        }
+      }
+    }
+    
+    """
+)
+
+
 # Custom PHIL for spotfinding
 custom_spf_string = """
 output {
@@ -172,10 +201,19 @@ class Script(object):
         for i, experiment in enumerate(experiments):
             refl = observed.select(observed["id"] == i)
             overloads = refl.select(refl.is_overloaded(experiments) == True)
+            imageset = experiment.imageset
+            beam = imageset.get_beam()
+            s0 = beam.get_s0()
+            detector = imageset.get_detector()[0]
             spf_dict = {
-                'imagefile'         : experiment.imageset.paths()[0],
+                'imagefile'         : imageset.paths()[0],
                 'spotTotal'         : len(refl),
-                'inResOverlSpots'   : len(overloads)
+                'inResOverlSpots'   : len(overloads),
+                'beamXY'            : detector.get_beam_centre(s0),
+                'distance'          : detector.get_distance(),
+                'wavelength'        : beam.get_wavelength(),
+                'pixelsize'         : detector.get_pixel_size(),
+                'imagesize'         : detector.get_image_size(),
             }
             spotfinding_dict.update({i + 1: spf_dict})
 
