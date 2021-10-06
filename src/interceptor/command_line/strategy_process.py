@@ -7,6 +7,9 @@ from iotbx import phil as ip
 from dxtbx.model.experiment_list import ExperimentListFactory as ExLF
 from cctbx import sgtbx, crystal
 
+from libtbx.phil.command_line import argument_interpreter as ArgInterpreter
+from libtbx.utils import Sorry
+
 from dials.array_family import flex
 from dials.command_line.find_spots import phil_scope as spf_scope
 from dials.command_line.index import phil_scope as idx_scope
@@ -23,35 +26,6 @@ from dials.util.multi_dataset_handling import generate_experiment_identifiers
 
 from interceptor.connector import CustomBestExporter
 from interceptor.connector import StrategyProcessor
-
-phil_scope = ip.parse(
-    """
-    output {
-        strong_filename = None
-        experiments_filename = None
-        indexed_filename = None
-        refined_experiments_filename = None
-        integrated_experiments_filename = None
-        integrated_filename = None
-        profile_filename = None
-        integration_pickle = None
-    }
-    spotfinder {
-      filter {
-        max_spot_size = 1000
-      }
-      threshold {
-        algorithm = *dispersion dispersion_extended
-        dispersion {
-          gain = 1
-          global_threshold = 0
-        }
-      }
-    }
-    
-    """
-)
-
 
 # Custom PHIL for spotfinding
 custom_spf_string = """
@@ -71,8 +45,8 @@ spotfinder {
   }
 }
 """
-spf_phil = ip.parse(custom_spf_string)
-custom_spf_params = spf_scope.fetch(source=spf_phil).extract()
+spf_work_phil = ip.parse(custom_spf_string)
+spf_phil = spf_scope.fetch(source=spf_work_phil)
 
 # Custom PHIL for indexing
 custom_idx_string = """
@@ -91,8 +65,8 @@ indexing {
   }
 }
 """
-idx_phil = ip.parse(custom_idx_string)
-custom_idx_params = idx_scope.fetch(source=idx_phil).extract()
+idx_work_phil = ip.parse(custom_idx_string)
+idx_phil = idx_scope.fetch(source=idx_work_phil)
 
 custom_brv_sting = """
 crystal_id = 0
@@ -103,18 +77,8 @@ output {
   }
 """
 
-brv_phil = ip.parse(custom_brv_sting)
-custom_brv_params = brv_scope.fetch(source=brv_phil).extract()
-
-custom_ref_string = """
-  output {
-    experiments = None
-    reflections = None
-    }
-
-"""
-ref_phil = ip.parse(custom_ref_string)
-custom_ref_params = ref_scope.fetch(source=ref_phil).extract()
+brv_work_phil = ip.parse(custom_brv_sting)
+brv_phil = brv_scope.fetch(source=brv_work_phil)
 
 custom_int_string = """
 output {
@@ -137,8 +101,8 @@ integration {
   }
 }
 """
-int_phil = ip.parse(custom_int_string)
-custom_int_params = int_scope.fetch(source=int_phil).extract()
+int_work_phil = ip.parse(custom_int_string)
+int_phil = int_scope.fetch(source=int_work_phil)
 
 custom_exp_string = """
   n_bins = 100
@@ -148,8 +112,8 @@ custom_exp_string = """
     prefix = best
   }
 """
-exp_phil = ip.parse(custom_exp_string)
-custom_exp_params = exp_scope.fetch(source=exp_phil).extract()
+exp_work_phil = ip.parse(custom_exp_string)
+exp_phil = exp_scope.fetch(source=exp_work_phil)
 
 
 def parse_command_args():
@@ -172,11 +136,48 @@ def parse_command_args():
     )
     return parser
 
+
+def insert_PHIL_args(phil, phil_args):
+
+    bad_args = []
+    argument_interpreter = ArgInterpreter(master_phil=phil)
+    for arg in phil_args:
+        try:
+            command_line_params = argument_interpreter.process(arg=arg)
+            phil = phil.fetch(sources=[command_line_params])
+
+        except Sorry:
+            bad_args.append(arg)
+
+    return phil, bad_args
+
+def fix_PHILs(phil_args):
+    phils = {
+        "spf_phil":spf_phil,
+        "idx_phil":idx_phil,
+        "brv_phil":brv_phil,
+        "int_phil":int_phil,
+        "exp_phil":exp_phil,
+    }
+    params = {}
+    for pname, phil in phils.items():
+        fixed_phil, phil_args = insert_PHIL_args(phil, phil_args)
+        phils[pname] = phil.fetch(source=fixed_phil)
+    return phils
+
 class Script(object):
-    def __init__(self, args):
+    def __init__(self, args, phils):
         self.processor = StrategyProcessor()
         self.imagefiles = args.path
         self.verbose = args.verbose
+        self.create_params(phils)
+
+    def create_params(self, phils):
+        for pname, phil in phils.items():
+            paramname = pname.split('_')[0] + "_params"
+            params = phils[pname].extract()
+            setattr(self, paramname, params)
+            setattr(self, pname, phil)
 
     def run(self):
 
@@ -191,7 +192,7 @@ class Script(object):
             print ("Spotfinding...")
         observed = self.processor.find_spots(
             experiments=experiments,
-            params=custom_spf_params
+            params=self.spf_params
         )
         if self.verbose:
             print ("Spotfinding DONE: found {} spots total".format(observed.size()))
@@ -223,7 +224,7 @@ class Script(object):
         indexed, experiments = self.processor.index(
             experiments=experiments,
             reflections=observed,
-            params=custom_idx_params
+            params=self.idx_params
         )
 
         if self.verbose:
@@ -235,10 +236,13 @@ class Script(object):
         # refine Bravais settings
         if self.verbose:
             print ("Determining the likeliest space group...")
+
+        self.brv_phil.show()
+
         P1_solution, highest_sym_solution = self.processor.refine_bravais_settings(
             experiments=experiments,
             indexed=indexed,
-            params=custom_brv_params
+            params=self.brv_params
         )
         # the below can be expanded to all acceptable solutions
         solutions = [P1_solution, highest_sym_solution]
@@ -275,7 +279,7 @@ class Script(object):
             integrated, experiments = self.processor.integrate(
                 experiments=experiments,
                 indexed=reindexed,
-                params=custom_int_params
+                params=self.int_params
             )
             if self.verbose:
                 print ("{} integrated reflections".format(len(integrated)))
@@ -285,9 +289,9 @@ class Script(object):
             # export BEST parameters
             if self.verbose:
                 print('exporting results...')
-            custom_exp_params.output.prefix = "best{}".format(i+1)
+            self.exp_params.output.prefix = "best{}".format(i+1)
             exporter = CustomBestExporter(
-                params=custom_exp_params,
+                params=self.exp_params,
                 reflections=[integrated],
                 experiments=experiments
             )
@@ -326,7 +330,8 @@ class Script(object):
 def entry_point():
     args, phil_args = parse_command_args().parse_known_args()
     assert len(args.path) == 2
-    script = Script(args=args)
+    phils = fix_PHILs(phil_args)
+    script = Script(args=args, phils=phils)
     script.run()
 
 
