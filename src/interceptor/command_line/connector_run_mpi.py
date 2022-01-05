@@ -31,12 +31,14 @@ def make_mpi_command_line(args):
     # host and hostfile (for specifying multiple hosts)
     hosting_list = []
     if args.hostfile:
-        hostfile = '--hostfile ' + args.hostfile
-        hosting_list.append(hostfile)
+        hostfile = ['--hostfile', args.hostfile]
+        hosting_list.extend(hostfile)
     if args.host:
-        hosts = '--host ' + ','.join(args.host)
-        hosting_list.append(hosts)
-    hosting = ' '.join(hosting_list) if hosting_list else ''
+        hosts = ['--host']
+        hosts.extend(args.host)
+        print ('debug: ', hosts, args.host)
+        hosting_list.extend(hosts)
+    #hosting = ' '.join(hosting_list) if hosting_list else ''
 
     # mpi command
     if args.mpi_bind:
@@ -60,16 +62,16 @@ def make_mpi_command_line(args):
                 str,
                 [
                     "mpirun",
+                     "--np",
+                    n_proc,
+                    *hosting_list,
                     "--report-pid",
                     ".current_process_id",
                     "--enable-recovery",
-                    hosting,
                     "--cpu-set",
                     cpus,
                     "--bind-to",
                     "cpu-list:ordered",
-                    "--np",
-                    n_proc,
                     *connector_commands,
                 ],
             )
@@ -80,16 +82,16 @@ def make_mpi_command_line(args):
                 str,
                 [
                     "mpirun",
+                    '--np',
+                    args.n_proc,
+                    *hosting_list,
                     "--report-pid",
                     ".current_process_id",
                     "--enable-recovery",
-                    hosting,
                     "--map-by",
                     "socket",
                     "--bind-to",
                     "core",
-                    "--np",
-                    args.n_proc,
                     *connector_commands,
                 ],
             )

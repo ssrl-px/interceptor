@@ -11,6 +11,8 @@ import os
 import time
 import zmq
 
+import numpy as np
+
 from threading import Thread
 
 from interceptor import packagefinder, read_config_file
@@ -180,7 +182,11 @@ class Reader(ZMQProcessBase):
         super(Reader, self).__init__(
             name=name, comm=comm, args=args, localhost=localhost
         )
+        self.name = "ZMQ_{:03d}".format(self.rank)
         self.generate_processor()
+
+        # Initialize ZMQ sockets
+        self.initialize_zmq_sockets()
 
     def generate_processor(self, run_mode='DEFAULT'):
         self.processor = FastProcessor(
@@ -193,6 +199,8 @@ class Reader(ZMQProcessBase):
 
     def convert_from_stream(self, frames):
         img_info = {
+            "filename":'dummy_filename.img',
+            "full_path":"dummy_path/dummy_filename.img",
             "state": "import",
             "proc_name": self.name,
             "proc_url": "tcp://{}:{}".format(self.cfg.getstr('host'), self.cfg.getstr(
@@ -315,7 +323,6 @@ class Reader(ZMQProcessBase):
     def write_eiger_file(self):
         eiger_idx = self.rank
         filename = "eiger_{}.stream".format(eiger_idx)
-        self.name = "ZMQ_{:03d}".format(eiger_idx)
         with open(filename, "w") as fh:
             fh.write("EIGERSTREAM")
         return filename
@@ -368,9 +375,6 @@ class Reader(ZMQProcessBase):
         # Write eiger_*.stream file
         filename = self.write_eiger_file()
 
-        # Initialize ZMQ sockets
-        self.initialize_zmq_sockets()
-
         # Start listening for ZMQ stream
         while True:
             time_info = {
@@ -381,24 +385,33 @@ class Reader(ZMQProcessBase):
             try:
                 start = time.time()
                 self.d_socket.send(self.name.encode('utf-8'))
-                expecting_reply = True
-                while expecting_reply:
-                    timeout = self.cfg.getstr('timeout') * 1000 if self.cfg.getstr(
-                        'timeout') else None
-                    if self.d_socket.poll(timeout=timeout):
-                        fstart = time.time()
-                        frames = self.d_socket.recv_multipart()
-                        time_info["receive_time"] = time.time() - fstart
-                        time_info["wait_time"] = time.time() - start - time_info[
-                            "receive_time"]
-                        if self.args.broker:  # if it came from broker, remove first two frames
-                            frames = frames[2:]
-                        expecting_reply = False
-                    else:
-                        # close and re-initialize d_socket
-                        self.d_socket.close()
-                        self.initialize_zmq_sockets(init_r_socket=False)
-                        self.d_socket.send(b"Hello")
+                fstart = time.time()
+                frames = self.d_socket.recv_multipart()
+                time_info["receive_time"] = time.time() - fstart
+                time_info["wait_time"] = time.time() - start - time_info[
+                    "receive_time"]
+                if self.args.broker:  # if it came from broker, remove first two frames
+                    frames = frames[2:]
+
+                # expecting_reply = True
+                # while expecting_reply:
+                    # timeout = self.cfg.getstr('timeout') * 1000 if self.cfg.getstr(
+                        # 'timeout') else None
+                    # if self.d_socket.poll(timeout=timeout):
+                        # fstart = time.time()
+                        # frames = self.d_socket.recv_multipart()
+                        # time_info["receive_time"] = time.time() - fstart
+                        # time_info["wait_time"] = time.time() - start - time_info[
+                            # "receive_time"]
+                        # if self.args.broker:  # if it came from broker, remove first two frames
+                            # frames = frames[2:]
+                        # expecting_reply = False
+                    # else:
+                        # # close and re-initialize d_socket
+                        # self.d_socket.close()
+                        # self.initialize_zmq_sockets(init_r_socket=False)
+                        # self.d_socket.send(b"Hello")
+
             except Exception as exp:
                 print("DEBUG: {} CONNECT FAILED! {}".format(self.name, exp))
                 continue
@@ -407,10 +420,16 @@ class Reader(ZMQProcessBase):
                 if self.args.drain:
                     if self.args.verbose:
                         print(
-                            str(frames[0].bytes[:-1])[3:-2],
+                            str(frames[0][:-1])[3:-2],
                             "({})".format(self.name),
                             "rcv time: {:.4f} sec".format(time_info["receive_time"]),
                         )
+                        if not hasattr(self, "recv_times"):
+                            self.recv_times = [time_info["receive_time"]]
+                        else:
+                            self.recv_times.append(time_info["receive_time"])
+                        print ('median receive time = ', np.median(self.recv_times))
+                        time.sleep(0.01)
                 else:
                     # make data and info dictionaries
                     data, info = self.make_data_dict(frames)
@@ -454,6 +473,10 @@ class Collector(ZMQProcessBase):
         )
         self.readers = {}
         self.advance_stdout = False
+
+        # Debug
+        self.proc_times = []
+        self.recv_times = []
 
     def monitor_splitter_messages(self):
         # listen for messages from the splitter monitor port
@@ -509,6 +532,7 @@ class Collector(ZMQProcessBase):
 
     def understand_info(self, info):
         reader_name = info['proc_name']
+        print ('debug: ', reader_name, info['state'])
         if info["state"] == "connected":
             # add reader index to dictionary of active readers with state "ON"
             self.readers[reader_name] = {
@@ -528,11 +552,14 @@ class Collector(ZMQProcessBase):
             self.readers[reader_name]['status'] = 'IDLE'
             msg = "{} received END-OF-SERIES signal".format(reader_name)
         else:
-            self.readers[reader_name]['status'] = 'WORKING'
-            if info["state"] == "error":
-                msg = "{} DATA ERROR: {}".format(info["proc_name"], info["dat_error"])
-            elif info["state"] != "process":
-                msg = "DEBUG: {} STATE IS ".format(info["state"])
+            if reader_name in self.readers:
+                self.readers[reader_name]['status'] = 'WORKING'
+                if info["state"] == "error":
+                    msg = "{} DATA ERROR: {}".format(info["proc_name"], info["dat_error"])
+                elif info["state"] != "process":
+                    msg = "DEBUG: {} STATE IS ".format(info["state"])
+                else:
+                    return False
             else:
                 return False
 
@@ -615,23 +642,30 @@ class Collector(ZMQProcessBase):
         return ui_msg
 
     def print_to_stdout(self, counter, info, ui_msg):
-        lines = [
-            "*** [{}] ({}) SERIES {}, FRAME {} ({}):".format(
-                counter, info["proc_name"], info["series"], info["frame"],
-                info["full_path"]
-            ),
-            "  {}".format(ui_msg),
-            "  TIME: wait = {:.4f} sec, recv = {:.4f} sec, "
-            "proc = {:.4f} ,total = {:.2f} sec".format(
-                info["wait_time"],
-                info["receive_time"],
-                info["proc_time"],
-                info["total_time"],
-            ),
-            "***\n",
-        ]
+        try:
+            lines = [
+                "*** [{}] ({}) SERIES {}, FRAME {} ({}):".format(
+                    counter, info["proc_name"], info["series"], info["frame"],
+                    info["full_path"]
+                ),
+                "  {}".format(ui_msg),
+                "  TIME: wait = {:.4f} sec, recv = {:.4f} sec, "
+                "proc = {:.4f} ,total = {:.2f} sec".format(
+                    info["wait_time"],
+                    info["receive_time"],
+                    info["proc_time"],
+                    info["total_time"],
+                ),
+                "***\n",
+            ]
+            self.proc_times.append(info['proc_time'])
+            self.recv_times.append(info['receive_time'])
+        except Exception as e:
+            print(e)
         for ln in lines:
             print(ln)
+            print("proc = {:.2f}, recv = {:.2f}".format(
+                    np.median(self.proc_times), np.median(self.recv_times)))
         if self.args.record:
             self.write_to_file(lines)
 

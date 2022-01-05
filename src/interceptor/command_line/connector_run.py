@@ -144,7 +144,6 @@ def parse_command_args():
 
     return parser
 
-
 def entry_point():
     args, _ = parse_command_args().parse_known_args()
     localhost = 'localhost'
@@ -157,6 +156,7 @@ def entry_point():
             comm_world = MPI.COMM_WORLD
             rank = comm_world.Get_rank()
             localhost = MPI.Get_processor_name().split('.')[0]
+            print ('debug: rank = ', rank)
             if rank == 0:
                 script = Collector(comm=comm_world, args=args, localhost=localhost)
             elif rank == 1:
@@ -177,6 +177,28 @@ def entry_point():
 
 
 if __name__ == "__main__":
-    entry_point()
+    try:
+        from line_profiler import LineProfiler
+    except ImportError:
+        LineProfiler = None
+
+    RUN = entry_point
+    lp = None
+
+    from interceptor.connector.processor import FastProcessor
+
+    if LineProfiler is not None:
+        lp = LineProfiler()
+        lp.add_function(FastProcessor.process)
+        RUN = lp(entry_point)
+
+    try:
+        RUN()
+    except KeyboardInterrupt:
+        if lp is not None:
+            stats = lp.get_stats()
+            from utils import print_profile
+            print_profile(stats,
+                    ["process"] )
 
 # -- end

@@ -44,6 +44,61 @@ from dials.command_line import refine_bravais_settings as rbs
 
 import json
 
+# Custom PHIL for processing with DIALS stills processor
+custom_param_string = """
+output {
+  experiments_filename = None
+  indexed_filename = None
+  strong_filename = None
+  refined_experiments_filename = None
+  integrated_experiments_filename = None
+  integrated_filename = None
+  profile_filename = None
+  integration_pickle = None
+  composite_output = False
+}
+spotfinder {
+  filter {
+    max_spot_size = 1000
+  }
+  threshold {
+    algorithm = *dispersion dispersion_extended
+    dispersion {
+      gain = 1
+      global_threshold = 0
+    }
+  }
+}
+indexing {
+  refinement_protocol {
+    d_min_start = 2.0
+  }
+  stills {
+    indexer = Auto *stills sequences
+    method_list = fft3d fft1d real_space_grid_search
+  }
+  basis_vector_combinations {
+    max_combinations = 10
+  }
+}
+integration {
+  background {
+    simple {
+      outlier {
+        algorithm = *null nsigma truncated normal plane tukey
+      }
+    }
+  }
+}
+significance_filter {
+  enable = True
+  d_min = None
+  n_bins = 20
+  isigi_cutoff = 1.0
+}
+"""
+custom_phil = ip.parse(custom_param_string)
+custom_params = dials_scope.fetch(source=custom_phil).extract()
 
 
 def make_experiments(data, filename):
@@ -335,61 +390,6 @@ class FastProcessor(Processor):
             configfile=None,
             test=False,
     ):
-        # Custom PHIL for processing with DIALS stills processor
-        custom_param_string = """
-        output {
-          experiments_filename = None
-          indexed_filename = None
-          strong_filename = None
-          refined_experiments_filename = None
-          integrated_experiments_filename = None
-          integrated_filename = None
-          profile_filename = None
-          integration_pickle = None
-        }
-        spotfinder {
-          filter {
-            max_spot_size = 1000
-          }
-          threshold {
-            algorithm = *dispersion dispersion_extended
-            dispersion {
-              gain = 1
-              global_threshold = 0
-            }
-          }
-        }
-        indexing {
-          refinement_protocol {
-            d_min_start = 2.0
-          }
-          stills {
-            indexer = Auto *stills sequences
-            method_list = fft3d fft1d real_space_grid_search
-          }
-          basis_vector_combinations {
-            max_combinations = 10
-          }
-        }
-        integration {
-          background {
-            simple {
-              outlier {
-                algorithm = *null nsigma truncated normal plane tukey
-              }
-            }
-          }
-        }
-        significance_filter {
-          enable = True
-          d_min = None
-          n_bins = 20
-          isigi_cutoff = 1.0
-        }
-        """
-        custom_phil = ip.parse(custom_param_string)
-        custom_params = dials_scope.fetch(source=custom_phil).extract()
-
         self.processing_mode = 'spotfinding'
         self.test = test
         self.run_mode = run_mode
