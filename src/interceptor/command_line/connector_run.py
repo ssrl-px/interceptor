@@ -156,7 +156,6 @@ def entry_point():
             comm_world = MPI.COMM_WORLD
             rank = comm_world.Get_rank()
             localhost = MPI.Get_processor_name().split('.')[0]
-            print ('debug: rank = ', rank)
             if rank == 0:
                 script = Collector(comm=comm_world, args=args, localhost=localhost)
             elif rank == 1:

@@ -437,7 +437,6 @@ class Reader(ZMQProcessBase):
                     # handle different info scenarios
                     # some unknown error
                     if info is None:
-                        print("debug: info is None!")
                         continue
                     # normal processing info
                     elif info["state"] == "process":
@@ -532,7 +531,6 @@ class Collector(ZMQProcessBase):
 
     def understand_info(self, info):
         reader_name = info['proc_name']
-        print ('debug: ', reader_name, info['state'])
         if info["state"] == "connected":
             # add reader index to dictionary of active readers with state "ON"
             self.readers[reader_name] = {

@@ -818,7 +818,6 @@ class TrackerWindow(wx.Frame):
             for info in info_list:
                 run_no = info["run_no"]
                 if run_no not in self.track_panels:
-                    print("debug: creating new run #", run_no)
                     self.create_new_run(run_no=run_no)
                 if run_no in new_data_dict:
                     new_data_dict[run_no].append(

@@ -36,7 +36,6 @@ def make_mpi_command_line(args):
     if args.host:
         hosts = ['--host']
         hosts.extend(args.host)
-        print ('debug: ', hosts, args.host)
         hosting_list.extend(hosts)
     #hosting = ' '.join(hosting_list) if hosting_list else ''
 
@@ -65,6 +64,7 @@ def make_mpi_command_line(args):
                      "--np",
                     n_proc,
                     *hosting_list,
+                    "--use-hwthread-cpus",
                     "--report-pid",
                     ".current_process_id",
                     "--enable-recovery",
@@ -85,6 +85,7 @@ def make_mpi_command_line(args):
                     '--np',
                     args.n_proc,
                     *hosting_list,
+                    "--use-hwthread-cpus",
                     "--report-pid",
                     ".current_process_id",
                     "--enable-recovery",
