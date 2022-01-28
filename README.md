@@ -52,14 +52,14 @@ cp -av /usr/include/KHR build/include
 python3 bootstrap.py
 ```
 
-### Installing PyZMQ, mpi4py, and bitshuffle:
+### Installing PyZMQ, mpi4py, setproctitle, and bitshuffle:
 
 5. In the DIALS install folder, source the paths (if you have DIALS installed as a module, in a container, etc., you may have to source it in a different manner):
 ```
 source ./dials
 ```
 
-6. Install PyZMQ and mpi4py:
+6. Install PyZMQ, mpi4py, and setproctitle:
 ```
 libtbx.pip install zmq mpi4py
 ```
