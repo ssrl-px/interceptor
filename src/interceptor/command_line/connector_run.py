@@ -87,6 +87,12 @@ def parse_command_args():
         help='Filepath for a list of hosts on which to launch Interceptor workers',
     )
     parser.add_argument(
+        "-t", "--title",
+        type=str,
+        default='intxr',
+        help='Process title name (useful for process-specific termination)',
+    )
+    parser.add_argument(
         "--collector_host",
         type=str,
         default=None,

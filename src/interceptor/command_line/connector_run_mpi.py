@@ -10,6 +10,7 @@ Description : Launches multiple ZMQ Connector instances via MPI
 import os
 import time
 import procrunner
+import setproctitle
 
 from interceptor.command_line.connector_run import parse_command_args
 
@@ -101,7 +102,13 @@ def make_mpi_command_line(args):
 
 
 def entry_point():
+
+    # parse command-line args
     args, _ = parse_command_args().parse_known_args()
+
+    # set process title
+    setproctitle.setproctitle(args.title)
+
     command = make_mpi_command_line(args)
     # run mpi
     print(" ".join(command))
