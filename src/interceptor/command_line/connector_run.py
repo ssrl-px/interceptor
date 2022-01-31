@@ -20,6 +20,7 @@ bl121proc00 --port 8121 --last_stage spotfinding --verbose
 """
 
 import argparse
+import setproctitle
 
 from interceptor import __version__ as intxr_version
 from interceptor import packagefinder
@@ -89,7 +90,7 @@ def parse_command_args():
     parser.add_argument(
         "-t", "--title",
         type=str,
-        default='intxr',
+        default=None,
         help='Process title name (useful for process-specific termination)',
     )
     parser.add_argument(
@@ -150,8 +151,16 @@ def parse_command_args():
 
     return parser
 
+
 def entry_point():
     args, _ = parse_command_args().parse_known_args()
+
+    # set process title
+    if args.title is not None:
+        setproctitle.setproctitle(args.title)
+    else:
+        setproctitle.setproctitle('i-{}'.format(args.beamline))
+
     localhost = 'localhost'
     if args.rank == -999:
         try:
@@ -203,7 +212,8 @@ if __name__ == "__main__":
         if lp is not None:
             stats = lp.get_stats()
             from utils import print_profile
+
             print_profile(stats,
-                    ["process"] )
+                          ["process"])
 
 # -- end

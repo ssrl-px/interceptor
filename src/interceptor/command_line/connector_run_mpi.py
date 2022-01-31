@@ -7,10 +7,10 @@ Last Changed: 10/14/2020
 Description : Launches multiple ZMQ Connector instances via MPI
 """
 
+import setproctitle
 import os
 import time
 import procrunner
-import setproctitle
 
 from interceptor.command_line.connector_run import parse_command_args
 
@@ -38,7 +38,7 @@ def make_mpi_command_line(args):
         hosts = ['--host']
         hosts.extend(args.host)
         hosting_list.extend(hosts)
-    #hosting = ' '.join(hosting_list) if hosting_list else ''
+    # hosting = ' '.join(hosting_list) if hosting_list else ''
 
     # mpi command
     if args.mpi_bind:
@@ -62,7 +62,7 @@ def make_mpi_command_line(args):
                 str,
                 [
                     "mpirun",
-                     "--np",
+                    "--np",
                     n_proc,
                     *hosting_list,
                     "--use-hwthread-cpus",
@@ -102,31 +102,18 @@ def make_mpi_command_line(args):
 
 
 def entry_point():
-
     # parse command-line args
     args, _ = parse_command_args().parse_known_args()
 
     # set process title
-    setproctitle.setproctitle(args.title)
+    if args.title is not None:
+        setproctitle.setproctitle(args.title)
+    else:
+        setproctitle.setproctitle('i-{}'.format(args.beamline))
 
     command = make_mpi_command_line(args)
     # run mpi
     print(" ".join(command))
-    try:
-        with open('.current_process_id') as pidf:
-            cpid = pidf.read()[:-1]
-        print("Found Interceptor process with PID {}. Terminating.".format(cpid))
-        try:
-            kill_cmd = ['kill', '-9', cpid]
-            result = procrunner.run(kill_cmd)
-            os.remove('.current_process_id')
-        except Exception as e:
-            print(
-                "ERROR: Could not terminate process with PID {}, due to error: {}".format(
-                    cpid, e))
-    except FileNotFoundError:
-        pass
-
     if not args.dry_run:
         start = time.time()
         try:
