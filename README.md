@@ -61,7 +61,7 @@ source ./dials
 
 6. Install PyZMQ, mpi4py, and setproctitle:
 ```
-libtbx.pip install zmq mpi4py
+libtbx.pip install zmq mpi4py setproctitle
 ```
 
 7. `bitshuffle` has to be installed within the miniconda environment (conda.csh for cshell, conda.sh for bash):
