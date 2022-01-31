@@ -28,7 +28,7 @@ Interceptor is a work in progress. As such it's currently only been shown to wor
 1. Create a fresh folder ad download the bootstrap.py file:
 
 ```
-wget https://github.com/dials/dials/releases/download/v3.1.0/bootstrap.py
+wget https://raw.githubusercontent.com/dials/dials/main/installer/bootstrap.py
 ```
 
 2. If don’t have wget:
