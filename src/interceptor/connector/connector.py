@@ -16,7 +16,7 @@ import numpy as np
 from threading import Thread
 
 from interceptor import packagefinder, read_config_file
-from interceptor.connector.processor import FastProcessor
+from interceptor.connector.processor import ZMQProcessor
 from interceptor.connector import utils
 
 
@@ -189,7 +189,7 @@ class Reader(ZMQProcessBase):
         self.initialize_zmq_sockets()
 
     def generate_processor(self, run_mode='DEFAULT'):
-        self.processor = FastProcessor(
+        self.processor = ZMQProcessor(
             run_mode=run_mode,
             configfile=self.cfg.getstr('processing_config_file'),
             test=self.args.test,

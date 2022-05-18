@@ -1,7 +1,7 @@
 [console_scripts]
 intxr.connect = interceptor.command_line.connector_run:entry_point
 intxr.connect_mpi = interceptor.command_line.connector_run_mpi:entry_point
-intxr.strategy = interceptor.command_line.strategy_process:entry_point
+intxr.strategy = interceptor.command_line.strategy_process:entry_pointintxr.score = interceptor.command_line.image_score:entry_point
 
 [dxtbx.format]
 FormatEigerStreamSSRL:FormatEigerStream = interceptor.format.FormatEigerStreamSSRL:FormatEigerStreamSSRL
@@ -13,5 +13,6 @@ intxr.gui = interceptor.command_line.ui_run:entry_point
 intxr.connect = intxr.connect
 intxr.connect_mpi = intxr.connect_mpi
 intxr.gui = intxr.gui
+intxr.score = intxr.score
 intxr.strategy = intxr.strategy
 

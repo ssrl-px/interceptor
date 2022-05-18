@@ -199,11 +199,11 @@ if __name__ == "__main__":
     RUN = entry_point
     lp = None
 
-    from interceptor.connector.processor import FastProcessor
+    from interceptor.connector.processor import ZMQProcessor
 
     if LineProfiler is not None:
         lp = LineProfiler()
-        lp.add_function(FastProcessor.process)
+        lp.add_function(ZMQProcessor.process)
         RUN = lp(entry_point)
 
     try:

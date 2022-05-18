@@ -13,7 +13,7 @@ from iotbx import phil as ip
 from dxtbx.model.experiment_list import ExperimentListFactory
 
 from interceptor.format import FormatEigerStreamSSRL
-from interceptor.connector.processor import FastProcessor
+from interceptor.connector.processor import ZMQProcessor
 
 from iota.components.iota_utils import Capturing
 
@@ -176,7 +176,7 @@ def read_file(args, number=1):
 
 
 def run_proc(args, data, info, filename, number=1):
-    processor = FastProcessor(last_stage=args.last_stage, phil_file=args.phil)
+    processor = ZMQProcessor(last_stage=args.last_stage, phil_file=args.phil)
     with Capturing() as junk:
         t_start = time.time()
         info = processor.run(data, filename, info)

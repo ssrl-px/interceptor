@@ -16,7 +16,7 @@ from cctbx import sgtbx, crystal
 from iotbx import phil as ip
 from spotfinder.array_family import flex
 
-from dials.command_line.stills_process import Processor, phil_scope as dials_scope
+from iota.base.processor import Processor, phil_scope as dials_scope
 from dials.command_line.refine_bravais_settings import (
     phil_scope as sg_scope,
     bravais_lattice_to_space_group_table,
@@ -99,15 +99,6 @@ significance_filter {
 """
 custom_phil = ip.parse(custom_param_string)
 custom_params = dials_scope.fetch(source=custom_phil).extract()
-
-
-def make_experiments(data, filename):
-    # make experiments
-    e_start = time.time()
-    FormatEigerStreamSSRL.inject_data(data)
-    experiments = ExperimentListFactory.from_filenames([filename])
-    e_time = time.time() - e_start
-    return experiments, e_time
 
 
 class ImageScorer(object):
@@ -382,14 +373,8 @@ class ImageScorer(object):
 
         return score
 
-
-class FastProcessor(Processor):
-    def __init__(
-            self,
-            run_mode='DEFAULT',
-            configfile=None,
-            test=False,
-    ):
+class InterceptorBaseProcessor(object):
+    def __init__(self, run_mode='DEFAULT', configfile=None, test=False):
         self.processing_mode = 'spotfinding'
         self.test = test
         self.run_mode = run_mode
@@ -408,8 +393,8 @@ class FastProcessor(Processor):
         # Generate DIALS Stills Processor params
         params, self.dials_phil = self.generate_params()
 
-        # Initialize Stills Processor
-        Processor.__init__(self, params=params)
+        # Instantiate Stills Processor
+        self.processor = Processor(params=params)
 
     def generate_params(self):
         # read in DIALS settings from PHIL file
@@ -428,92 +413,131 @@ class FastProcessor(Processor):
         diff_phil.show()
         print("\n")
 
-    def refine_bravais_settings(self, reflections, experiments):
-        sgparams = sg_scope.fetch(self.dials_phil).extract()
-        sgparams.refinement.reflections.outlier.algorithm = "tukey"
-        crystal_P1 = copy.deepcopy(experiments[0].crystal)
+    @staticmethod
+    def make_experiments(filename, data=None):
+        # make experiments
+        e_start = time.time()
+        if data:
+            FormatEigerStreamSSRL.inject_data(data)
+        experiments = ExperimentListFactory.from_filenames([filename])
+        e_time = time.time() - e_start
+        return experiments, e_time
 
-        try:
-            refined_settings = refined_settings_from_refined_triclinic(
-                experiments=experiments, reflections=reflections, params=sgparams
-            )
-            possible_bravais_settings = {s["bravais"] for s in refined_settings}
-            bravais_lattice_to_space_group_table(possible_bravais_settings)
-        except Exception:
-            for expt in experiments:
-                expt.crystal = crystal_P1
-            return None
 
-        lattice_to_sg_number = {
-            "aP": 1,
-            "mP": 3,
-            "mC": 5,
-            "oP": 16,
-            "oC": 20,
-            "oF": 22,
-            "oI": 23,
-            "tP": 75,
-            "tI": 79,
-            "hP": 143,
-            "hR": 146,
-            "cP": 195,
-            "cF": 196,
-            "cI": 197,
-        }
-        filtered_lattices = {}
-        for key, value in lattice_to_sg_number.items():
-            if key in possible_bravais_settings:
-                filtered_lattices[key] = value
+class FileProcessor(InterceptorBaseProcessor):
+    def __init__(
+            self,
+            run_mode='DEFAULT',
+            configfile=None,
+            test=False,
+    ):
+        InterceptorBaseProcessor.__init__(self, run_mode=run_mode,
+                                          configfile=configfile, test=test)
 
-        highest_sym_lattice = max(filtered_lattices, key=filtered_lattices.get)
-        highest_sym_solutions = [
-            s for s in refined_settings if s["bravais"] == highest_sym_lattice
-        ]
-        if len(highest_sym_solutions) > 1:
-            highest_sym_solution = sorted(
-                highest_sym_solutions, key=lambda x: x["max_angular_difference"]
-            )[0]
+    def process(self, filename, info):
+        info["phil"] = self.dials_phil.as_str()
+
+        # Make ExperimentList object
+        experiments, e_time = self.make_experiments(filename)
+
+        # Spotfinding
+        with Capturing() as spf_output:
+            try:
+                observed = self.processor.find_spots(experiments)
+            except Exception as err:
+                import traceback
+
+                spf_tb = traceback.format_exc()
+                info["spf_error"] = "SPF ERROR: {}".format(str(err))
+                info['spf_error_tback'] = spf_tb
+                return info
+            else:
+                if observed.size() >= self.cfg.getint('min_Bragg_peaks'):
+                    scorer = ImageScorer(experiments, observed, config=self.cfg)
+                    try:
+                        if self.cfg.getboolean('spf_calculate_score'):
+                            info["score"] = scorer.calculate_score()
+                        else:
+                            info["score"] = -999
+                            scorer.calculate_stats()
+                    except Exception as e:
+                        info["n_spots"] = 0
+                        info["scr_error"] = "SCORING ERROR: {}".format(e)
+                    else:
+                        info["n_spots"] = scorer.n_spots
+                        info["hres"] = scorer.hres
+                        info["n_ice_rings"] = scorer.n_ice_rings
+                        info["n_overloads"] = scorer.n_overloads
+                        info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
+                else:
+                    info["n_spots"] = observed.size()
+
+        # Doing it here because scoring can reject spots within ice rings, which can
+        # drop the number below the minimal limit
+        if info['n_spots'] < self.cfg.getint('min_Bragg_peaks'):
+            info[
+                "spf_error"] = "Too few ({}) spots found!".format(
+                observed.size())
+
+        # if last stage was selected to be "spotfinding", stop here; otherwise
+        # perform a speed check before proceeding to indexing
+        if self.cfg.getstr('processing_mode') == "spotfinding" or info["n_spots"] <= \
+                self.cfg.getint('min_Bragg_peaks'):
+            return info
         else:
-            highest_sym_solution = highest_sym_solutions[0]
+            exposure_time_cutoff = self.cfg.getfloat('exposure_time_cutoff')
+            if exposure_time_cutoff > info['exposure_time']:
+                return info
 
-        return highest_sym_solution
+        # Indexing
+        with Capturing() as idx_output:
+            try:
+                experiments, indexed = self.processor.index(experiments, observed)
+                solution = self.processor.refine_bravais_settings(indexed, experiments)
+                if solution is not None:
+                    experiments, indexed = self.processor.reindex(indexed, experiments,
+                                                        solution)
+                else:
+                    info[
+                        "rix_error"] = "reindex error: symmetry solution not found!"
+                if len(indexed) == 0:
+                    info["idx_error"] = "index error: no indexed reflections!"
+            except Exception as err:
+                info["idx_error"] = "index error: {}".format(str(err))
+                return info
+            else:
+                if indexed:
+                    lat = experiments[0].crystal.get_space_group().info()
+                    sg = str((lat)).replace(" ", "")
+                    unit_cell = experiments[0].crystal.get_unit_cell().parameters()
+                    uc = " ".join(["{:.2f}".format(i) for i in unit_cell])
+                    info["n_indexed"] = len(indexed)
+                    info["sg"] = sg
+                    info["uc"] = uc
 
-    def reindex(self, reflections, experiments, solution):
-        """ Reindex with newly-determined space group / unit cell """
+        # if last step was 'indexing', stop here
+        if "index" in self.cfg.getstr('processing_mode'):
+            return info
 
-        # Update space group / unit cell
-        experiment = experiments[0]
-        experiment.crystal.update(solution.refined_crystal)
+    def run(self, filename, info):
+        return self.process(filename, info)
 
-        # Change basis
-        cb_op = solution["cb_op_inp_best"].as_abc()
-        change_of_basis_op = sgtbx.change_of_basis_op(cb_op)
-        miller_indices = reflections["miller_index"]
-        non_integral_indices = change_of_basis_op.apply_results_in_non_integral_indices(
-            miller_indices
-        )
-        sel = flex.bool(miller_indices.size(), True)
-        sel.set_selected(non_integral_indices, False)
-        miller_indices_reindexed = change_of_basis_op.apply(miller_indices.select(sel))
-        reflections["miller_index"].set_selected(sel, miller_indices_reindexed)
-        reflections["miller_index"].set_selected(~sel, (0, 0, 0))
 
-        return experiments, reflections
-
-    def pg_and_reindex(self, indexed, experiments):
-        """ Find highest-symmetry Bravais lattice """
-        solution = self.refine_bravais_settings(indexed, experiments)
-        if solution is not None:
-            experiments, indexed = self.reindex(indexed, experiments, solution)
-            return experiments, indexed, "success"
-        else:
-            return experiments, indexed, "failed"
+class ZMQProcessor(InterceptorBaseProcessor):
+    def __init__(
+            self,
+            run_mode='DEFAULT',
+            configfile=None,
+            test=False,
+    ):
+        InterceptorBaseProcessor.__init__(self, run_mode=run_mode,
+                                          configfile=configfile, test=test)
 
     def process(self, data, filename, info):
         info["phil"] = self.dials_phil.as_str()
 
         # Make ExperimentList object
-        experiments, e_time = make_experiments(data, filename)
+        experiments, e_time = self.make_experiments(data, filename)
 
         # Spotfinding
         with Capturing() as spf_output:
@@ -604,9 +628,8 @@ def calculate_score(experiments, observed):
     print("scoring time: {:.5f} seconds".format(time.time() - score_start))
     print("total time: {:.5f} seconds".format(time.time() - start))
 
-
 if __name__ == "__main__":
-    proc = FastProcessor()
+    proc = ZMQProcessor()
     proc.dials_phil.show()
 
 # -- end
