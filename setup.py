@@ -23,7 +23,7 @@ setuptools.setup(
             "intxr.connect = interceptor.command_line.connector_run:entry_point",
             "intxr.connect_mpi = "
             "interceptor.command_line.connector_run_mpi:entry_point",
-            "intxr.strategy = interceptor.command_line.strategy_process:entry_point"
+            "intxr.strategy = interceptor.command_line.strategy_process:entry_point",
             "intxr.score = interceptor.command_line.image_score:entry_point",
         ],
         "gui_scripts": [

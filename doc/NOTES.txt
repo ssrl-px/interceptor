@@ -1,8 +1,7 @@
-06.23.2021 - 0.22.0
+06.20.2022 - 0.24.0
 
-- Added a "rank" option to startup options to launch individual Interceptor processes
-without MPI; rank of 0 launches Collector, any other rank launches a worker (unless the
-broker option is selected, and then rank 1 launches Connector)
-
-- Added "host" and "hostfile" options to run MPI on a different host, but that's not
-working very well
+- File compatible Interceptor
+- Added "file" mode to processing modes (may tinker with this later)
+- Should work for basically any detector
+- A lot of header info is lost, has to be entered via command line args
+- Processes one file at a time

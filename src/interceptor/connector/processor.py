@@ -6,8 +6,6 @@ Created     : 03/31/2020
 Last Changed: 05/15/2020
 Description : Streaming stills processor for live data analysis
 """
-
-import copy
 import time  # noqa: F401; keep around for testing
 
 import numpy as np
@@ -16,14 +14,6 @@ from cctbx import sgtbx, crystal
 from iotbx import phil as ip
 from spotfinder.array_family import flex
 
-from iota.base.processor import Processor, phil_scope as dials_scope
-from dials.command_line.refine_bravais_settings import (
-    phil_scope as sg_scope,
-    bravais_lattice_to_space_group_table,
-)
-from dials.algorithms.indexing.bravais_settings import (
-    refined_settings_from_refined_triclinic,
-)
 from dials.algorithms.spot_finding import per_image_analysis
 from dials.array_family import flex
 from dxtbx.model.experiment_list import ExperimentListFactory
@@ -33,16 +23,8 @@ from cctbx.miller import index_generator
 
 from interceptor import packagefinder, read_config_file
 from interceptor.format import FormatEigerStreamSSRL
-from iota.components.iota_utils import Capturing
-
-from dials.util.options import OptionParser, flatten_experiments
-from dials.util.multi_dataset_handling import generate_experiment_identifiers
-from dials.util.options import flatten_experiments
-from dials.command_line.index import index
-from dials.command_line.integrate import run_integration
-from dials.command_line import refine_bravais_settings as rbs
-
-import json
+from iota.base.processor import Processor, phil_scope as dials_scope
+from iota.utils.utils import Capturing
 
 # Custom PHIL for processing with DIALS stills processor
 custom_param_string = """
@@ -373,6 +355,7 @@ class ImageScorer(object):
 
         return score
 
+
 class InterceptorBaseProcessor(object):
     def __init__(self, run_mode='DEFAULT', configfile=None, test=False):
         self.processing_mode = 'spotfinding'
@@ -427,7 +410,7 @@ class InterceptorBaseProcessor(object):
 class FileProcessor(InterceptorBaseProcessor):
     def __init__(
             self,
-            run_mode='DEFAULT',
+            run_mode='file',
             configfile=None,
             test=False,
     ):
@@ -471,6 +454,7 @@ class FileProcessor(InterceptorBaseProcessor):
                         info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
                 else:
                     info["n_spots"] = observed.size()
+
 
         # Doing it here because scoring can reject spots within ice rings, which can
         # drop the number below the minimal limit
@@ -520,8 +504,10 @@ class FileProcessor(InterceptorBaseProcessor):
             return info
 
     def run(self, filename, info):
-        return self.process(filename, info)
-
+        start = time.time()
+        info = self.process(filename, info)
+        info['proc_time'] = time.time() - start
+        return info
 
 class ZMQProcessor(InterceptorBaseProcessor):
     def __init__(

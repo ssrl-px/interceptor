@@ -10,12 +10,14 @@ Description : File processor will process single image
 import os
 import argparse
 from interceptor import __version__ as intxr_version
+from interceptor import packagefinder, read_config_file
 from interceptor.connector.processor import FileProcessor
+from interceptor.connector import make_result_string, print_to_stdout
 
 def parse_command_args():
     """ Parses command line arguments (only options for now) """
     parser = argparse.ArgumentParser(
-        prog="connector_run.py",
+        prog="intxr.score",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=("ZMQ Stream Connector"),
         epilog=("\n{:-^70}\n".format("")),
@@ -34,6 +36,10 @@ def parse_command_args():
         help="Prints version info of Interceptor",
     )
     parser.add_argument(
+        "-b",
+        "--beamline", type=str, default='DEFAULT', help="Beamline of the experiment",
+    )
+    parser.add_argument(
         "-c",
         "--processing_config",
         type=str,
@@ -44,40 +50,88 @@ def parse_command_args():
         "-m",
         "--processing_mode",
         type=str,
-        default='spotfinding',
+        default='file',
         help='Provide processing run mode, e.g. "spotfinding", "indexing", etc.',
     )
+    parser.add_argument(
+        "-s",
+        "--series",
+        type=int,
+        default=-1,
+        help='Series number',
+    )
+    parser.add_argument(
+        "-f",
+        "--frame",
+        type=int,
+        default=-1,
+        help='Frame number',
+    )
+    parser.add_argument(
+        "--mapping",
+        type=str,
+        default=None,
+        help='Mapping string',
+    )
+    parser.add_argument(
+        "--exposure_time",
+        type=float,
+        default=0.1,
+        help='Exposure time',
+    )
+
     return parser
+
 
 def entry_point():
     args, _ = parse_command_args().parse_known_args()
     if not args.path:
         print ("A image filepath needs to be provided")
-    elif not os.path.isfile(args.path):
+    elif not os.path.isfile(args.path[0]):
         print ("{} is not a valid filepath".format(args.path))
+
+    # determine processing config file
+    if os.path.isfile(args.processing_config):
+        config = read_config_file(args.processing_config)
+    else:
+        config = packagefinder('processing.cfg', 'connector', read_config=True)
+    try:
+        cfg = config[args.beamline]
+    except KeyError:
+        cfg = config['DEFAULT']
+    p_configfile = cfg['processing_config_file']
 
     # initialize processor
     processor = FileProcessor(
         run_mode=args.processing_mode,
-        configfile=args.processing_config
+        configfile=p_configfile,
     )
 
     # initialize info dictionary object
-    img_path = os.path.abspath(args.path)
+    img_path = os.path.abspath(args.path[0])
     init_info = {
         "filename": os.path.basename(img_path),
         "full_path": img_path,
-        "series": -1,
-        "frame": -1,
+        "proc_name": "{}_1".format(args.beamline),
+        "wait_time": 0,
+        "receive_time": 0,
+        "proc_time": 0,
+        "total_time": 0,
+        "series": args.series,
+        "frame": args.frame,
         "run_mode": args.processing_mode,
+        "exposure_time": 0.1,
         "mapping": "",
+        "sg": None,
+        "uc": None,
     }
 
+    # Run processor
     info = processor.run(filename=img_path, info=init_info)
+    info['total_time'] += info['proc_time']
 
-    print("File {} processed! Results: ".format(info['filename']))
-    print("  No. spots found :    {}".format(info['n_spots']))
-    print("  Image score     :    {}".format(info['score']))
-    print("  Error           :    {}".format(info['spf_error']))
+    # assemble output and print to stdout
+    ui_msg = make_result_string(info, cfg)
+    print_to_stdout(counter=0, info=info, ui_msg=ui_msg)
 
 # --> end
