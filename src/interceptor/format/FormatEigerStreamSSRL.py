@@ -4,7 +4,6 @@ import json
 import numpy as np
 from scitbx.array_family import flex
 
-from dxtbx.format import FormatEigerStream
 from cctbx.eltbx import attenuation_coefficient
 from dxtbx.model import ParallaxCorrectedPxMmStrategy
 from dxtbx.format.FormatPilatusHelpers import determine_eiger_mask
