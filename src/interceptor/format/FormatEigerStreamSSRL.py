@@ -42,7 +42,7 @@ injected_data = {}
 
 
 def inject_data(data):
-    FormatEigerStream.injected_data = data
+    FormatEigerStreamSSRL.injected_data = data
 
 
 class FormatEigerStreamSSRL(FormatMultiImage, Format):
