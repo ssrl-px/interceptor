@@ -1,7 +1,4 @@
-06.20.2022 - 0.24.0
+06.20.2022 - 0.24.1
 
-- File compatible Interceptor
-- Added "file" mode to processing modes (may tinker with this later)
-- Should work for basically any detector
-- A lot of header info is lost, has to be entered via command line args
-- Processes one file at a time
+- modified FormatEigerStreamSSRL to not rely on FormatEigerStream, which was removed
+without consultation or warning.
