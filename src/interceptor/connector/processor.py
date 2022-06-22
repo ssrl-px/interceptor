@@ -523,12 +523,12 @@ class ZMQProcessor(InterceptorBaseProcessor):
         info["phil"] = self.dials_phil.as_str()
 
         # Make ExperimentList object
-        experiments, e_time = self.make_experiments(data, filename)
+        experiments, e_time = self.make_experiments(data=data, filename=filename)
 
         # Spotfinding
         with Capturing() as spf_output:
             try:
-                observed = self.find_spots(experiments)
+                observed = self.processor.find_spots(experiments)
             except Exception as err:
                 import traceback
                 spf_tb = traceback.format_exc()
@@ -576,10 +576,10 @@ class ZMQProcessor(InterceptorBaseProcessor):
         # Indexing
         with Capturing() as idx_output:
             try:
-                experiments, indexed = self.index(experiments, observed)
-                solution = self.refine_bravais_settings(indexed, experiments)
+                experiments, indexed = self.processor.index(experiments, observed)
+                solution = self.processor.refine_bravais_settings(indexed, experiments)
                 if solution is not None:
-                    experiments, indexed = self.reindex(indexed, experiments, solution)
+                    experiments, indexed = self.processor.reindex(indexed, experiments, solution)
                 else:
                     info["rix_error"] = "reindex error: symmetry solution not found!"
                 if len(indexed) == 0:
