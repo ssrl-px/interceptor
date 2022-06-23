@@ -9,7 +9,7 @@ setuptools.setup(
     long_description_content_type="text/x-rst",
     author="Artem Y. Lyubimov",
     author_email="lyubimov@stanford.edu",
-    version="0.24.3",
+    version="0.24.4",
     url="https://github.com/ssrl-px/interceptor",
     license="BSD",
     install_requires=[],
@@ -30,8 +30,8 @@ setuptools.setup(
             "intxr.gui = interceptor.command_line.ui_run:entry_point",
         ],
         "dxtbx.format": [
-            "FormatEigerStreamSSRL:FormatEigerStream = "
-            "interceptor.format.FormatEigerStreamSSRL:FormatEigerStreamSSRL",
+            "FormatEigerStream:FormatEigerStream = "
+            "interceptor.format.FormatEigerStream:FormatEigerStream",
         ],
         "libtbx.dispatcher.script": [
             "intxr.gui = intxr.gui",

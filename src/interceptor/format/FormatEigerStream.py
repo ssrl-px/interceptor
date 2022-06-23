@@ -1,18 +1,17 @@
 import json
-
 import numpy as np
 
-from scitbx import matrix
 from scitbx.array_family import flex
+from cctbx.eltbx import attenuation_coefficient
 
 from dxtbx import IncorrectFormatError
 from dxtbx.format.Format import Format
 from dxtbx.format.FormatMultiImage import FormatMultiImage
-from dxtbx.format.FormatPilatusHelpers import get_vendortype_eiger
+from dxtbx.format.FormatPilatusHelpers import get_vendortype_eiger, determine_eiger_mask
 from dxtbx.model.beam import BeamFactory
-from dxtbx.model.detector import DetectorFactory
 from dxtbx.model.goniometer import GoniometerFactory
 from dxtbx.model.scan import ScanFactory
+from dxtbx.model import ParallaxCorrectedPxMmStrategy
 
 try:
     import lz4
@@ -34,10 +33,12 @@ class FormatEigerStream(FormatMultiImage, Format):
 
     @staticmethod
     def understand(image_file):
-        return bool(injected_data)
-
-    def get_num_images(*args):
-        return 1
+        with open(image_file, 'r') as imgf:
+            s = imgf.read().strip()
+            if "EIGERSTREAM" in s:  # this is the expected string in dummy file
+                return True
+            else:
+                return False
 
     def __init__(self, image_file, **kwargs):
         if not injected_data:
@@ -59,50 +60,67 @@ class FormatEigerStream(FormatMultiImage, Format):
         self.setup()
 
     def _detector(self):
-        """
-        Create the detector model
-        """
+        """ Create an Eiger detector profile (taken from FormatCBFMiniEiger) """
         configuration = self.header["configuration"]
         info = self.header["info"]
 
-        #   from pprint import pprint
-        #   pprint(configuration)
-
-        # Set the trusted range
-        trusted_range = 0, 2 ** configuration["bit_depth_readout"] - 1
-
-        # Get the sensor material and thickness
-        sensor_material = str(configuration["sensor_material"])
-        sensor_thickness = configuration["sensor_thickness"]
         distance = configuration["detector_distance"]
+        wavelength = configuration["wavelength"]
+        beam_x = configuration["beam_center_x"]
+        beam_y = configuration["beam_center_y"]
 
-        # Get the pixel and image sizes
-        pixel_size = (configuration["x_pixel_size"], configuration["y_pixel_size"])
-        # Image size is not x/y_pixels_in_detector, which are likely the physical dimensions
-        image_size = (info["shape"][0], info["shape"][1])
+        pixel_x = configuration["x_pixel_size"]
+        pixel_y = configuration["y_pixel_size"]
 
-        # Get the detector axes
-        fast_axis = configuration["detector_orientation"][0:3]
-        slow_axis = configuration["detector_orientation"][3:6]
-        origin = matrix.col(configuration["detector_translation"]) + matrix.col(
-            (0, 0, -distance)
+        material = configuration["sensor_material"]
+        thickness = configuration["sensor_thickness"] * 1000
+
+        nx = configuration["x_pixels_in_detector"]
+        ny = configuration["y_pixels_in_detector"]
+
+        if "count_rate_correction_count_cutoff" in configuration:
+            overload = configuration["count_rate_correction_count_cutoff"]
+        else:
+            # hard-code if missing from Eiger stream header
+            overload = 4001400
+        underload = -1
+
+        try:
+            identifier = configuration["description"]
+        except KeyError:
+            identifier = "Unknown Eiger"
+
+        table = attenuation_coefficient.get_table(material)
+        mu = table.mu_at_angstrom(wavelength) / 10.0
+        t0 = thickness
+
+        detector = self._detector_factory.simple(
+            sensor="PAD",
+            distance=distance * 1000.0,
+            beam_centre=(beam_x * pixel_x * 1000.0, beam_y * pixel_y * 1000.0),
+            fast_direction="+x",
+            slow_direction="-y",
+            pixel_size=(1000 * pixel_x, 1000 * pixel_y),
+            image_size=(nx, ny),
+            trusted_range=(underload, overload),
+            mask=[],
+            px_mm=ParallaxCorrectedPxMmStrategy(mu, t0),
+            mu=mu,
         )
 
-        # Create the detector model
-        return DetectorFactory.make_detector(
-            "SENSOR_PAD",
-            fast_axis,
-            slow_axis,
-            origin,
-            pixel_size,
-            image_size,
-            trusted_range,
-            px_mm=None,
-            name="Panel",
-            thickness=sensor_thickness,
-            material=sensor_material,
-            mu=0.0,
-        )
+        for f0, f1, s0, s1 in determine_eiger_mask(detector):
+            detector[0].add_mask(f0 - 1, s0 - 1, f1, s1)
+
+        for panel in detector:
+            panel.set_thickness(thickness)
+            panel.set_material(material)
+            panel.set_identifier(identifier)
+            panel.set_mu(mu)
+
+        return detector
+
+    def get_num_images(*args):
+        return 1
 
     def _beam(self):
         """

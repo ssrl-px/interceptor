@@ -12,7 +12,7 @@ import argparse
 from iotbx import phil as ip
 from dxtbx.model.experiment_list import ExperimentListFactory
 
-from interceptor.format import FormatEigerStreamSSRL
+from interceptor.format import FormatEigerStream
 from interceptor.connector.processor import ZMQProcessor
 
 from iota.components.iota_utils import Capturing

@@ -22,7 +22,7 @@ from cctbx import uctbx
 from cctbx.miller import index_generator
 
 from interceptor import packagefinder, read_config_file
-from interceptor.format import FormatEigerStreamSSRL
+from dxtbx.format import FormatEigerStream
 from iota.base.processor import Processor, phil_scope as dials_scope
 from iota.utils.utils import Capturing
 
@@ -401,8 +401,10 @@ class InterceptorBaseProcessor(object):
         # make experiments
         e_start = time.time()
         if data:
-            FormatEigerStreamSSRL.inject_data(data)
-        experiments = ExperimentListFactory.from_filenames([filename])
+            FormatEigerStream.injected_data = data
+            experiments = ExperimentListFactory.from_filenames([filename])
+        else:
+            experiments = ExperimentListFactory.from_filenames([filename])
         e_time = time.time() - e_start
         return experiments, e_time
 
@@ -532,7 +534,8 @@ class ZMQProcessor(InterceptorBaseProcessor):
             except Exception as err:
                 import traceback
                 spf_tb = traceback.format_exc()
-                info["spf_error"] = "SPF ERROR: {}".format(str(err))
+                #DEBUG - CHANGE TO ERR
+                info["spf_error"] = "SPF ERROR: {}".format(len(experiments))
                 info['spf_error_tback'] = spf_tb
                 return info
             else:
