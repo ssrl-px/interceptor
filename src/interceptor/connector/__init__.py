@@ -259,7 +259,7 @@ def make_result_string(info, cfg):
 
     # read out config format (if no path specified, read from default config file)
     if cfg.getstr('output_delimiter') is not None:
-        delimiter = '{} '.format(self.cfg.getstr('output_delimiter'))
+        delimiter = '{} '.format(cfg.getstr('output_delimiter'))
     else:
         delimiter = ' '
     format_keywords = cfg.getstr('output_format').split(',')

@@ -105,6 +105,11 @@ def parse_command_args():
         "--verbose", action="store_true", default=False, help="Print output to stdout"
     )
     parser.add_argument(
+        "--collect_results", action="store_true", default=False,
+        help="Workers send results to collector which forwards to UI; False sends "
+             "results directly to UI"
+    )
+    parser.add_argument(
         "--debug", action="store_true", default=False, help="Run debug code"
     )
     parser.add_argument(
@@ -112,6 +117,14 @@ def parse_command_args():
         "--config_file",
         type=str,
         default=None,
+        help='Provide a beamline-specific startup config filepath',
+    )
+    parser.add_argument(
+        "-f",
+        "--result_format",
+        type=str,
+        choices=['json', 'string'],
+        default='json',
         help='Provide a beamline-specific startup config filepath',
     )
     parser.add_argument(

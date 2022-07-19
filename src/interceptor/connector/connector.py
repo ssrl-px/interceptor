@@ -18,6 +18,7 @@ from threading import Thread
 from interceptor import packagefinder, read_config_file
 from interceptor.connector.processor import ZMQProcessor
 from interceptor.connector import utils
+from interceptor.connector import make_result_string
 
 
 def debug_segfault():
@@ -347,19 +348,29 @@ class Reader(ZMQProcessBase):
             proc_url = "tcp://{}:{}".format(dhost, dport)
 
             if init_r_socket:
-                # if collector_host option exists, use it
-                if self.args.collector_host:
-                    chost = self.args.collector_host
+                # make r_socket either collector socket or UI socket
+                if self.args.collect_results:
+                    if self.args.collector_host:
+                        chost = self.args.collector_host
+                    else:
+                        chost = self.localhost
+                    cport = "7{}".format(str(self.cfg.getstr('port'))[1:])
+                    self.r_socket = self.make_socket(
+                        socket_type="push",
+                        wid="{}_2C".format(self.name),
+                        host=chost,
+                        port=cport,
+                        verbose=self.args.verbose,
+                    )
                 else:
-                    chost = self.localhost
-                cport = "7{}".format(str(self.cfg.getstr('port'))[1:])
-                self.r_socket = self.make_socket(
-                    socket_type="push",
-                    wid="{}_2C".format(self.name),
-                    host=chost,
-                    port=cport,
-                    verbose=self.args.verbose,
-                )
+                    self.r_socket = self.make_socket(
+                        socket_type="push",
+                        wid=self.name + "_2UIC",
+                        host=self.cfg.getstr('uihost'),
+                        port=self.cfg.getstr('uiport'),
+                        verbose=True
+                    )
+                    self.r_socket.setsockopt(zmq.SNDTIMEO, 1000)
         except Exception as e:
             print("SOCKET ERROR: {}".format(e))
             exit()
@@ -392,25 +403,6 @@ class Reader(ZMQProcessBase):
                     "receive_time"]
                 if self.args.broker:  # if it came from broker, remove first two frames
                     frames = frames[2:]
-
-                # expecting_reply = True
-                # while expecting_reply:
-                    # timeout = self.cfg.getstr('timeout') * 1000 if self.cfg.getstr(
-                        # 'timeout') else None
-                    # if self.d_socket.poll(timeout=timeout):
-                        # fstart = time.time()
-                        # frames = self.d_socket.recv_multipart()
-                        # time_info["receive_time"] = time.time() - fstart
-                        # time_info["wait_time"] = time.time() - start - time_info[
-                            # "receive_time"]
-                        # if self.args.broker:  # if it came from broker, remove first two frames
-                            # frames = frames[2:]
-                        # expecting_reply = False
-                    # else:
-                        # # close and re-initialize d_socket
-                        # self.d_socket.close()
-                        # self.initialize_zmq_sockets(init_r_socket=False)
-                        # self.d_socket.send(b"Hello")
 
             except Exception as exp:
                 print("DEBUG: {} CONNECT FAILED! {}".format(self.name, exp))
@@ -448,8 +440,12 @@ class Reader(ZMQProcessBase):
                         time.sleep(4)
                         continue
 
-                    # send info to collector
-                    self.r_socket.send_json(info)
+                    # send info to collector or direct to UI
+                    if self.args.result_format == 'json':
+                        self.r_socket.send_json(info)
+                    elif self.args.result_format == 'string':
+                        ui_msg = make_result_string(info=info, cfg=self.cfg)
+                        self.r_socket.send_string(ui_msg)
 
         self.d_socket.close()
 
@@ -560,7 +556,6 @@ class Collector(ZMQProcessBase):
                     return False
             else:
                 return False
-
         if self.args.verbose:
             print(msg, flush=True)
         return True
@@ -569,75 +564,6 @@ class Collector(ZMQProcessBase):
         with open(self.args.record, "a") as rf:
             for rline in rlines:
                 rf.write(rline)
-
-    def make_result_string(self, info):
-        # Collect results and errors
-        err_list = [
-            info[e] for e in info if ("error" in e or "comment" in e) and info[e] != ""
-        ]
-        errors = "; ".join(err_list)
-        results = (
-            "{0} {1} {2} {3:.2f} {4} "
-            "{5:.2f} {6} {7} {{{8}}}"
-            "".format(
-                info["n_spots"],  # number_of_spots
-                info["n_overloads"],  # number_of_spots_with_overloaded_pixels
-                info["score"],  # composite score (used to be n_indexed...)
-                info["hres"],  # high resolution boundary
-                info["n_ice_rings"],  # number_of_ice-rings
-                info["mean_shape_ratio"],  # mean spot shape ratio
-                info["sg"],  # space group
-                info["uc"],  # unit cell
-                errors,  # errors
-            )
-        )
-
-        # read out config format (if no path specified, read from default config file)
-        if self.cfg.getstr('output_delimiter') is not None:
-            delimiter = '{} '.format(self.cfg.getstr('output_delimiter'))
-        else:
-            delimiter = ' '
-        format_keywords = self.cfg.getstr('output_format').split(',')
-        format_keywords = [i.strip() for i in format_keywords]
-
-        # assemble and return message to UI
-        try:
-            ui_msg = info[self.cfg.getstr('output_prefix_key')]
-        except KeyError:
-            ui_msg = ''
-        if ui_msg == '':
-            ui_msg = self.cfg.getstr('default_output_prefix')
-        ui_msg += ' '
-        for kw in format_keywords:
-            keyword = kw
-            bracket = None
-            brackets = ['{}', '()', '[]']
-            split_kw = kw.split(' ')
-            if len(split_kw) == 2 and split_kw[1] in brackets:
-                keyword = split_kw[0]
-                bracket = split_kw[1]
-            try:
-                if kw.startswith('[') and kw.endswith(']'):
-                    keyword = ''
-                    value = info[kw[1:-1]]
-                elif 'result' in keyword:
-                    value = results
-                else:
-                    value = info[keyword]
-            except KeyError as e:
-                raise e
-            else:
-                if keyword == '':
-                    item = value
-                elif bracket:
-                    item = '{0} {1}{2}{3}'.format(keyword, bracket[0],
-                                                  value, bracket[1])
-                else:
-                    item = '{0} {1}'.format(keyword, value)
-                if format_keywords.index(kw) == len(format_keywords) - 1:
-                    delimiter = ''
-                ui_msg += item + delimiter
-        return ui_msg
 
     def print_to_stdout(self, counter, info, ui_msg):
         try:
@@ -667,21 +593,6 @@ class Collector(ZMQProcessBase):
         if self.args.record:
             self.write_to_file(lines)
 
-    def output_results(self, counter, info, verbose=False):
-        ui_msg = None
-        try:
-            ui_msg = self.make_result_string(info=info)
-        except Exception as exp:
-            import traceback
-
-            traceback.print_exc()
-            print("PRINT ERROR: ", exp)
-        else:
-            if verbose:
-                self.print_to_stdout(counter=counter, info=info, ui_msg=ui_msg)
-        finally:
-            return ui_msg
-
     def initialize_zmq_sockets(self):
         cport = "7{}".format(str(self.cfg.getstr('port'))[1:])
         self.c_socket = self.make_socket(
@@ -691,7 +602,6 @@ class Collector(ZMQProcessBase):
             port=cport,
             bind=True,
         )
-
         if self.cfg.getboolean('send_to_ui') or (self.cfg.getstr('uihost') and
                                                  self.cfg.getstr('uiport')):
             self.ui_socket = self.make_socket(
@@ -708,28 +618,37 @@ class Collector(ZMQProcessBase):
         counter = 0
         while True:
             if self.c_socket.poll(timeout=500):
-                info = self.c_socket.recv_json()
-                if info:
-                    # understand info (if not regular info, don't send to UI)
-                    if self.understand_info(info):
-                        continue
-                    else:
+                # Accept information and (optionally) print to stdout
+                if self.args.result_format == 'json':
+                    info = self.c_socket.recv_json()
+                    if info:
+                        # understand info (if not regular info, don't send to UI)
+                        if self.understand_info(info):
+                            continue
+                        else:
+                            counter += 1
+                        ui_msg = make_result_string(info=info, cfg=self.cfg)
+                        if self.args.verbose:
+                            self.print_to_stdout(counter=counter, info=info, ui_msg=ui_msg)
                         counter += 1
+                elif self.args.result_format == 'string':
+                    ui_msg = self.c_socket.recv_string()
+                    if self.args.verbose:
+                        print('[{:>8}] - {}'.format(counter, ui_msg))
+                    counter += 1
 
-                    # send string to UI (DHS or Interceptor GUI)
-                    ui_msg = self.output_results(
-                        counter, info, verbose=self.args.verbose
-                    )
-                    if self.cfg.getboolean('send_to_ui') or (self.cfg.getstr(
-                            'uihost') and self.cfg.getstr('uiport')):
-                        try:
-                            self.ui_socket.send_string(ui_msg)
-                        except Exception as e:
-                            print('UI SEND ERROR: ', e)
+                # send string to UI (DHS or Interceptor GUI)
+                if self.cfg.getboolean('send_to_ui') or (self.cfg.getstr(
+                        'uihost') and self.cfg.getstr('uiport')):
+                    try:
+                        self.ui_socket.send_string(ui_msg)
+                    except Exception as e:
+                        print('UI SEND ERROR: ', e)
+
             else:
                 if self.advance_stdout:
                     self.advance_stdout = False
-                    print('', flush=True)
+                    print('\n\n\n', flush=True)
 
     def run(self):
         report_thread = Thread(target=self.collect_results)
