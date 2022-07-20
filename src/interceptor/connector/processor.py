@@ -22,7 +22,7 @@ from cctbx import uctbx
 from cctbx.miller import index_generator
 
 from interceptor import packagefinder, read_config_file
-from dxtbx.format import FormatEigerStream
+from interceptor.format import FormatEigerStream
 from iota.base.processor import Processor, phil_scope as dials_scope
 from iota.utils.utils import Capturing
 
