@@ -378,6 +378,7 @@ class InterceptorBaseProcessor(object):
 
         # Instantiate Stills Processor
         self.processor = Processor(params=params)
+        self.processor.write_pickle = False # todo: set this in IOTA base processor
 
     def generate_params(self):
         # read in DIALS settings from PHIL file
