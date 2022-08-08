@@ -582,7 +582,6 @@ class Collector(ZMQProcessBase):
                     info["total_time"],
                 ),
                 "***\n",
-
                 "TEST INTEGRATION: {} INTEGRATED!".format(info['n_integrated']),
             ]
             self.proc_times.append(info['proc_time'])

@@ -515,6 +515,7 @@ class FileProcessor(InterceptorBaseProcessor):
                 info["int_error"] = "integration error: {}".format(str(err))
                 return info
             else:
+                info["int_error"] = '{} integrated'.format(integrated.size())
                 if integrated:
                     info['n_integrated'] = integrated.size()
                 return info
