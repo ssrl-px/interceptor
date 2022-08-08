@@ -505,6 +505,19 @@ class FileProcessor(InterceptorBaseProcessor):
         if "index" in self.cfg.getstr('processing_mode'):
             return info
 
+        # **** Integration **** #
+        with Capturing() as int_output:
+            try:
+                experiments, indexed = self.processor.refine(experiments, indexed)
+                integrated = self.processor.integrate(experiments, indexed)
+            except Exception as err:
+                info["int_error"] = "integration error: {}".format(str(err))
+                return info
+            else:
+                if integrated:
+                    print("{} spots integrated!")
+                return info
+
     def run(self, filename, info):
         start = time.time()
         info = self.process(filename, info)
