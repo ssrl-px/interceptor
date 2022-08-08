@@ -300,6 +300,7 @@ class Reader(ZMQProcessBase):
             "n_ice_rings": 0,
             "mean_shape_ratio": 0,
             "n_indexed": 0,
+            "n_integrated": -999,
             "sg": "NA",
             "uc": "NA",
             "comment": "",
@@ -581,6 +582,8 @@ class Collector(ZMQProcessBase):
                     info["total_time"],
                 ),
                 "***\n",
+
+                "TEST INTEGRATION: {} INTEGRATED!".format(info['n_integrated']),
             ]
             self.proc_times.append(info['proc_time'])
             self.recv_times.append(info['receive_time'])

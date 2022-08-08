@@ -516,7 +516,7 @@ class FileProcessor(InterceptorBaseProcessor):
                 return info
             else:
                 if integrated:
-                    print("{} spots integrated!")
+                    info['n_integrated'] = integrated.size()
                 return info
 
     def run(self, filename, info):
