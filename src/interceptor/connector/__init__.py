@@ -305,7 +305,7 @@ def make_result_string(info, cfg):
     return ui_msg
 
 
-def print_to_stdout(counter, info, ui_msg):
+def print_to_stdout(counter, info, ui_msg, clip=False):
     try:
         lines = [
             "*** [{}] ({}) SERIES {}, FRAME {} ({}):".format(
@@ -324,5 +324,8 @@ def print_to_stdout(counter, info, ui_msg):
         ]
     except Exception as e:
         print(e)
-    for ln in lines:
-        print(ln)
+    if clip:  # only print the worker output
+        print(lines[1])
+    else:
+        for ln in lines:
+            print(ln)
