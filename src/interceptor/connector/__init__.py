@@ -7,6 +7,7 @@ from dials.command_line.export_best import BestExporter
 
 from dials.command_line import refine_bravais_settings as rbs
 from cctbx import sgtbx, crystal
+from libtbx.phil import Sorry
 
 from iota.utils.utils import Capturing
 

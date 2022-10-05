@@ -80,6 +80,8 @@ class FormatEigerStream(FormatMultiImage, Format):
 
         if "count_rate_correction_count_cutoff" in configuration:
             overload = configuration["count_rate_correction_count_cutoff"]
+        elif "countrate_correction_count_cutoff" in configuration:
+            overload = configuration["countrate_correction_count_cutoff"]
         else:
             # hard-code if missing from Eiger stream header
             overload = 4001400

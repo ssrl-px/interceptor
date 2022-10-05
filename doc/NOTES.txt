@@ -1,6 +1,6 @@
-07.19.2022 - Collector bypass and json/string option
+10.05.2022 - various minor additions and bugfixes
 
-- Added option for workers to send results directly to UI
-- Added option for workers to forward data in string format to either UI or collector
-- CAUTION: can send data in JSON or string format to either UI or collector; collector
-is prepared for that, but if UI isn't, can cause problems
+- BUGFIX: updated format class insertion in setup.py such that it shows up in registry
+- added verbose mode to intxr.score and InterceptorFileProcessor
+- added check for another spelling of count cutoff in format class
+- actually imported Sorry in Connector __init__.py
