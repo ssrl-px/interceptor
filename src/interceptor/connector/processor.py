@@ -311,11 +311,11 @@ class ImageScorer(object):
 
         if verbose:
             print(
-                "SCORER: max intensity (15-4ÃÂ) = {}, score = {}".format(max_I,
+                "SCORER: max intensity (15-4Å) = {}, score = {}".format(max_I,
                                                                            score))
 
         # evaluate ice ring presence
-        n_ice_rings = self.count_ice_rings(width=0.04, verbose=verbose)
+        n_ice_rings = self.count_ice_rings(width=0.02, verbose=verbose)
         if n_ice_rings >= 4:
             score -= 3
         elif 4 > n_ice_rings >= 2:
@@ -363,9 +363,10 @@ class InterceptorBaseProcessor(object):
         self.run_mode = run_mode
 
         # generate processing config params
-        if configfile:
+        if configfile and configfile != "None":
             p_config = read_config_file(configfile)
         else:
+            print ('*** WARNING! Processing config file not found, generating default parameters!')
             p_config = packagefinder('processing.cfg', 'connector', read_config=True)
 
         try:
@@ -378,6 +379,7 @@ class InterceptorBaseProcessor(object):
 
         # Instantiate Stills Processor
         self.processor = Processor(params=params)
+        self.processor.write_pickle = False # todo: set this in IOTA base processor
 
     def generate_params(self):
         # read in DIALS settings from PHIL file
@@ -415,7 +417,9 @@ class FileProcessor(InterceptorBaseProcessor):
             run_mode='file',
             configfile=None,
             test=False,
+            verbose=False,
     ):
+        self.verbose = verbose
         InterceptorBaseProcessor.__init__(self, run_mode=run_mode,
                                           configfile=configfile, test=test)
 
@@ -426,36 +430,34 @@ class FileProcessor(InterceptorBaseProcessor):
         experiments, e_time = self.make_experiments(filename)
 
         # Spotfinding
-        with Capturing() as spf_output:
-            try:
-                observed = self.processor.find_spots(experiments)
-            except Exception as err:
-                import traceback
-
-                spf_tb = traceback.format_exc()
-                info["spf_error"] = "SPF ERROR: {}".format(str(err))
-                info['spf_error_tback'] = spf_tb
-                return info
-            else:
-                if observed.size() >= self.cfg.getint('min_Bragg_peaks'):
-                    scorer = ImageScorer(experiments, observed, config=self.cfg)
-                    try:
-                        if self.cfg.getboolean('spf_calculate_score'):
-                            info["score"] = scorer.calculate_score()
-                        else:
-                            info["score"] = -999
-                            scorer.calculate_stats()
-                    except Exception as e:
-                        info["n_spots"] = 0
-                        info["scr_error"] = "SCORING ERROR: {}".format(e)
+        try:
+            observed = self.processor.find_spots(experiments)
+        except Exception as err:
+            import traceback
+            spf_tb = traceback.format_exc()
+            info["spf_error"] = "SPF ERROR: {}".format(str(err))
+            info['spf_error_tback'] = spf_tb
+            return info
+        else:
+            if observed.size() >= self.cfg.getint('min_Bragg_peaks'):
+                scorer = ImageScorer(experiments, observed, config=self.cfg)
+                try:
+                    if self.cfg.getboolean('spf_calculate_score'):
+                        info["score"] = scorer.calculate_score(verbose=self.verbose)
                     else:
-                        info["n_spots"] = scorer.n_spots
-                        info["hres"] = scorer.hres
-                        info["n_ice_rings"] = scorer.n_ice_rings
-                        info["n_overloads"] = scorer.n_overloads
-                        info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
+                        info["score"] = -999
+                        scorer.calculate_stats()
+                except Exception as e:
+                    info["n_spots"] = 0
+                    info["scr_error"] = "SCORING ERROR: {}".format(e)
                 else:
-                    info["n_spots"] = observed.size()
+                    info["n_spots"] = scorer.n_spots
+                    info["hres"] = scorer.hres
+                    info["n_ice_rings"] = scorer.n_ice_rings
+                    info["n_overloads"] = scorer.n_overloads
+                    info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
+            else:
+                info["n_spots"] = observed.size()
 
 
         # Doing it here because scoring can reject spots within ice rings, which can
@@ -504,6 +506,20 @@ class FileProcessor(InterceptorBaseProcessor):
         # if last step was 'indexing', stop here
         if "index" in self.cfg.getstr('processing_mode'):
             return info
+
+        # **** Integration **** #
+        with Capturing() as int_output:
+            try:
+                experiments, indexed = self.processor.refine(experiments, indexed)
+                integrated = self.processor.integrate(experiments, indexed)
+            except Exception as err:
+                info["int_error"] = "integration error: {}".format(str(err))
+                return info
+            else:
+                info["int_error"] = '{} integrated'.format(integrated.size())
+                if integrated:
+                    info['n_integrated'] = integrated.size()
+                return info
 
     def run(self, filename, info):
         start = time.time()

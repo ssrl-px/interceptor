@@ -300,6 +300,7 @@ class Reader(ZMQProcessBase):
             "n_ice_rings": 0,
             "mean_shape_ratio": 0,
             "n_indexed": 0,
+            "n_integrated": -999,
             "sg": "NA",
             "uc": "NA",
             "comment": "",
@@ -322,10 +323,17 @@ class Reader(ZMQProcessBase):
         return info
 
     def write_eiger_file(self):
-        eiger_idx = self.rank
-        filename = "eiger_{}.stream".format(eiger_idx)
+        process_idx = self.rank
+        detector_id = self.cfg.getstr('detector_id')
+        beamline = self.cfg.getstr('beamline')
+        filename = "data_{}_{}.stream".format(beamline, process_idx)
         with open(filename, "w") as fh:
-            fh.write("EIGERSTREAM")
+            if detector_id is None:
+                fh.write("DATASTREAM")
+            elif "EIGER" in detector_id:
+                fh.write("EIGERSTREAM")
+            elif "PILATUS" in detector_id:
+                fh.write("PILATUSSTREAM")
         return filename
 
     def initialize_zmq_sockets(self, init_r_socket=True):
@@ -581,6 +589,7 @@ class Collector(ZMQProcessBase):
                     info["total_time"],
                 ),
                 "***\n",
+                "TEST INTEGRATION: {} INTEGRATED!".format(info['n_integrated']),
             ]
             self.proc_times.append(info['proc_time'])
             self.recv_times.append(info['receive_time'])

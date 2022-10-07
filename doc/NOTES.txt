@@ -1,6 +1,5 @@
-07.19.2022 - Collector bypass and json/string option
+10.06.2022 - new detector format class
 
-- Added option for workers to send results directly to UI
-- Added option for workers to forward data in string format to either UI or collector
-- CAUTION: can send data in JSON or string format to either UI or collector; collector
-is prepared for that, but if UI isn't, can cause problems
+- added a FormatPilatusStream format class and modified setup.py to add to dxtbx registry
+- adjusted dummy file creation function to check for detector ID
+- added detector ID item to startup.cfg options

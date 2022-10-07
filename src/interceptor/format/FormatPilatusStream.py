@@ -3,15 +3,18 @@ import numpy as np
 
 from scitbx.array_family import flex
 from cctbx.eltbx import attenuation_coefficient
+from scitbx import matrix
 
 from dxtbx import IncorrectFormatError
-from dxtbx.format.Format import Format
-from dxtbx.format.FormatMultiImage import FormatMultiImage
-from dxtbx.format.FormatPilatusHelpers import get_vendortype_eiger, determine_eiger_mask
+from dxtbx.format.FormatCBFMini import FormatCBFMini
+from dxtbx.format.FormatCBFMiniPilatusHelpers import get_pilatus_timestamp
+from dxtbx.format.FormatPilatusHelpers import _DetectorDatabase, determine_pilatus_mask
+from dxtbx.format.FormatPilatusHelpers import get_vendortype as gv
+from dxtbx.model import Detector, ParallaxCorrectedPxMmStrategy
+
 from dxtbx.model.beam import BeamFactory
 from dxtbx.model.goniometer import GoniometerFactory
 from dxtbx.model.scan import ScanFactory
-from dxtbx.model import ParallaxCorrectedPxMmStrategy
 
 try:
     import lz4
@@ -26,16 +29,16 @@ except (ImportError, ValueError):
 injected_data = {}
 
 
-class FormatEigerStream(FormatMultiImage, Format):
+class FormatPilatusStream(FormatCBFMini):
     """
-    A format class to understand an EIGER stream
+    A format class to understand a PILATUS stream
     """
 
     @staticmethod
     def understand(image_file):
         with open(image_file, 'r') as imgf:
             s = imgf.read().strip()
-            if "EIGERSTREAM" in s:  # this is the expected string in dummy file
+            if "PILATUSSTREAM" in s:  # this is the expected string in dummy file
                 return True
             else:
                 return False
@@ -49,29 +52,33 @@ class FormatEigerStream(FormatMultiImage, Format):
             "info": json.loads(injected_data.get("streamfile_2", "")),
         }
 
-        self._goniometer_instance = None
-        self._detector_instance = None
-        self._beam_instance = None
-        self._scan_instance = None
-
-        FormatMultiImage.__init__(self, **kwargs)
-        Format.__init__(self, image_file, **kwargs)
+        self._multi_panel = kwargs.get("multi_panel", False)
+        FormatCBFMini.__init__(self, **kwargs)
 
         self.setup()
 
     def _detector(self):
-        """ Create an Eiger detector profile (taken from FormatCBFMiniEiger) """
+        """Return a model for a simple detector, presuming no one has
+        one of these on a two-theta stage. Assert that the beam centre is
+        provided in the Mosflm coordinate frame."""
+
         configuration = self.header["configuration"]
-        info = self.header["info"]
+
+        if not self._multi_panel:
+            detector = FormatCBFMini._detector(self)
+            for f0, f1, s0, s1 in determine_pilatus_mask(detector):
+                detector[0].add_mask(f0 - 1, s0 - 1, f1, s1)
+            return detector
+
+        # got to here means 60-panel version
+        d = Detector()
 
         distance = configuration["detector_distance"]
-        wavelength = configuration["wavelength"]
         beam_x = configuration["beam_center_x"]
         beam_y = configuration["beam_center_y"]
-
+        wavelength = configuration["wavelength"]
         pixel_x = configuration["x_pixel_size"]
         pixel_y = configuration["y_pixel_size"]
-
         material = configuration["sensor_material"]
         thickness = configuration["sensor_thickness"] * 1000
 
@@ -83,43 +90,85 @@ class FormatEigerStream(FormatMultiImage, Format):
         elif "countrate_correction_count_cutoff" in configuration:
             overload = configuration["countrate_correction_count_cutoff"]
         else:
-            # hard-code if missing from Eiger stream header
-            overload = 4001400
+            # hard-code if missing from Pilatus image header
+            overload = 797168
         underload = -1
 
-        try:
-            identifier = configuration["description"]
-        except KeyError:
-            identifier = "Unknown Eiger"
-
+        # take into consideration here the thickness of the sensor also the
+        # wavelength of the radiation (which we have in the same file...)
         table = attenuation_coefficient.get_table(material)
         mu = table.mu_at_angstrom(wavelength) / 10.0
         t0 = thickness
 
-        detector = self._detector_factory.simple(
-            sensor="PAD",
-            distance=distance * 1000.0,
-            beam_centre=(beam_x * pixel_x * 1000.0, beam_y * pixel_y * 1000.0),
-            fast_direction="+x",
-            slow_direction="-y",
-            pixel_size=(1000 * pixel_x, 1000 * pixel_y),
-            image_size=(nx, ny),
-            trusted_range=(underload, overload),
-            mask=[],
-            px_mm=ParallaxCorrectedPxMmStrategy(mu, t0),
-            mu=mu,
-        )
+        # FIXME would also be very nice to be able to take into account the
+        # misalignment of the individual modules given the calibration...
 
-        for f0, f1, s0, s1 in determine_eiger_mask(detector):
-            detector[0].add_mask(f0 - 1, s0 - 1, f1, s1)
+        # single detector or multi-module detector
 
-        for panel in detector:
-            panel.set_thickness(thickness)
-            panel.set_material(material)
-            panel.set_identifier(identifier)
-            panel.set_mu(mu)
+        pixel_x *= 1000.0
+        pixel_y *= 1000.0
+        distance *= 1000.0
 
-        return detector
+        beam_centre = matrix.col((beam_x * pixel_x, beam_y * pixel_y, 0))
+
+        fast = matrix.col((1.0, 0.0, 0.0))
+        slow = matrix.col((0.0, -1.0, 0.0))
+        s0 = matrix.col((0, 0, -1))
+        origin = (distance * s0) - (fast * beam_centre[0]) - (slow * beam_centre[1])
+
+        root = d.hierarchy()
+        root.set_local_frame(fast.elems, slow.elems, origin.elems)
+
+        det = _DetectorDatabase["Pilatus"]
+
+        # Edge dead areas not included, only gaps between modules matter
+        n_fast, remainder = divmod(nx, det.module_size_fast)
+        assert (n_fast - 1) * det.gap_fast == remainder
+
+        n_slow, remainder = divmod(ny, det.module_size_slow)
+        assert (n_slow - 1) * det.gap_slow == remainder
+
+        mx = det.module_size_fast
+        my = det.module_size_slow
+        dx = det.gap_fast
+        dy = det.gap_slow
+
+        xmins = [(mx + dx) * i for i in range(n_fast)]
+        xmaxes = [mx + (mx + dx) * i for i in range(n_fast)]
+        ymins = [(my + dy) * i for i in range(n_slow)]
+        ymaxes = [my + (my + dy) * i for i in range(n_slow)]
+
+        self.coords = {}
+
+        fast = matrix.col((1.0, 0.0, 0.0))
+        slow = matrix.col((0.0, 1.0, 0.0))
+        panel_idx = 0
+        for ymin, ymax in zip(ymins, ymaxes):
+            for xmin, xmax in zip(xmins, xmaxes):
+                xmin_mm = xmin * pixel_x
+                ymin_mm = ymin * pixel_y
+
+                origin_panel = fast * xmin_mm + slow * ymin_mm
+
+                panel_name = "Panel%d" % panel_idx
+                panel_idx += 1
+
+                p = d.add_panel()
+                p.set_type("SENSOR_PAD")
+                p.set_name(panel_name)
+                p.set_raw_image_offset((xmin, ymin))
+                p.set_image_size((xmax - xmin, ymax - ymin))
+                p.set_trusted_range((underload, overload))
+                p.set_pixel_size((pixel_x, pixel_y))
+                p.set_thickness(thickness)
+                p.set_material("Si")
+                p.set_mu(mu)
+                p.set_px_mm_strategy(ParallaxCorrectedPxMmStrategy(mu, t0))
+                p.set_local_frame(fast.elems, slow.elems, origin_panel.elems)
+                p.set_raw_image_offset((xmin, ymin))
+                self.coords[panel_name] = (xmin, ymin, xmax, ymax)
+
+        return d
 
     def get_num_images(*args):
         return 1
@@ -150,6 +199,11 @@ class FormatEigerStream(FormatMultiImage, Format):
             oscillation=(phi_start, phi_increment),
             epochs=[0] * nimages,
         )
+
+
+
+    def get_vendortype(self):
+        return gv(self.get_detector())
 
     def get_raw_data(self, index):
         """
@@ -207,6 +261,3 @@ class FormatEigerStream(FormatMultiImage, Format):
         data = lz4.loads(data)
 
         return np.reshape(np.fromstring(data, dtype=dtype), shape[::-1])
-
-    def get_vendortype(self):
-        return get_vendortype_eiger(self.get_detector())

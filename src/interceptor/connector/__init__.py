@@ -7,6 +7,7 @@ from dials.command_line.export_best import BestExporter
 
 from dials.command_line import refine_bravais_settings as rbs
 from cctbx import sgtbx, crystal
+from libtbx.phil import Sorry
 
 from iota.utils.utils import Capturing
 
@@ -305,7 +306,7 @@ def make_result_string(info, cfg):
     return ui_msg
 
 
-def print_to_stdout(counter, info, ui_msg):
+def print_to_stdout(counter, info, ui_msg, clip=False):
     try:
         lines = [
             "*** [{}] ({}) SERIES {}, FRAME {} ({}):".format(
@@ -324,5 +325,8 @@ def print_to_stdout(counter, info, ui_msg):
         ]
     except Exception as e:
         print(e)
-    for ln in lines:
-        print(ln)
+    if clip:  # only print the worker output
+        print(lines[1])
+    else:
+        for ln in lines:
+            print(ln)

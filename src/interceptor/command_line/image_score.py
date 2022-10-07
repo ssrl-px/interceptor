@@ -79,6 +79,12 @@ def parse_command_args():
         default=0.1,
         help='Exposure time',
     )
+    parser.add_argument(
+        "--verbose",
+        default=False,
+        action="store_true",
+        help='Exposure time',
+    )
 
     return parser
 
@@ -105,6 +111,7 @@ def entry_point():
     processor = FileProcessor(
         run_mode=args.processing_mode,
         configfile=p_configfile,
+        verbose=args.verbose,
     )
 
     # initialize info dictionary object
@@ -132,6 +139,6 @@ def entry_point():
 
     # assemble output and print to stdout
     ui_msg = make_result_string(info, cfg)
-    print_to_stdout(counter=0, info=info, ui_msg=ui_msg)
+    print_to_stdout(counter=0, info=info, ui_msg=ui_msg, clip=True)
 
 # --> end

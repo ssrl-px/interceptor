@@ -5,7 +5,7 @@ intxr.score = interceptor.command_line.image_score:entry_point
 intxr.strategy = interceptor.command_line.strategy_process:entry_point
 
 [dxtbx.format]
-FormatEigerStream:FormatEigerStream = interceptor.format.FormatEigerStream:FormatEigerStream
+FormatEigerStream:FormatMultiImage,Format = interceptor.format.FormatEigerStream:FormatEigerStream
 
 [gui_scripts]
 intxr.gui = interceptor.command_line.ui_run:entry_point
