@@ -9,7 +9,7 @@ setuptools.setup(
     long_description_content_type="text/x-rst",
     author="Artem Y. Lyubimov",
     author_email="lyubimov@stanford.edu",
-    version="0.27.4",
+    version="0.28.0",
     url="https://github.com/ssrl-px/interceptor",
     license="BSD",
     install_requires=[],
@@ -32,6 +32,8 @@ setuptools.setup(
         "dxtbx.format": [
             "FormatEigerStream:FormatMultiImage,Format = "
             "interceptor.format.FormatEigerStream:FormatEigerStream",
+            "FormatPilatusStream:FormatCBFMini = "
+            "interceptor.format.FormatPilatusStream:FormatPilatusStream"
         ],
         "libtbx.dispatcher.script": [
             "intxr.gui = intxr.gui",

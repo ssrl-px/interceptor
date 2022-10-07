@@ -1,6 +1,5 @@
-10.05.2022 - various minor additions and bugfixes
+10.06.2022 - new detector format class
 
-- BUGFIX: updated format class insertion in setup.py such that it shows up in registry
-- added verbose mode to intxr.score and InterceptorFileProcessor
-- added check for another spelling of count cutoff in format class
-- actually imported Sorry in Connector __init__.py
+- added a FormatPilatusStream format class and modified setup.py to add to dxtbx registry
+- adjusted dummy file creation function to check for detector ID
+- added detector ID item to startup.cfg options
