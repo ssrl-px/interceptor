@@ -324,15 +324,15 @@ class Reader(ZMQProcessBase):
 
     def write_eiger_file(self):
         process_idx = self.rank
-        detector_id = self.cfg.getstr('detector_id')
+        detector = self.cfg.getstr('detector')
         beamline = self.cfg.getstr('beamline')
         filename = "data_{}_{}.stream".format(beamline, process_idx)
         with open(filename, "w") as fh:
-            if detector_id is None:
+            if detector is None:
                 fh.write("DATASTREAM")
-            elif "EIGER" in detector_id:
+            elif "EIGER" in detector.upper():
                 fh.write("EIGERSTREAM")
-            elif "PILATUS" in detector_id:
+            elif "PILATUS" in detector.upper():
                 fh.write("PILATUSSTREAM")
         return filename
 

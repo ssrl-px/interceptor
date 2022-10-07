@@ -3,3 +3,6 @@
 - added a FormatPilatusStream format class and modified setup.py to add to dxtbx registry
 - adjusted dummy file creation function to check for detector ID
 - added detector ID item to startup.cfg options
+
+- quick bugfix: switched config variable from "detector_id" to "detector" to match config file
+- added case check
