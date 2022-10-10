@@ -6,3 +6,5 @@
 
 - quick bugfix: switched config variable from "detector_id" to "detector" to match config file
 - added case check
+
+10.10.2022 - added check for new detector format class

@@ -22,7 +22,6 @@ from cctbx import uctbx
 from cctbx.miller import index_generator
 
 from interceptor import packagefinder, read_config_file
-from interceptor.format import FormatEigerStream
 from iota.base.processor import Processor, phil_scope as dials_scope
 from iota.utils.utils import Capturing
 
@@ -399,11 +398,16 @@ class InterceptorBaseProcessor(object):
         print("\n")
 
     @staticmethod
-    def make_experiments(filename, data=None):
+    def make_experiments(filename, data=None, detector=None):
         # make experiments
         e_start = time.time()
         if data:
-            FormatEigerStream.injected_data = data
+            if 'eiger' in detector.lower():
+                from interceptor.format import FormatEigerStream
+                FormatEigerStream.injected_data = data
+            elif 'pilatus' in detector.lower():
+                from interceptor.format import FormatPilatusStream
+                FormatPilatusStream.injected_data = data
             experiments = ExperimentListFactory.from_filenames([filename])
         else:
             experiments = ExperimentListFactory.from_filenames([filename])
@@ -531,9 +535,11 @@ class ZMQProcessor(InterceptorBaseProcessor):
     def __init__(
             self,
             run_mode='DEFAULT',
+            detector='EIGER',
             configfile=None,
             test=False,
     ):
+        self.detector = detector
         InterceptorBaseProcessor.__init__(self, run_mode=run_mode,
                                           configfile=configfile, test=test)
 
@@ -541,7 +547,7 @@ class ZMQProcessor(InterceptorBaseProcessor):
         info["phil"] = self.dials_phil.as_str()
 
         # Make ExperimentList object
-        experiments, e_time = self.make_experiments(data=data, filename=filename)
+        experiments, e_time = self.make_experiments(data=data, filename=filename, detector=self.detector)
 
         # Spotfinding
         with Capturing() as spf_output:
