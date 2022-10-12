@@ -425,22 +425,23 @@ class InterceptorBaseProcessor(object):
             # Generate format class explicitly
             if 'eiger' in detector.lower():
                 from interceptor.format import FormatEigerStream
-                format_class = FormatEigerStream
+                FormatEigerStream.injected_data = data
+                format_class = FormatEigerStream.FormatEigerStream
             elif 'pilatus' in detector.lower():
                 from interceptor.format import FormatPilatusStream
-                format_class = FormatPilatusStream
+                FormatPilatusStream.injected_data = data
+                format_class = FormatPilatusStream.FormatPilatusStream
             else:
                 sorry_msg = "Detector {} NOT FOUND!"
                 raise Sorry(sorry_msg)
 
             # Inject data and create imageset
-            format_class.injected_data = data
             reader = MemReaderNamedPath("virtual_datastream_path", [format_class])
             reader.format_class = format_class
             imageset_data = ImageSetData(reader, None)
             imageset = ImageSet(imageset_data)
-            imageset.set_beam(format_class.get_beam(0))
-            imageset.set_detector(format_class.get_detector(0))
+            imageset.set_beam(format_class.get_beam())
+            imageset.set_detector(format_class.get_detector())
 
             # Create an ExperimentList object from imageset
             experiments = ExperimentListFactory.from_stills_and_crystal(imageset, crystal=None, load_models=True)
