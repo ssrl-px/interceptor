@@ -56,7 +56,7 @@ class FormatEigerStream(FormatMultiImage, Format):
         self._scan_instance = None
 
         FormatMultiImage.__init__(self, **kwargs)
-        Format.__init__(self, image_file, **kwargs)
+        Format.__init__(self, image_file=None, **kwargs)
 
         self.setup()
 
