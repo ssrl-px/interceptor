@@ -201,7 +201,17 @@ class FormatPilatusStream(FormatCBFMini):
             epochs=[0] * nimages,
         )
 
+    def get_beam(self, index=0):
+        return self._beam()
 
+    def get_detector(self, index=0):
+        return self._detector()
+
+    def get_scan(self, index=0):
+        return self._scan()
+
+    def get_goniometer(self, index=0):
+        return self._goniometer()
 
     def get_vendortype(self):
         return gv(self.get_detector())

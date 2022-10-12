@@ -152,7 +152,19 @@ class FormatEigerStream(FormatMultiImage, Format):
             epochs=[0] * nimages,
         )
 
-    def get_raw_data(self, index):
+    def get_beam(self, index=0):
+        return self._beam()
+
+    def get_detector(self, index=0):
+        return self._detector()
+
+    def get_scan(self, index=0):
+        return self._scan()
+
+    def get_goniometer(self, index=0):
+        return self._goniometer()
+
+    def get_raw_data(self, index=0):
         """
         Get the raw data from the image
         """
