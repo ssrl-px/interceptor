@@ -33,6 +33,7 @@ class FormatEigerStream(FormatMultiImage, Format):
 
     @staticmethod
     def understand(image_file):
+        #TODO: determine if I can simply 'return true' here
         with open(image_file, 'r') as imgf:
             s = imgf.read().strip()
             if "EIGERSTREAM" in s:  # this is the expected string in dummy file

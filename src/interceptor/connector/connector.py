@@ -311,30 +311,16 @@ class Reader(ZMQProcessBase):
 
         return data, info
 
-    def process(self, info, frame, filename):
+    def process(self, info, frame):
         s_proc = time.time()
         # regenerate processor if necessary
         if info['run_mode'] != self.processor.run_mode:
             self.generate_processor(run_mode=info['run_mode'])
 
         # process image
-        info = self.processor.run(data=frame, filename=filename, info=info)
+        info = self.processor.run(data=frame, info=info, detector=self.cfg.getstr('detector'))
         info["proc_time"] = time.time() - s_proc
         return info
-
-    def write_eiger_file(self):
-        process_idx = self.rank
-        detector = self.cfg.getstr('detector')
-        beamline = self.cfg.getstr('beamline')
-        filename = "data_{}_{}.stream".format(beamline, process_idx)
-        with open(filename, "w") as fh:
-            if detector is None:
-                fh.write("DATASTREAM")
-            elif "EIGER" in detector.upper():
-                fh.write("EIGERSTREAM")
-            elif "PILATUS" in detector.upper():
-                fh.write("PILATUSSTREAM")
-        return filename
 
     def initialize_zmq_sockets(self, init_r_socket=True):
         try:
@@ -391,9 +377,6 @@ class Reader(ZMQProcessBase):
             self.r_socket.send_json(info)
 
     def read_stream(self):
-        # Write eiger_*.stream file
-        filename = self.write_eiger_file()
-
         # Start listening for ZMQ stream
         while True:
             time_info = {
@@ -440,7 +423,7 @@ class Reader(ZMQProcessBase):
                         continue
                     # normal processing info
                     elif info["state"] == "process":
-                        info = self.process(info, frame=data, filename=filename)
+                        info = self.process(info, frame=data)
                         time_info["total_time"] = time.time() - start
                         info.update(time_info)
                     # end-of-series signal (sleep for four seconds... maybe obsolete)
