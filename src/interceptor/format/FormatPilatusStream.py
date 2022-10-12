@@ -44,9 +44,9 @@ class FormatPilatusStream(FormatCBFMini):
             else:
                 return False
 
-    def __init__(self, image_file, **kwargs):
+    def __init__(self, **kwargs):
         if not injected_data:
-            raise IncorrectFormatError(self, image_file)
+            raise IncorrectFormatError(self)
 
         self.header = {
             "configuration": json.loads(injected_data.get("header2", "")),
