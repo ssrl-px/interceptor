@@ -426,11 +426,11 @@ class InterceptorBaseProcessor(object):
             if 'eiger' in detector.lower():
                 from interceptor.format import FormatEigerStream
                 FormatEigerStream.injected_data = data
-                format_class = FormatEigerStream.FormatEigerStream
+                format_class = FormatEigerStream.FormatEigerStream()
             elif 'pilatus' in detector.lower():
                 from interceptor.format import FormatPilatusStream
                 FormatPilatusStream.injected_data = data
-                format_class = FormatPilatusStream.FormatPilatusStream
+                format_class = FormatPilatusStream.FormatPilatusStream()
             else:
                 sorry_msg = "Detector {} NOT FOUND!"
                 raise Sorry(sorry_msg)
