@@ -54,7 +54,7 @@ class FormatPilatusStream(FormatCBFMini):
         }
 
         self._multi_panel = kwargs.get("multi_panel", False)
-        FormatCBFMini.__init__(self, **kwargs)
+        FormatCBFMini.__init__(self, image_file=None, **kwargs)
 
         self.setup()
 
