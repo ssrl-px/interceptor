@@ -409,18 +409,18 @@ class InterceptorBaseProcessor(object):
     def make_experiments(filename=None, data=None, detector=None):
         # make experiments
         e_start = time.time()
-        if filename is not None:
+        if data is None:
             # Regular ExperimentList creation with regular files
-            assert data is None
+            assert filename is not None
             experiments = ExperimentListFactory.from_filenames([filename])
             e_time = time.time() - e_start
             return experiments, e_time
 
-        elif filename is None:
+        elif data is not None:
             # ExperimentList creation with ZeroMQ format classes
             #TODO: I *will* need to somehow mimic a registry...
-            assert data is not None
             assert detector is not None
+            load_models = True
 
             # Generate format class explicitly
             if 'eiger' in detector.lower():
@@ -430,7 +430,7 @@ class InterceptorBaseProcessor(object):
             elif 'pilatus' in detector.lower():
                 from interceptor.format import FormatPilatusStream
                 FormatPilatusStream.injected_data = data
-                format_class = FormatPilatusStream.FormatPilatusStream()
+                format_class = FormatPilatusStream.FormatPilatusStream(image_file=str(filename))
             else:
                 sorry_msg = "Detector {} NOT FOUND!"
                 raise Sorry(sorry_msg)
@@ -444,7 +444,7 @@ class InterceptorBaseProcessor(object):
             imageset.set_detector(format_class.get_detector())
 
             # Create an ExperimentList object from imageset
-            experiments = ExperimentListFactory.from_stills_and_crystal(imageset, crystal=None, load_models=True)
+            experiments = ExperimentListFactory.from_stills_and_crystal(imageset, crystal=None, load_models=load_models)
             e_time = time.time() - e_start
             return experiments, e_time
 
@@ -577,9 +577,10 @@ class ZMQProcessor(InterceptorBaseProcessor):
 
     def process(self, data, detector, info):
         info["phil"] = self.dials_phil.as_str()
+        filename = info['full_path']
 
         # Make ExperimentList object
-        experiments, e_time = self.make_experiments(data=data, detector=detector)
+        experiments, e_time = self.make_experiments(data=data, detector=detector, filename=filename)
 
         # Spotfinding
         with Capturing() as spf_output:
