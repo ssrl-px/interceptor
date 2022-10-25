@@ -425,20 +425,7 @@ class InterceptorBaseProcessor(object):
             fc_string = "interceptor.format.{}".format(detector['format_class'])
             fc_module = importlib.import_module(fc_string)
             fc_class = getattr(fc_module, detector['format_class'])
-            format_class = fc_class()
-
-            # # Generate format class explicitly
-            # if 'eiger' in detector.lower():
-            #     from interceptor.format import FormatEigerStream
-            #     FormatEigerStream.injected_data = data
-            #     format_class = FormatEigerStream.FormatEigerStream()
-            # elif 'pilatus' in detector.lower():
-            #     from interceptor.format import FormatPilatusStream
-            #     FormatPilatusStream.injected_data = data
-            #     format_class = FormatPilatusStream.FormatPilatusStream()
-            # else:
-            #     sorry_msg = "Detector {} NOT FOUND!"
-            #     raise Sorry(sorry_msg)
+            format_class = fc_class(image_file=filename)
 
             # Inject data and create imageset
             reader = MemReaderNamedPath("virtual_datastream_path", [format_class])

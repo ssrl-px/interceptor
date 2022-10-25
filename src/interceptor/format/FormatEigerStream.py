@@ -41,7 +41,7 @@ class FormatEigerStream(FormatMultiImage, Format):
             else:
                 return False
 
-    def __init__(self, **kwargs):
+    def __init__(self, image_file=None, **kwargs):
         if not injected_data:
             raise IncorrectFormatError(self)
 
@@ -56,7 +56,7 @@ class FormatEigerStream(FormatMultiImage, Format):
         self._scan_instance = None
 
         FormatMultiImage.__init__(self, **kwargs)
-        Format.__init__(self, image_file=None, **kwargs)
+        Format.__init__(self, image_file, **kwargs)
 
         self.setup()
 
