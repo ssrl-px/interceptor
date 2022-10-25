@@ -406,6 +406,7 @@ class InterceptorBaseProcessor(object):
         diff_phil.show()
         print("\n")
 
+    @staticmethod
     def make_experiments(filename=None, data=None, detector=None):
         # make experiments
         e_start = time.time()
