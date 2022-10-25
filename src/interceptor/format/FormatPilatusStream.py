@@ -6,8 +6,8 @@ from cctbx.eltbx import attenuation_coefficient
 from scitbx import matrix
 
 from dxtbx import IncorrectFormatError
-from dxtbx.format.FormatCBFMini import FormatCBFMini
-from dxtbx.format.FormatCBFMiniPilatusHelpers import get_pilatus_timestamp
+from dxtbx.format.Format import Format
+from dxtbx.format.FormatMultiImage import FormatMultiImage
 from dxtbx.format.FormatPilatusHelpers import _DetectorDatabase, determine_pilatus_mask
 from dxtbx.format.FormatPilatusHelpers import get_vendortype as gv
 from dxtbx.model import Detector, ParallaxCorrectedPxMmStrategy
@@ -29,13 +29,14 @@ except (ImportError, ValueError):
 injected_data = {}
 
 
-class FormatPilatusStream(FormatCBFMini):
+class FormatPilatusStream(FormatMultiImage, Format):
     """
     A format class to understand a PILATUS stream
     """
 
     @staticmethod
     def understand(image_file):
+        #TODO: determine if I can simply 'return true' here
         with open(image_file, 'r') as imgf:
             s = imgf.read().strip()
             if "PILATUSSTREAM" in s:  # this is the expected string in dummy file
@@ -45,7 +46,7 @@ class FormatPilatusStream(FormatCBFMini):
 
     def __init__(self, image_file, **kwargs):
         if not injected_data:
-            raise IncorrectFormatError(self, image_file)
+            raise IncorrectFormatError(self)
 
         self.header = {
             "configuration": json.loads(injected_data.get("header2", "")),
@@ -53,7 +54,14 @@ class FormatPilatusStream(FormatCBFMini):
         }
 
         self._multi_panel = kwargs.get("multi_panel", False)
-        FormatCBFMini.__init__(self, **kwargs)
+
+        self._goniometer_instance = None
+        self._detector_instance = None
+        self._beam_instance = None
+        self._scan_instance = None
+
+        FormatMultiImage.__init__(self, **kwargs)
+        Format.__init__(self, image_file=image_file, **kwargs)
 
         self.setup()
 
@@ -64,11 +72,11 @@ class FormatPilatusStream(FormatCBFMini):
 
         configuration = self.header["configuration"]
 
-        if not self._multi_panel:
-            detector = FormatCBFMini._detector(self)
-            for f0, f1, s0, s1 in determine_pilatus_mask(detector):
-                detector[0].add_mask(f0 - 1, s0 - 1, f1, s1)
-            return detector
+        # if not self._multi_panel:
+            # detector = FormatCBFMini._detector(self)
+            # for f0, f1, s0, s1 in determine_pilatus_mask(detector):
+                # detector[0].add_mask(f0 - 1, s0 - 1, f1, s1)
+            # return detector
 
         # got to here means 60-panel version
         d = Detector()
@@ -168,6 +176,10 @@ class FormatPilatusStream(FormatCBFMini):
                 p.set_raw_image_offset((xmin, ymin))
                 self.coords[panel_name] = (xmin, ymin, xmax, ymax)
 
+        # set Pilatus detector mask
+        for f0, f1, s0, s1 in determine_pilatus_mask(d):
+            d[0].add_mask(f0 - 1, s0 - 1, f1, s1)
+
         return d
 
     def get_num_images(*args):
@@ -200,12 +212,22 @@ class FormatPilatusStream(FormatCBFMini):
             epochs=[0] * nimages,
         )
 
+    def get_beam(self, index=0):
+        return self._beam()
 
+    def get_detector(self, index=0):
+        return self._detector()
+
+    def get_scan(self, index=0):
+        return self._scan()
+
+    def get_goniometer(self, index=0):
+        return self._goniometer()
 
     def get_vendortype(self):
         return gv(self.get_detector())
 
-    def get_raw_data(self, index):
+    def get_raw_data(self, index=0):
         """
         Get the raw data from the image
         """
@@ -229,7 +251,16 @@ class FormatPilatusStream(FormatCBFMini):
             bad_sel = data == 2 ** 16 - 1
             data[bad_sel] = -1
 
-        return flex.int(data)
+        # break data into panels
+        raw_data = flex.int(data)
+        self._raw_data = []
+        d = self.get_detector()
+        for panel in d:
+            xmin, ymin, xmax, ymax = self.coords[panel.get_name()]
+            self._raw_data.append(raw_data[ymin:ymax, xmin:xmax])
+        self._raw_data = tuple(self._raw_data)
+
+        return self._raw_data
 
     def readBSLZ4(self, data, shape, dtype, size):
         """

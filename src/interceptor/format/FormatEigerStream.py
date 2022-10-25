@@ -33,6 +33,7 @@ class FormatEigerStream(FormatMultiImage, Format):
 
     @staticmethod
     def understand(image_file):
+        #TODO: determine if I can simply 'return true' here
         with open(image_file, 'r') as imgf:
             s = imgf.read().strip()
             if "EIGERSTREAM" in s:  # this is the expected string in dummy file
@@ -40,9 +41,9 @@ class FormatEigerStream(FormatMultiImage, Format):
             else:
                 return False
 
-    def __init__(self, image_file, **kwargs):
+    def __init__(self, **kwargs):
         if not injected_data:
-            raise IncorrectFormatError(self, image_file)
+            raise IncorrectFormatError(self)
 
         self.header = {
             "configuration": json.loads(injected_data.get("header2", "")),
@@ -55,7 +56,7 @@ class FormatEigerStream(FormatMultiImage, Format):
         self._scan_instance = None
 
         FormatMultiImage.__init__(self, **kwargs)
-        Format.__init__(self, image_file, **kwargs)
+        Format.__init__(self, image_file=None, **kwargs)
 
         self.setup()
 
@@ -151,7 +152,19 @@ class FormatEigerStream(FormatMultiImage, Format):
             epochs=[0] * nimages,
         )
 
-    def get_raw_data(self, index):
+    def get_beam(self, index=0):
+        return self._beam()
+
+    def get_detector(self, index=0):
+        return self._detector()
+
+    def get_scan(self, index=0):
+        return self._scan()
+
+    def get_goniometer(self, index=0):
+        return self._goniometer()
+
+    def get_raw_data(self, index=0):
         """
         Get the raw data from the image
         """

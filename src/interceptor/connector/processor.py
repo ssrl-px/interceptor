@@ -17,9 +17,11 @@ from spotfinder.array_family import flex
 from dials.algorithms.spot_finding import per_image_analysis
 from dials.array_family import flex
 from dxtbx.model.experiment_list import ExperimentListFactory
+from dxtbx.imageset import ImageSet, ImageSetData, MemReader
 
 from cctbx import uctbx
 from cctbx.miller import index_generator
+from libtbx.phil import Sorry
 
 from interceptor import packagefinder, read_config_file
 from iota.base.processor import Processor, phil_scope as dials_scope
@@ -81,6 +83,12 @@ significance_filter {
 custom_phil = ip.parse(custom_param_string)
 custom_params = dials_scope.fetch(source=custom_phil).extract()
 
+
+class MemReaderNamedPath(MemReader):
+
+  def __init__(self, path,  *args, **kwargs):
+    self.dummie_path_name = path
+    super(MemReaderNamedPath, self).__init__(*args, **kwargs)
 
 class ImageScorer(object):
     def __init__(self, experiments, observed, config):
@@ -398,21 +406,47 @@ class InterceptorBaseProcessor(object):
         print("\n")
 
     @staticmethod
-    def make_experiments(filename, data=None, detector=None):
+    def make_experiments(filename=None, data=None, detector=None):
         # make experiments
         e_start = time.time()
-        if data:
+        if data is None:
+            # Regular ExperimentList creation with regular files
+            assert filename is not None
+            experiments = ExperimentListFactory.from_filenames([filename])
+            e_time = time.time() - e_start
+            return experiments, e_time
+
+        elif data is not None:
+            # ExperimentList creation with ZeroMQ format classes
+            #TODO: I *will* need to somehow mimic a registry...
+            assert detector is not None
+            load_models = True
+
+            # Generate format class explicitly
             if 'eiger' in detector.lower():
                 from interceptor.format import FormatEigerStream
                 FormatEigerStream.injected_data = data
+                format_class = FormatEigerStream.FormatEigerStream()
             elif 'pilatus' in detector.lower():
                 from interceptor.format import FormatPilatusStream
                 FormatPilatusStream.injected_data = data
-            experiments = ExperimentListFactory.from_filenames([filename])
-        else:
-            experiments = ExperimentListFactory.from_filenames([filename])
-        e_time = time.time() - e_start
-        return experiments, e_time
+                format_class = FormatPilatusStream.FormatPilatusStream(image_file=str(filename))
+            else:
+                sorry_msg = "Detector {} NOT FOUND!"
+                raise Sorry(sorry_msg)
+
+            # Inject data and create imageset
+            reader = MemReaderNamedPath("virtual_datastream_path", [format_class])
+            reader.format_class = format_class
+            imageset_data = ImageSetData(reader, None)
+            imageset = ImageSet(imageset_data)
+            imageset.set_beam(format_class.get_beam())
+            imageset.set_detector(format_class.get_detector())
+
+            # Create an ExperimentList object from imageset
+            experiments = ExperimentListFactory.from_stills_and_crystal(imageset, crystal=None, load_models=load_models)
+            e_time = time.time() - e_start
+            return experiments, e_time
 
 
 class FileProcessor(InterceptorBaseProcessor):
@@ -431,7 +465,7 @@ class FileProcessor(InterceptorBaseProcessor):
         info["phil"] = self.dials_phil.as_str()
 
         # Make ExperimentList object
-        experiments, e_time = self.make_experiments(filename)
+        experiments, e_time = self.make_experiments(filename=filename)
 
         # Spotfinding
         try:
@@ -535,19 +569,18 @@ class ZMQProcessor(InterceptorBaseProcessor):
     def __init__(
             self,
             run_mode='DEFAULT',
-            detector='EIGER',
             configfile=None,
             test=False,
     ):
-        self.detector = detector
         InterceptorBaseProcessor.__init__(self, run_mode=run_mode,
                                           configfile=configfile, test=test)
 
-    def process(self, data, filename, info):
+    def process(self, data, detector, info):
         info["phil"] = self.dials_phil.as_str()
+        filename = info['full_path']
 
         # Make ExperimentList object
-        experiments, e_time = self.make_experiments(data=data, filename=filename, detector=self.detector)
+        experiments, e_time = self.make_experiments(data=data, detector=detector, filename=filename)
 
         # Spotfinding
         with Capturing() as spf_output:
@@ -626,8 +659,8 @@ class ZMQProcessor(InterceptorBaseProcessor):
         if "index" in self.cfg.getstr('processing_mode'):
             return info
 
-    def run(self, data, filename, info):
-        return self.process(data, filename, info)
+    def run(self, data, detector, info):
+        return self.process(data, detector, info)
 
 
 def calculate_score(experiments, observed):
