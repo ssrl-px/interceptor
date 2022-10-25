@@ -189,6 +189,21 @@ class Reader(ZMQProcessBase):
         # Initialize ZMQ sockets
         self.initialize_zmq_sockets()
 
+    def find_detector(self):
+        import json
+        try:
+            det_file = self.cfg.getstr('detector_registry_file')
+            if det_file is None:
+                det_file = packagefinder('detector.json', 'format', read_config=False)
+            with open(det_file, 'r') as jf:
+                detector_dict = json.load(jf)
+            det_key = self.cfg.getstr('detector').upper()
+            detector = detector_dict[det_key]
+            return detector
+        except Exception as e:
+            print("WARNING: DETECTOR NOT FOUND! {}".format(str(e)))
+            return None
+
     def generate_processor(self, run_mode='DEFAULT'):
         self.processor = ZMQProcessor(
             run_mode=run_mode,
@@ -318,7 +333,8 @@ class Reader(ZMQProcessBase):
             self.generate_processor(run_mode=info['run_mode'])
 
         # process image
-        info = self.processor.run(data=frame, info=info, detector=self.cfg.getstr('detector'))
+        detector = self.find_detector()
+        info = self.processor.run(data=frame, info=info, detector=detector)
         info["proc_time"] = time.time() - s_proc
         return info
 

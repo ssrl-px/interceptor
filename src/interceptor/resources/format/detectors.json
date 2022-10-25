@@ -1,0 +1,8 @@
+{
+  "EIGER": {
+    "format_class": "FormatEigerStream"
+  },
+  "PILATUS": {
+    "format_class": "FormatPilatusStream"
+  }
+}

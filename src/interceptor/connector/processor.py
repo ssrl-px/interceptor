@@ -9,6 +9,7 @@ Description : Streaming stills processor for live data analysis
 import time  # noqa: F401; keep around for testing
 
 import numpy as np
+import importlib
 
 from cctbx import sgtbx, crystal
 from iotbx import phil as ip
@@ -405,7 +406,6 @@ class InterceptorBaseProcessor(object):
         diff_phil.show()
         print("\n")
 
-    @staticmethod
     def make_experiments(filename=None, data=None, detector=None):
         # make experiments
         e_start = time.time()
@@ -421,19 +421,23 @@ class InterceptorBaseProcessor(object):
             #TODO: I *will* need to somehow mimic a registry...
             assert detector is not None
             load_models = True
+            fc_string = "interceptor.format.{}".format(detector['format_class'])
+            fc_module = importlib.import_module(fc_string)
+            fc_class = getattr(fc_module, detector['format_class'])
+            format_class = fc_class()
 
-            # Generate format class explicitly
-            if 'eiger' in detector.lower():
-                from interceptor.format import FormatEigerStream
-                FormatEigerStream.injected_data = data
-                format_class = FormatEigerStream.FormatEigerStream()
-            elif 'pilatus' in detector.lower():
-                from interceptor.format import FormatPilatusStream
-                FormatPilatusStream.injected_data = data
-                format_class = FormatPilatusStream.FormatPilatusStream(image_file=str(filename))
-            else:
-                sorry_msg = "Detector {} NOT FOUND!"
-                raise Sorry(sorry_msg)
+            # # Generate format class explicitly
+            # if 'eiger' in detector.lower():
+            #     from interceptor.format import FormatEigerStream
+            #     FormatEigerStream.injected_data = data
+            #     format_class = FormatEigerStream.FormatEigerStream()
+            # elif 'pilatus' in detector.lower():
+            #     from interceptor.format import FormatPilatusStream
+            #     FormatPilatusStream.injected_data = data
+            #     format_class = FormatPilatusStream.FormatPilatusStream()
+            # else:
+            #     sorry_msg = "Detector {} NOT FOUND!"
+            #     raise Sorry(sorry_msg)
 
             # Inject data and create imageset
             reader = MemReaderNamedPath("virtual_datastream_path", [format_class])
@@ -565,15 +569,18 @@ class FileProcessor(InterceptorBaseProcessor):
         info['proc_time'] = time.time() - start
         return info
 
+
 class ZMQProcessor(InterceptorBaseProcessor):
     def __init__(
             self,
             run_mode='DEFAULT',
             configfile=None,
+            detectorfile=None,
             test=False,
     ):
         InterceptorBaseProcessor.__init__(self, run_mode=run_mode,
-                                          configfile=configfile, test=test)
+                                          configfile=configfile,
+                                          test=test)
 
     def process(self, data, detector, info):
         info["phil"] = self.dials_phil.as_str()
@@ -617,8 +624,7 @@ class ZMQProcessor(InterceptorBaseProcessor):
         # Doing it here because scoring can reject spots within ice rings, which can
         # drop the number below the minimal limit
         if info['n_spots'] < self.cfg.getint('min_Bragg_peaks'):
-            info[
-                "spf_error"] = "Too few ({}) spots found!".format(
+            info["spf_error"] = "Too few ({}) spots found!".format(
                 observed.size())
 
         # if last stage was selected to be "spotfinding", stop here; otherwise

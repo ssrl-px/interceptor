@@ -1,8 +1,7 @@
-10.10.2022 - trial of internal ExperimentList generation
+10.24.2022 - Detector "registry"
 
-- for file-based standalone interceptor, use the usual ExperimentListFactory.from_filenames()
-- for ZMQ Interceptor:
-    - import Eiger or Pilatus ZMQ-capable format class
-    - create imageset directly
-    - use imageset with ExperimentListFactory.from_stills_and_crystal()
-- a dummy filename is no longer passed to ZMQ interceptor
+- A more customizable way to match detector with datastream
+    - a customizable JSON file included with settings (and with Interceptor distro)
+    - a setting pointing to this file
+    - 'detector' setting used to pull the matching detector info from dictionary
+    - the right format class is imported and instantiated from interceptor.format
