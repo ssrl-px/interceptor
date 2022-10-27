@@ -184,6 +184,7 @@ class Reader(ZMQProcessBase):
             name=name, comm=comm, args=args, localhost=localhost
         )
         self.name = "ZMQ_{:03d}".format(self.rank)
+        self.detector = self.find_detector()
         self.generate_processor()
 
         # Initialize ZMQ sockets
@@ -333,8 +334,7 @@ class Reader(ZMQProcessBase):
             self.generate_processor(run_mode=info['run_mode'])
 
         # process image
-        detector = self.find_detector()
-        info = self.processor.run(data=frame, info=info, detector=detector)
+        info = self.processor.run(data=frame, info=info, detector=self.detector)
         info["proc_time"] = time.time() - s_proc
         return info
 
@@ -444,7 +444,7 @@ class Reader(ZMQProcessBase):
                         info.update(time_info)
                     # end-of-series signal (sleep for four seconds... maybe obsolete)
                     elif info["state"] == "series-end":
-                        time.sleep(4)
+                        time.sleep(self.detector['timeout'])
                         continue
 
                     # send info to collector or direct to UI
