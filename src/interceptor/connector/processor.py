@@ -423,6 +423,7 @@ class InterceptorBaseProcessor(object):
             load_models = True
             fc_string = "interceptor.format.{}".format(detector['format_class'])
             fc_module = importlib.import_module(fc_string)
+            fc_module.data = data
             fc_class = getattr(fc_module, detector['format_class'])
             format_class = fc_class(image_file=filename)
 
