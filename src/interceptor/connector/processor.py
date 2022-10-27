@@ -419,7 +419,6 @@ class InterceptorBaseProcessor(object):
 
         elif data is not None:
             # ExperimentList creation with ZeroMQ format classes
-            #TODO: I *will* need to somehow mimic a registry...
             assert detector is not None
             load_models = True
             fc_string = "interceptor.format.{}".format(detector['format_class'])

@@ -43,7 +43,7 @@ class FormatEigerStream(FormatMultiImage, Format):
 
     def __init__(self, image_file=None, **kwargs):
         if not injected_data:
-            raise IncorrectFormatError(self)
+            raise IncorrectFormatError(self, image_file)
 
         self.header = {
             "configuration": json.loads(injected_data.get("header2", "")),
