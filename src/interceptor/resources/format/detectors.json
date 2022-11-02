@@ -1,0 +1,10 @@
+{
+  "EIGER": {
+    "format_class": "FormatEigerStream",
+    "timeout": 4
+  },
+  "PILATUS": {
+    "format_class": "FormatPilatusStream",
+    "timeout": 4
+  }
+}

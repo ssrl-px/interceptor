@@ -184,10 +184,26 @@ class Reader(ZMQProcessBase):
             name=name, comm=comm, args=args, localhost=localhost
         )
         self.name = "ZMQ_{:03d}".format(self.rank)
+        self.detector = self.find_detector()
         self.generate_processor()
 
         # Initialize ZMQ sockets
         self.initialize_zmq_sockets()
+
+    def find_detector(self):
+        import json
+        try:
+            det_file = self.cfg.getstr('detector_registry_file')
+            if det_file is None:
+                det_file = packagefinder('detector.json', 'format', read_config=False)
+            with open(det_file, 'r') as jf:
+                detector_dict = json.load(jf)
+            det_key = self.cfg.getstr('detector').upper()
+            detector = detector_dict[det_key]
+            return detector
+        except Exception as e:
+            print("WARNING: DETECTOR NOT FOUND! {}".format(str(e)))
+            return None
 
     def generate_processor(self, run_mode='DEFAULT'):
         self.processor = ZMQProcessor(
@@ -318,7 +334,7 @@ class Reader(ZMQProcessBase):
             self.generate_processor(run_mode=info['run_mode'])
 
         # process image
-        info = self.processor.run(data=frame, info=info, detector=self.cfg.getstr('detector'))
+        info = self.processor.run(data=frame, info=info, detector=self.detector)
         info["proc_time"] = time.time() - s_proc
         return info
 
@@ -428,7 +444,7 @@ class Reader(ZMQProcessBase):
                         info.update(time_info)
                     # end-of-series signal (sleep for four seconds... maybe obsolete)
                     elif info["state"] == "series-end":
-                        time.sleep(4)
+                        time.sleep(self.detector['timeout'])
                         continue
 
                     # send info to collector or direct to UI
