@@ -621,14 +621,26 @@ class Collector(ZMQProcessBase):
             )
             self.ui_socket.setsockopt(zmq.SNDTIMEO, 1000)
 
-    def csv_from_json(self, counter, info):
-        prefix = "{},{},{},{}".format(
-            counter,
+    def csv_from_json(self, info):
+        # collect errors
+        err_list = [
+            info[e] for e in info if ("error" in e or "comment" in e) and info[e] != ""
+        ]
+        errors = "; ".join(err_list)
+        line = "{0},{1},{2},{3:.2f},{4},{5:.2f},{6},{7},{8},{9},{10},{11}".format(
             info["series"],
             info["frame"],
-            info["full_path"])
-        ui_msg = make_result_string(info, self.cfg, as_csv=True)
-        line = "{},{}".format(prefix, ui_msg)
+            info["full_path"],
+            info["n_spots"],  # number_of_spots
+            info["n_overloads"],  # number_of_spots_with_overloaded_pixels
+            info["score"],  # composite score (used to be n_indexed...)
+            info["hres"],  # high resolution boundary
+            info["n_ice_rings"],  # number_of_ice-rings
+            info["mean_shape_ratio"],  # mean spot shape ratio
+            info["sg"],  # space group
+            info["uc"],  # unit cell
+            errors,  # errors
+            )
         return line
 
     def collect_results(self):
@@ -640,8 +652,12 @@ class Collector(ZMQProcessBase):
                 if self.args.result_format == 'json':
                     info = self.c_socket.recv_json()
                     if self.args.record:
-                        line = self.csv_from_json(counter=counter, info=info)
-                        self.write_to_file([line])
+                        if counter == 0:
+                            if self.rank == 2:
+                                print ("COLUMN NAMES GO HERE!")
+                        else:
+                            line = self.csv_from_json(info=info)
+                            self.write_to_file([line])
                     if info:
                         # understand info (if not regular info, don't send to UI)
                         if self.understand_info(info):
