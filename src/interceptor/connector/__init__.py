@@ -236,7 +236,7 @@ class StrategyProcessor(object):
         return self.integrate_images(experiments, indexed, params)
 
 
-def make_result_string(info, cfg):
+def make_result_string(info, cfg, as_csv=False):
     # Collect results and errors
     err_list = [
         info[e] for e in info if ("error" in e or "comment" in e) and info[e] != ""
@@ -258,51 +258,54 @@ def make_result_string(info, cfg):
         )
     )
 
-    # read out config format (if no path specified, read from default config file)
-    if cfg.getstr('output_delimiter') is not None:
-        delimiter = '{} '.format(cfg.getstr('output_delimiter'))
+    if as_csv:
+        ui_msg = ','.join(results)
     else:
-        delimiter = ' '
-    format_keywords = cfg.getstr('output_format').split(',')
-    format_keywords = [i.strip() for i in format_keywords]
-
-    # assemble and return message to UI
-    try:
-        ui_msg = info[cfg.getstr('output_prefix_key')]
-    except KeyError:
-        ui_msg = ''
-    if ui_msg == '':
-        ui_msg = cfg.getstr('default_output_prefix')
-    ui_msg += ' '
-    for kw in format_keywords:
-        keyword = kw
-        bracket = None
-        brackets = ['{}', '()', '[]']
-        split_kw = kw.split(' ')
-        if len(split_kw) == 2 and split_kw[1] in brackets:
-            keyword = split_kw[0]
-            bracket = split_kw[1]
-        try:
-            if kw.startswith('[') and kw.endswith(']'):
-                keyword = ''
-                value = info[kw[1:-1]]
-            elif 'result' in keyword:
-                value = results
-            else:
-                value = info[keyword]
-        except KeyError as e:
-            raise e
+        # read out config format (if no path specified, read from default config file)
+        if cfg.getstr('output_delimiter') is not None:
+            delimiter = '{} '.format(cfg.getstr('output_delimiter'))
         else:
-            if keyword == '':
-                item = value
-            elif bracket:
-                item = '{0} {1}{2}{3}'.format(keyword, bracket[0],
-                                              value, bracket[1])
+            delimiter = ' '
+        format_keywords = cfg.getstr('output_format').split(',')
+        format_keywords = [i.strip() for i in format_keywords]
+
+        # assemble and return message to UI
+        try:
+            ui_msg = info[cfg.getstr('output_prefix_key')]
+        except KeyError:
+            ui_msg = ''
+        if ui_msg == '':
+            ui_msg = cfg.getstr('default_output_prefix')
+        ui_msg += ' '
+        for kw in format_keywords:
+            keyword = kw
+            bracket = None
+            brackets = ['{}', '()', '[]']
+            split_kw = kw.split(' ')
+            if len(split_kw) == 2 and split_kw[1] in brackets:
+                keyword = split_kw[0]
+                bracket = split_kw[1]
+            try:
+                if kw.startswith('[') and kw.endswith(']'):
+                    keyword = ''
+                    value = info[kw[1:-1]]
+                elif 'result' in keyword:
+                    value = results
+                else:
+                    value = info[keyword]
+            except KeyError as e:
+                raise e
             else:
-                item = '{0} {1}'.format(keyword, value)
-            if format_keywords.index(kw) == len(format_keywords) - 1:
-                delimiter = ''
-            ui_msg += item + delimiter
+                if keyword == '':
+                    item = value
+                elif bracket:
+                    item = '{0} {1}{2}{3}'.format(keyword, bracket[0],
+                                                  value, bracket[1])
+                else:
+                    item = '{0} {1}'.format(keyword, value)
+                if format_keywords.index(kw) == len(format_keywords) - 1:
+                    delimiter = ''
+                ui_msg += item + delimiter
     return ui_msg
 
 

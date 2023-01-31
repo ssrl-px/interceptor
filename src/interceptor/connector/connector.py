@@ -621,6 +621,16 @@ class Collector(ZMQProcessBase):
             )
             self.ui_socket.setsockopt(zmq.SNDTIMEO, 1000)
 
+    def csv_from_json(self, counter, info):
+        prefix = "{},{},{},{}".format(
+            counter,
+            info["series"],
+            info["frame"],
+            info["full_path"])
+        ui_msg = make_result_string(info, self.cfg, as_csv=True)
+        line = "{},{}".format(prefix, ui_msg)
+        return line
+
     def collect_results(self):
         self.initialize_zmq_sockets()
         counter = 0
@@ -629,6 +639,9 @@ class Collector(ZMQProcessBase):
                 # Accept information and (optionally) print to stdout
                 if self.args.result_format == 'json':
                     info = self.c_socket.recv_json()
+                    if self.args.record:
+                        line = self.csv_from_json(counter=counter, info=info)
+                        self.write_to_file([line])
                     if info:
                         # understand info (if not regular info, don't send to UI)
                         if self.understand_info(info):
