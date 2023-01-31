@@ -598,8 +598,6 @@ class Collector(ZMQProcessBase):
             print(ln)
             print("proc = {:.2f}, recv = {:.2f}".format(
                     np.median(self.proc_times), np.median(self.recv_times)))
-        if self.args.record:
-            self.write_to_file(lines)
 
     def initialize_zmq_sockets(self):
         cport = "7{}".format(str(self.cfg.getstr('port'))[1:])
@@ -640,6 +638,7 @@ class Collector(ZMQProcessBase):
             info["sg"],  # space group
             info["uc"],  # unit cell
             errors,  # errors
+            '\n',
             )
         return line
 
