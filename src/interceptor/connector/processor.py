@@ -10,10 +10,10 @@ import time  # noqa: F401; keep around for testing
 
 import numpy as np
 import importlib
+import json
 
 from cctbx import sgtbx, crystal
 from iotbx import phil as ip
-from spotfinder.array_family import flex
 
 from dials.algorithms.spot_finding import per_image_analysis
 from dials.array_family import flex
@@ -22,11 +22,14 @@ from dxtbx.imageset import ImageSet, ImageSetData, MemReader
 
 from cctbx import uctbx
 from cctbx.miller import index_generator
-from libtbx.phil import Sorry
 
 from interceptor import packagefinder, read_config_file
 from iota.base.processor import Processor, phil_scope as dials_scope
 from iota.utils.utils import Capturing
+
+#AI Stuff
+from resonet.utils.predict_fabio import ImagePredictFabio
+
 
 # Custom PHIL for processing with DIALS stills processor
 custom_param_string = """
@@ -91,11 +94,108 @@ class MemReaderNamedPath(MemReader):
     self.dummie_path_name = path
     super(MemReaderNamedPath, self).__init__(*args, **kwargs)
 
+
+class AIScorer(object):
+    """
+    A wrapper class for the neural network image evaluator(s), which will hopefully find a) resolution,
+    b) split spots / multiple lattices, c) scattering rings
+    """
+    def __init__(self, config):
+        self.cfg = config
+        self.hres = -999
+        self.n_ice_rings = 0
+        self.split = False
+
+        # Check for custom models and architectures
+        reso_model = self.cfg.getstr('resolution_model')
+        reso_arch = self.cfg.getstr('resolution_architecture')
+        multi_model = self.cfg.getstr('multilattice_model')
+        multi_arch = self.cfg.getstr('multilattice_architecture')
+
+        # Generate predictor
+        assert (
+            reso_model is not None,
+            reso_arch is not None,
+            multi_model is not None,
+            multi_arch is not None
+        )
+        self.predictor = ImagePredictFabio(
+            reso_model=reso_model,
+            reso_arch=reso_arch,
+            multi_model=multi_model,
+            multi_arch=multi_arch,
+            ice_model=None,
+            ice_arch=None
+        )
+
+    @staticmethod
+    def d_to_dnew(d):
+        B = 4 * d ** 2 + 12
+        # new equation: B = 13*dnew^2 -23 *dnew + 29
+        # quadratic fit coef
+        a, b, c = 13., -22., 26. - B
+        dnew = .5 * (-b + np.sqrt(b ** 2 - 4 * a * c)) / a  # positive root
+        return dnew
+
+    def estimate_resolution(self):
+        res = self.predictor.detect_resolution()
+        if self.cfg.getboolean('use_modern_res_trend'):
+            res = self.d_to_dnew(res)
+        return res
+
+    def find_rings(self):
+        return 0
+
+    def find_splitting(self):
+        return self.predictor.detect_multilattice_scattering()
+
+    def calculate_score(self):
+        score = 0
+        self.hres = self.estimate_resolution()
+        res_score = [
+            (20, 1),
+            (8, 2),
+            (5, 3),
+            (4, 4),
+            (3.2, 5),
+            (2.7, 7),
+            (2.4, 8),
+            (2.0, 10),
+            (1.7, 12),
+            (1.5, 14),
+        ]
+        if self.hres > 20:
+            score -= 2
+        else:
+            increment = 0
+            for res, inc in res_score:
+                if self.hres < res:
+                    increment = inc
+            score += increment
+
+        # evaluate ice ring presence
+        self.n_ice_rings = self.find_rings()
+        if self.n_ice_rings >= 4:
+            score -= 3
+        elif 4 > self.n_ice_rings >= 2:
+            score -= 2
+        elif self.n_ice_rings == 1:
+            score -= 1
+
+        # evaluate splitting
+        self.split = self.find_splitting()
+        return score
+
+
 class ImageScorer(object):
-    def __init__(self, experiments, observed, config):
+    def __init__(self, config, experiments=None, observed=None):
+        self.cfg = config
+        if experiments and observed:
+            self.initialize(experiments, observed)
+
+    def initialize(self, experiments, observed):
         self.experiments = experiments
         self.observed = observed
-        self.cfg = config
 
         # extract reflections and map to reciprocal space
         self.refl = observed.select(observed["id"] == 0)
@@ -318,9 +418,7 @@ class ImageScorer(object):
             score += 1
 
         if verbose:
-            print(
-                "SCORER: max intensity (15-4Å) = {}, score = {}".format(max_I,
-                                                                           score))
+            print("SCORER: max intensity (15-4Å) = {}, score = {}".format(max_I, score))
 
         # evaluate ice ring presence
         n_ice_rings = self.count_ice_rings(width=0.02, verbose=verbose)
@@ -441,6 +539,69 @@ class InterceptorBaseProcessor(object):
             return experiments, e_time
 
 
+class AIProcessor(InterceptorBaseProcessor):
+    def __init__(
+            self,
+            run_mode='file',
+            configfile=None,
+            test=False,
+            verbose=False,
+    ):
+        self.verbose = verbose
+        InterceptorBaseProcessor.__init__(self, run_mode=run_mode,
+                                          configfile=configfile, test=test)
+
+        # generate AI scorer
+        self.scorer = AIScorer(config=self.cfg)
+
+    def process(self, filename, info):
+
+        info["n_spots"] = 0
+        info["n_overloads"] = 0
+        info["score"] = 0
+        info["hres"] = -999
+        info["n_ice_rings"] = 0
+        info["mean_shape_ratio"] = 1
+        info["sg"] = None
+        info["uc"] = None
+
+        try:
+            load_start = time.time()
+            # TODO: CHANGE TO ACTUAL HEADER READING
+            self.scorer.predictor.load_image_from_file_or_array(
+                image_file=filename,
+                detdist=250,
+                pixsize=0.075,
+                wavelen=0.979,
+            )
+            print ("LOAD TIME: {}".format(time.time() - load_start))
+
+            start = time.time()
+            score = self.scorer.calculate_score()
+            print ('SCORING TIME: {}'.format(time.time() - start))
+            info['score'] = score
+        except Exception as err:
+            import traceback
+            traceback.print_exc()
+            spf_tb = traceback.format_exc()
+            info["spf_error"] = "SPF ERROR: {}".format(str(err))
+            info['spf_error_tback'] = spf_tb
+            return info
+        else:
+            info['n_spots'] = 0
+            info["hres"] = self.scorer.hres
+            info["n_ice_rings"] = self.scorer.n_ice_rings
+            info["split"] = self.scorer.split
+            info['spf_error'] = 'SPLITTING = {}'.format(self.scorer.split)
+        return info
+
+    def run(self, filename, info):
+        start = time.time()
+        info = self.process(filename, info)
+        info['proc_time'] = time.time() - start
+        return info
+
+
 class FileProcessor(InterceptorBaseProcessor):
     def __init__(
             self,
@@ -460,6 +621,7 @@ class FileProcessor(InterceptorBaseProcessor):
         experiments, e_time = self.make_experiments(filename=filename)
 
         # Spotfinding
+        start = time.time()
         try:
             observed = self.processor.find_spots(experiments)
         except Exception as err:
@@ -488,6 +650,7 @@ class FileProcessor(InterceptorBaseProcessor):
                     info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
             else:
                 info["n_spots"] = observed.size()
+        print("SCORING TIME = {}".format(time.time() - start))
 
 
         # Doing it here because scoring can reject spots within ice rings, which can
@@ -569,9 +732,15 @@ class ZMQProcessor(InterceptorBaseProcessor):
         InterceptorBaseProcessor.__init__(self, run_mode=run_mode,
                                           configfile=configfile,
                                           test=test)
+        self.ai_scorer = AIScorer(config=self.cfg)
+
+        try:
+            self.sp_scorer = ImageScorer(config=self.cfg)
+        except AssertionError:
+            self.sp_scorer = None
 
     def process(self, data, detector, info):
-        info["phil"] = self.dials_phil.as_str()
+        #info["phil"] = self.dials_phil.as_str()
         filename = info['full_path']
 
         # Make ExperimentList object
@@ -582,32 +751,57 @@ class ZMQProcessor(InterceptorBaseProcessor):
             try:
                 observed = self.processor.find_spots(experiments)
             except Exception as err:
-                import traceback
-                spf_tb = traceback.format_exc()
-                #DEBUG - CHANGE TO ERR
-                info["spf_error"] = "SPF ERROR: {}".format(len(experiments))
-                info['spf_error_tback'] = spf_tb
+                # import traceback
+                # spf_tb = traceback.format_exc()
+                info["spf_error"] = "SPF ERROR: {}".format(err)
+                # info['spf_error_tback'] = spf_tb
                 return info
             else:
                 if observed.size() >= self.cfg.getint('min_Bragg_peaks'):
-                    scorer = ImageScorer(experiments, observed, config=self.cfg)
+                    self.sp_scorer.initialize(experiments=experiments, observed=observed)
                     try:
                         if self.cfg.getboolean('spf_calculate_score'):
-                            info["score"] = scorer.calculate_score()
+                            info["score"] = self.sp_scorer.calculate_score()
                         else:
                             info["score"] = -999
-                            scorer.calculate_stats()
+                            self.sp_scorer.calculate_stats()
                     except Exception as e:
                         info["n_spots"] = 0
                         info["scr_error"] = "SCORING ERROR: {}".format(e)
                     else:
-                        info["n_spots"] = scorer.n_spots
-                        info["hres"] = scorer.hres
-                        info["n_ice_rings"] = scorer.n_ice_rings
-                        info["n_overloads"] = scorer.n_overloads
-                        info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
+                        info["n_spots"] = self.sp_scorer.n_spots
+                        info["hres"] = self.sp_scorer.hres
+                        info["n_ice_rings"] = self.sp_scorer.n_ice_rings
+                        info["n_overloads"] = self.sp_scorer.n_overloads
+                        info["mean_shape_ratio"] = self.sp_scorer.mean_spot_shape_ratio
                 else:
                     info["n_spots"] = observed.size()
+
+        # Perform additional analysis via AI (note: this will take over the whole process someday)
+        if self.cfg.getboolean('use_ai'):
+            if self.sp_scorer is None:
+                info['ai_error'] = 'AI_ERROR: XRAIS FAILED TO INITIALIZE'
+                return info
+            try:
+                raw_data = data.get("streamfile_3", "")
+                header = json.loads(data.get("header2", ""))
+                self.ai_scorer.predictor.load_image_from_file_or_array(
+                    raw_image=raw_data,
+                    detdist=header['detector_distance'] * 1000,
+                    pixsize=header['x_pixel_size'] * 1000,
+                    wavelen=header['wavelength'],
+                )
+                score = self.ai_scorer.calculate_score()  # Once the score works, will replace
+            except Exception as err:
+                import traceback
+                traceback.print_exc()
+                spf_tb = traceback.format_exc()
+                info["spf_error"] = "SPF ERROR: {}".format(str(err))
+                info['spf_error_tback'] = spf_tb
+                return info
+            else:
+                info["hres"] = self.ai_scorer.hres
+                info["split"] = self.ai_scorer.split
 
         # Doing it here because scoring can reject spots within ice rings, which can
         # drop the number below the minimal limit

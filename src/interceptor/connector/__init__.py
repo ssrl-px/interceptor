@@ -248,7 +248,8 @@ def make_result_string(info, cfg):
         "{5:.2f} {6} {7} {{{8}}}"
         "".format(
             info["n_spots"],  # number_of_spots
-            info["n_overloads"],  # number_of_spots_with_overloaded_pixels
+            # info["n_overloads"],  # number_of_spots_with_overloaded_pixels
+            info['split'], #todo: eventually insert instead of replacing number of overloads
             info["score"],  # composite score (used to be n_indexed...)
             info["hres"],  # high resolution boundary
             info["n_ice_rings"],  # number_of_ice-rings
