@@ -27,6 +27,8 @@ from interceptor import packagefinder, read_config_file
 from iota.base.processor import Processor, phil_scope as dials_scope
 from iota.utils.utils import Capturing
 
+from interceptor.format import extract_data
+
 #AI Stuff
 from resonet.utils.predict_fabio import ImagePredictFabio
 
@@ -780,17 +782,10 @@ class ZMQProcessor(InterceptorBaseProcessor):
                 return info
             try:
                 raw_bytes = data.get("streamfile_3", "")
+                info = json.loads(data.get("streamfile_2", ""))
                 header = json.loads(data.get("header2", ""))
 
-                # convert bytes to numpy array
-                deserialized_bytes = np.frombuffer(raw_bytes, dtype=np.int8)
-                raw_data = np.reshape(
-                    deserialized_bytes,
-                    newshape=(
-                        header['x_pixels_in_detector'],
-                        header['y_pixels_in_detector'],
-                    )
-                )
+                raw_data = extract_data(info=info, data=raw_bytes)
 
                 self.ai_scorer.predictor.load_image_from_file_or_array(
                     raw_image=raw_data,
