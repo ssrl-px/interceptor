@@ -313,6 +313,7 @@ class Reader(ZMQProcessBase):
             "n_overloads": 0,
             "hres": 99.0,
             "score": 0,
+            "split": 0,
             "n_ice_rings": 0,
             "mean_shape_ratio": 0,
             "n_indexed": 0,

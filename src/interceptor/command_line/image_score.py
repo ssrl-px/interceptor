@@ -9,9 +9,10 @@ Description : File processor will process single image
 
 import os
 import argparse
+from time import time
 from interceptor import __version__ as intxr_version
 from interceptor import packagefinder, read_config_file
-from interceptor.connector.processor import FileProcessor
+from interceptor.connector.processor import FileProcessor, AIProcessor
 from interceptor.connector import make_result_string, print_to_stdout
 
 def parse_command_args():
@@ -83,13 +84,15 @@ def parse_command_args():
         "--verbose",
         default=False,
         action="store_true",
-        help='Exposure time',
+        help='Verbose output',
     )
 
     return parser
 
 
 def entry_point():
+    start = time()
+
     args, _ = parse_command_args().parse_known_args()
     if not args.path:
         print ("A image filepath needs to be provided")
@@ -108,11 +111,18 @@ def entry_point():
     p_configfile = cfg['processing_config_file']
 
     # initialize processor
-    processor = FileProcessor(
-        run_mode=args.processing_mode,
-        configfile=p_configfile,
-        verbose=args.verbose,
-    )
+    if args.processing_mode == 'ai':
+        processor = AIProcessor(
+            run_mode=args.processing_mode,
+            configfile=p_configfile,
+            verbose=args.verbose,
+        )
+    else:
+        processor = FileProcessor(
+            run_mode=args.processing_mode,
+            configfile=p_configfile,
+            verbose=args.verbose,
+        )
 
     # initialize info dictionary object
     img_path = os.path.abspath(args.path[0])
@@ -133,6 +143,8 @@ def entry_point():
         "uc": None,
     }
 
+    print ("PROCESSING {}".format(args.path[0]))
+
     # Run processor
     info = processor.run(filename=img_path, info=init_info)
     info['total_time'] += info['proc_time']
@@ -140,5 +152,7 @@ def entry_point():
     # assemble output and print to stdout
     ui_msg = make_result_string(info, cfg)
     print_to_stdout(counter=0, info=info, ui_msg=ui_msg, clip=True)
+
+    print ('TOTAL TIME: {}\n*****\n\n'.format(time() - start))
 
 # --> end
