@@ -108,19 +108,17 @@ class AIScorer(object):
 
         # Check for custom models and architectures
         reso_model = self.cfg.getstr('resolution_model')
-        if reso_model is None:
-            reso_model = packagefinder('reso.nn', 'ai_resources', read_config=False)
         reso_arch = self.cfg.getstr('resolution_architecture')
-        if reso_arch is None:
-            reso_arch = 'res50'
         multi_model = self.cfg.getstr('multilattice_model')
-        if multi_model is None:
-            multi_model = packagefinder('multi.nn', 'ai_resources', read_config=False)
         multi_arch = self.cfg.getstr('multilattice_architecture')
-        if multi_arch is None:
-            multi_arch = 'res34'
 
         # Generate predictor
+        assert (
+            reso_model is not None,
+            reso_arch is not None,
+            multi_model is not None,
+            multi_arch is not None
+        )
         self.predictor = ImagePredictFabio(
             reso_model=reso_model,
             reso_arch=reso_arch,
@@ -130,8 +128,20 @@ class AIScorer(object):
             ice_arch=None
         )
 
+    @staticmethod
+    def d_to_dnew(d):
+        B = 4 * d ** 2 + 12
+        # new equation: B = 13*dnew^2 -23 *dnew + 29
+        # quadratic fit coef
+        a, b, c = 13., -22., 26. - B
+        dnew = .5 * (-b + np.sqrt(b ** 2 - 4 * a * c)) / a  # positive root
+        return dnew
+
     def estimate_resolution(self):
-        return self.predictor.detect_resolution()
+        res = self.predictor.detect_resolution()
+        if self.cfg.getboolean('use_modern_res_trend'):
+            res = self.d_to_dnew(res)
+        return res
 
     def find_rings(self):
         return 0
@@ -723,7 +733,11 @@ class ZMQProcessor(InterceptorBaseProcessor):
                                           configfile=configfile,
                                           test=test)
         self.ai_scorer = AIScorer(config=self.cfg)
-        self.sp_scorer = ImageScorer(config=self.cfg)
+
+        try:
+            self.sp_scorer = ImageScorer(config=self.cfg)
+        except AssertionError:
+            self.sp_scorer = None
 
     def process(self, data, detector, info):
         #info["phil"] = self.dials_phil.as_str()
@@ -765,6 +779,9 @@ class ZMQProcessor(InterceptorBaseProcessor):
 
         # Perform additional analysis via AI (note: this will take over the whole process someday)
         if self.cfg.getboolean('use_ai'):
+            if self.sp_scorer is None:
+                info['ai_error'] = 'AI_ERROR: XRAIS FAILED TO INITIALIZE'
+                return info
             try:
                 raw_data = data.get("streamfile_3", "")
                 header = json.loads(data.get("header2", ""))
