@@ -113,12 +113,8 @@ class AIScorer(object):
         multi_arch = self.cfg.getstr('multilattice_architecture')
 
         # Generate predictor
-        assert (
-            reso_model is not None,
-            reso_arch is not None,
-            multi_model is not None,
-            multi_arch is not None
-        )
+        assert reso_model is not None
+        assert multi_model is not None
         self.predictor = ImagePredictFabio(
             reso_model=reso_model,
             reso_arch=reso_arch,
