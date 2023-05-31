@@ -783,8 +783,19 @@ class ZMQProcessor(InterceptorBaseProcessor):
                 info['ai_error'] = 'AI_ERROR: XRAIS FAILED TO INITIALIZE'
                 return info
             try:
-                raw_data = data.get("streamfile_3", "")
+                raw_bytes = data.get("streamfile_3", "")
                 header = json.loads(data.get("header2", ""))
+
+                # convert bytes to numpy array
+                deserialized_bytes = np.frombuffer(raw_bytes, dtype=np.int8)
+                raw_data = np.reshape(
+                    deserialized_bytes,
+                    newshape=(
+                        header['x_pixels_in_detector'],
+                        header['y_pixels_in_detector'],
+                    )
+                )
+
                 self.ai_scorer.predictor.load_image_from_file_or_array(
                     raw_image=raw_data,
                     detdist=header['detector_distance'] * 1000,
