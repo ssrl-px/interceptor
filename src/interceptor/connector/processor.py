@@ -775,35 +775,34 @@ class ZMQProcessor(InterceptorBaseProcessor):
                 else:
                     info["n_spots"] = observed.size()
 
-        # Perform additional analysis via AI (note: this will take over the whole process someday)
-        if self.cfg.getboolean('use_ai'):
-            if self.sp_scorer is None:
-                info['ai_error'] = 'AI_ERROR: XRAIS FAILED TO INITIALIZE'
-                return info
-            try:
-                raw_bytes = data.get("streamfile_3", "")
-                info = json.loads(data.get("streamfile_2", ""))
-                header = json.loads(data.get("header2", ""))
+            # Perform additional analysis via AI (note: this will take over the whole process someday)
+            if self.cfg.getboolean('use_ai'):
+                if self.sp_scorer is None:
+                    info['ai_error'] = 'AI_ERROR: XRAIS FAILED TO INITIALIZE'
+                    return info
+                try:
+                    encoding_info = json.loads(data.get("streamfile_2", ""))
+                    header = json.loads(data.get("header2", ""))
 
-                raw_data = extract_data(info=info, data=raw_bytes)
+                    raw_data = extract_data(info=encoding_info, data=data)
 
-                self.ai_scorer.predictor.load_image_from_file_or_array(
-                    raw_image=raw_data,
-                    detdist=header['detector_distance'] * 1000,
-                    pixsize=header['x_pixel_size'] * 1000,
-                    wavelen=header['wavelength'],
-                )
-                score = self.ai_scorer.calculate_score()  # Once the score works, will replace
-            except Exception as err:
-                import traceback
-                traceback.print_exc()
-                spf_tb = traceback.format_exc()
-                info["spf_error"] = "SPF ERROR: {}".format(str(err))
-                info['spf_error_tback'] = spf_tb
-                return info
-            else:
-                info["hres"] = self.ai_scorer.hres
-                info["split"] = self.ai_scorer.split
+                    self.ai_scorer.predictor.load_image_from_file_or_array(
+                        raw_image=raw_data,
+                        detdist=header['detector_distance'] * 1000,
+                        pixsize=header['x_pixel_size'] * 1000,
+                        wavelen=header['wavelength'],
+                    )
+                    score = self.ai_scorer.calculate_score()  # Once the score works, will replace
+                except Exception as err:
+                    import traceback
+                    traceback.print_exc()
+                    spf_tb = traceback.format_exc()
+                    info["spf_error"] = "SPF ERROR: {}".format(str(err))
+                    info['spf_error_tback'] = spf_tb
+                    return info
+                else:
+                    info["hres"] = self.ai_scorer.hres
+                    info["split"] = self.ai_scorer.split
 
         # Doing it here because scoring can reject spots within ice rings, which can
         # drop the number below the minimal limit

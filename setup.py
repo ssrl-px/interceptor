@@ -9,7 +9,7 @@ setuptools.setup(
     long_description_content_type="text/x-rst",
     author="Artem Y. Lyubimov",
     author_email="lyubimov@stanford.edu",
-    version="0.31.4",
+    version="0.31.5",
     url="https://github.com/ssrl-px/interceptor",
     license="BSD",
     install_requires=[],
