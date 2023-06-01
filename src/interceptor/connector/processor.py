@@ -144,8 +144,8 @@ class AIScorer(object):
     def find_rings(self):
         return 0
 
-    def find_splitting(self):
-        return self.predictor.detect_multilattice_scattering()
+    def find_multilattice(self):
+        return self.predictor.detect_multilattice_scattering(binary=self.cfg.getboolean('multilattice_binary'))
 
     def calculate_score(self):
         score = 0
@@ -181,7 +181,7 @@ class AIScorer(object):
             score -= 1
 
         # evaluate splitting
-        self.split = self.find_splitting()
+        self.split = self.find_multilattice()
         return score
 
 
