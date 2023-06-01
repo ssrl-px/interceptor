@@ -782,9 +782,10 @@ class ZMQProcessor(InterceptorBaseProcessor):
                     return info
                 try:
                     encoding_info = json.loads(data.get("streamfile_2", ""))
+                    raw_bytes = data.get("streamfile_3", "")
                     header = json.loads(data.get("header2", ""))
 
-                    raw_data = extract_data(info=encoding_info, data=data)
+                    raw_data = extract_data(info=encoding_info, data=raw_bytes)
 
                     self.ai_scorer.predictor.load_image_from_file_or_array(
                         raw_image=raw_data,
