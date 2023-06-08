@@ -145,7 +145,7 @@ class AIScorer(object):
         return 0
 
     def find_multilattice(self):
-        return self.predictor.detect_multilattice_scattering(binary=self.cfg.getboolean('multilattice_binary'))
+        return self.predictor.detect_multilattice_scattering(binary=self.cfg.getboolean('multilattice_binary'))*100
 
     def calculate_score(self):
         score = 0
