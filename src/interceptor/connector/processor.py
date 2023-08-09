@@ -757,21 +757,25 @@ class ZMQProcessor(InterceptorBaseProcessor):
             else:
                 if observed.size() >= self.cfg.getint('min_Bragg_peaks'):
                     self.sp_scorer.initialize(experiments=experiments, observed=observed)
-                    try:
-                        if self.cfg.getboolean('spf_calculate_score'):
-                            info["score"] = self.sp_scorer.calculate_score()
-                        else:
-                            info["score"] = -999
-                            self.sp_scorer.calculate_stats()
-                    except Exception as e:
-                        info["n_spots"] = 0
-                        info["scr_error"] = "SCORING ERROR: {}".format(e)
+                    if self.sp_scorer is None:
+                        info['scr_error'] = "SCORING ERROR: SCORER NOT INITIALIZED"
+                        info["n_spots"] = observed.size()
                     else:
-                        info["n_spots"] = self.sp_scorer.n_spots
-                        info["hres"] = self.sp_scorer.hres
-                        info["n_ice_rings"] = self.sp_scorer.n_ice_rings
-                        info["n_overloads"] = self.sp_scorer.n_overloads
-                        info["mean_shape_ratio"] = self.sp_scorer.mean_spot_shape_ratio
+                        try:
+                            if self.cfg.getboolean('spf_calculate_score'):
+                                info["score"] = self.sp_scorer.calculate_score()
+                            else:
+                                info["score"] = -999
+                                self.sp_scorer.calculate_stats()
+                        except Exception as e:
+                            info["n_spots"] = 0
+                            info["scr_error"] = "SCORING ERROR: {}".format(e)
+                        else:
+                            info["n_spots"] = self.sp_scorer.n_spots
+                            info["hres"] = self.sp_scorer.hres
+                            info["n_ice_rings"] = self.sp_scorer.n_ice_rings
+                            info["n_overloads"] = self.sp_scorer.n_overloads
+                            info["mean_shape_ratio"] = self.sp_scorer.mean_spot_shape_ratio
                 else:
                     info["n_spots"] = observed.size()
 

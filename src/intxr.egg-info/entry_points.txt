@@ -17,4 +17,3 @@ intxr.connect_mpi = intxr.connect_mpi
 intxr.gui = intxr.gui
 intxr.score = intxr.score
 intxr.strategy = intxr.strategy
-
