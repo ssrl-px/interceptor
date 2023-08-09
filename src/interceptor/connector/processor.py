@@ -140,7 +140,7 @@ class AIScorer(object):
         if self.cfg.getboolean('use_modern_res_trend'):
             res = self.d_to_dnew(res)
         if np.isnan(res):
-            res = -999
+            res = 99.0
         return res
 
     def find_rings(self):
