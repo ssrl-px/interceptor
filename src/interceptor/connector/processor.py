@@ -139,6 +139,8 @@ class AIScorer(object):
         res = self.predictor.detect_resolution()
         if self.cfg.getboolean('use_modern_res_trend'):
             res = self.d_to_dnew(res)
+        if np.isnan(res):
+            res = -999
         return res
 
     def find_rings(self):
@@ -781,7 +783,7 @@ class ZMQProcessor(InterceptorBaseProcessor):
 
             # Perform additional analysis via AI (note: this will take over the whole process someday)
             if self.cfg.getboolean('use_ai'):
-                if self.sp_scorer is None:
+                if self.ai_scorer is None:
                     info['ai_error'] = 'AI_ERROR: XRAIS FAILED TO INITIALIZE'
                     return info
                 try:
