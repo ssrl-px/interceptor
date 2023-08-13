@@ -126,19 +126,8 @@ class AIScorer(object):
             ice_arch=None
         )
 
-    @staticmethod
-    def d_to_dnew(d):
-        B = 4 * d ** 2 + 12
-        # new equation: B = 13*dnew^2 -23 *dnew + 29
-        # quadratic fit coef
-        a, b, c = 13., -22., 26. - B
-        dnew = .5 * (-b + np.sqrt(b ** 2 - 4 * a * c)) / a  # positive root
-        return dnew
-
     def estimate_resolution(self):
         res = self.predictor.detect_resolution()
-        if self.cfg.getboolean('use_modern_res_trend'):
-            res = self.d_to_dnew(res)
         if np.isnan(res):
             res = 99.0
         return res
