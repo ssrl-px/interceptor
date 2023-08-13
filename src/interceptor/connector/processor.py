@@ -781,6 +781,8 @@ class ZMQProcessor(InterceptorBaseProcessor):
                     header = json.loads(data.get("header2", ""))
 
                     raw_data = extract_data(info=encoding_info, data=raw_bytes)
+                    if raw_data.dtype != np.float32:
+                        raw_data = raw_data.astype(np.float32)
 
                     self.ai_scorer.predictor.load_image_from_file_or_array(
                         raw_image=raw_data,
