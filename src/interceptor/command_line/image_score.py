@@ -12,7 +12,7 @@ import argparse
 from time import time
 from interceptor import __version__ as intxr_version
 from interceptor import packagefinder, read_config_file
-from interceptor.connector.processor import FileProcessor, AIProcessor
+from interceptor.connector.processor import FileProcessor, AIProcessor, FastProcessor
 from interceptor.connector import make_result_string, print_to_stdout
 
 def parse_command_args():
@@ -117,6 +117,12 @@ def entry_point():
             configfile=p_configfile,
             verbose=args.verbose,
         )
+    elif args.processing_mode == 'fast':
+        processor = FastProcessor(
+            run_mode=args.processing_mode,
+            configfile=p_configfile,
+            verbose=args.verbose,
+        )
     else:
         processor = FileProcessor(
             run_mode=args.processing_mode,
@@ -146,13 +152,13 @@ def entry_point():
     print ("PROCESSING {}".format(args.path[0]))
 
     # Run processor
-    info = processor.run(filename=img_path, info=init_info)
+    info = processor.run(info=init_info, filename=img_path)
     info['total_time'] += info['proc_time']
 
     # assemble output and print to stdout
     ui_msg = make_result_string(info, cfg)
     print_to_stdout(counter=0, info=info, ui_msg=ui_msg, clip=True)
 
-    print ('TOTAL TIME: {}\n*****\n\n'.format(time() - start))
+    print (f'TOTAL TIME = {time() - start:.4f} seconds\n*****\n\n')
 
 # --> end

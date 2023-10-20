@@ -1,6 +1,7 @@
 [console_scripts]
 intxr.connect = interceptor.command_line.connector_run:entry_point
 intxr.connect_mpi = interceptor.command_line.connector_run_mpi:entry_point
+intxr.fill = interceptor.command_line.strategy_fill_in:entry_point
 intxr.score = interceptor.command_line.image_score:entry_point
 intxr.strategy = interceptor.command_line.strategy_process:entry_point
 
@@ -14,6 +15,7 @@ intxr.gui = interceptor.command_line.ui_run:entry_point
 [libtbx.dispatcher.script]
 intxr.connect = intxr.connect
 intxr.connect_mpi = intxr.connect_mpi
+intxr.fill = intxr.fill
 intxr.gui = intxr.gui
 intxr.score = intxr.score
 intxr.strategy = intxr.strategy

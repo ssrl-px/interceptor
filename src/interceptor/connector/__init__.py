@@ -243,22 +243,9 @@ def make_result_string(info, cfg):
     ]
     errors = "; ".join(err_list)
     # Collect results
-    results = (
-        "{0} {1} {2} {3:.2f} {4} "
-        "{5:.2f} {6} {7} {{{8}}}"
-        "".format(
-            info["n_spots"],  # number_of_spots
-            # info["n_overloads"],  # number_of_spots_with_overloaded_pixels
-            info['split'], #todo: eventually insert instead of replacing number of overloads
-            info["score"],  # composite score (used to be n_indexed...)
-            info["hres"],  # high resolution boundary
-            info["n_ice_rings"],  # number_of_ice-rings
-            info["mean_shape_ratio"],  # mean spot shape ratio
-            info["sg"],  # space group
-            info["uc"],  # unit cell
-            errors,  # errors
-        )
-    )
+    info['split'] = 0
+    results = (f'{info["n_spots"]} {info["split"]} {info["score"]} {info["hres"]:.2f} {info["n_ice_rings"]} '
+               f'{info["mean_shape_ratio"]:.2f} {info["sg"]} {info["uc"]} {{{errors}}}')
 
     # read out config format (if no path specified, read from default config file)
     if cfg.getstr('output_delimiter') is not None:
