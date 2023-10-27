@@ -223,8 +223,7 @@ class Script(object):
 
     def get_mtz(self, dataset_file):
         if dataset_file is None:
-            assert self.project_id   # will throw exception at all times at this point
-            return None
+            raise Exception ('No project ID available at this time')
         else:
             return dataset_file[0]
 
