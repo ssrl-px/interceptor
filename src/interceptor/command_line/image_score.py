@@ -95,9 +95,14 @@ def entry_point():
 
     args, _ = parse_command_args().parse_known_args()
     if not args.path:
-        print ("A image filepath needs to be provided")
-    elif not os.path.isfile(args.path[0]):
-        print ("{} is not a valid filepath".format(args.path))
+        print ("A path to image file(s) needs to be provided")
+    else:
+        if os.path.isfile(args.path[0]):
+            paths = args.path
+        elif os.path.isdir(args.path[0]):
+            paths = [os.path.join((os.path.abspath(os.curdir)), f) for f in os.listdir(args.path[0])]
+        else:
+            print(f"{args.path} is not a valid path")
 
     # determine processing config file
     if os.path.isfile(args.processing_config):
@@ -130,34 +135,34 @@ def entry_point():
             verbose=args.verbose,
         )
 
-    # initialize info dictionary object
-    img_path = os.path.abspath(args.path[0])
-    init_info = {
-        "filename": os.path.basename(img_path),
-        "full_path": img_path,
-        "proc_name": "{}_1".format(args.beamline),
-        "wait_time": 0,
-        "receive_time": 0,
-        "proc_time": 0,
-        "total_time": 0,
-        "series": args.series,
-        "frame": args.frame,
-        "run_mode": args.processing_mode,
-        "exposure_time": 0.1,
-        "mapping": "",
-        "sg": None,
-        "uc": None,
-    }
+    for img_path in paths:
+        # initialize info dictionary object
+        init_info = {
+            "filename": os.path.basename(img_path),
+            "full_path": img_path,
+            "proc_name": "{}_1".format(args.beamline),
+            "wait_time": 0,
+            "receive_time": 0,
+            "proc_time": 0,
+            "total_time": 0,
+            "series": args.series,
+            "frame": args.frame,
+            "run_mode": args.processing_mode,
+            "exposure_time": 0.1,
+            "mapping": "",
+            "sg": None,
+            "uc": None,
+        }
 
-    print ("PROCESSING {}".format(args.path[0]))
+        print ("PROCESSING {}".format(args.path[0]))
 
-    # Run processor
-    info = processor.run(info=init_info, filename=img_path)
-    info['total_time'] += info['proc_time']
+        # Run processor
+        info = processor.run(info=init_info, filename=img_path)
+        info['total_time'] += info['proc_time']
 
-    # assemble output and print to stdout
-    ui_msg = make_result_string(info, cfg)
-    print_to_stdout(counter=0, info=info, ui_msg=ui_msg, clip=True)
+        # assemble output and print to stdout
+        ui_msg = make_result_string(info, cfg)
+        print_to_stdout(counter=0, info=info, ui_msg=ui_msg, clip=True)
 
     print (f'TOTAL TIME = {time() - start:.4f} seconds\n*****\n\n')
 

@@ -107,26 +107,33 @@ exp_phil = exp_scope.fetch(source=exp_work_phil)
 
 
 def parse_command_args():
-    """ Parses command line arguments (only options for now) """
+    """ Parses command line arguments """
     parser = argparse.ArgumentParser(
-        prog="strategy_process.py",
+        prog="strategy_fill-in.py",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=("ZMQ Stream Connector"),
+        description=("Fill-in Strategy"),
         epilog=("\n{:-^70}\n".format("")),
     )
     parser.add_argument(
         "path",
         type=str,
-        nargs="*",
+        nargs=1,
         default=None,
-        help="Path to data or file with IOTA parameters",
+        help="Path to a test image file",
     )
     parser.add_argument(
-        "--dataset", '-d',
+        "--project", "-p",
         type=str,
         nargs=1,
         default=None,
-        help="Path to a merged dataset or ExperimentList JSON file"
+        help="CrystalServer project ID",
+    )
+    parser.add_argument(
+        "--mtz", '-m',
+        type=str,
+        nargs=1,
+        default=None,
+        help="Path to a merged dataset in MTZ format"
     )
     parser.add_argument(
         "--phi_start", '-f',
@@ -202,7 +209,8 @@ class Script(object):
         self.args = args
         self.processor = StrategyProcessor()
         self.imagefiles = args.path
-        self.dataset_file = args.dataset[0]
+        self.project_id = args.project
+        self.dataset_file = self.get_mtz(dataset_file=args.dataset_file)
         self.verbose = args.verbose
         self.create_params(phils)
 
@@ -212,6 +220,13 @@ class Script(object):
             params = phils[pname].extract()
             setattr(self, paramname, params)
             setattr(self, pname, phil)
+
+    def get_mtz(self, dataset_file):
+        if dataset_file is None:
+            assert self.project_id   # will throw exception at all times at this point
+            return None
+        else:
+            return dataset_file[0]
 
     def predict_and_merge(self, experiments, ref_marray, start_phi, wedge_size=1, target_res=2.5):
         # create predictions
@@ -284,6 +299,7 @@ class Script(object):
         # extract indexing solution from dataset file
         if self.verbose:
             print ("Extracting reference space group and unit cell from MTZ file...")
+
         ref_hklin = any_reflection_file(file_name=self.dataset_file)
         ref_marray = ref_hklin.as_miller_arrays()[0].map_to_asu()
         ref_unit_cell = ref_marray.unit_cell().parameters()
