@@ -2,7 +2,7 @@
 Author      : Lyubimov, A.Y.
 Created     : 04/06/2020
 Last Changed: 04/16/2020
-Description : A test script for ZMQ Reader, which reads in files
+Description : A test script for ZMQ AIWorker, which reads in files
 """
 
 import os
@@ -215,7 +215,7 @@ run_proc(args, data, info, filename)
     return info_string
 
 def print_phil(phil_file=None):
-    print("~~~ Testing ZMQ Reader ~~~")
+    print("~~~ Testing ZMQ AIWorker ~~~")
     print('PHIL Settings for this run: ')
     make_phil(phil_file, show_phil=True)
 
@@ -255,7 +255,7 @@ def entry_point():
         for result in results:
             print (result)
 
-# Unit test for ZMQ Reader
+# Unit test for ZMQ AIWorker
 if __name__ == "__main__":
     entry_point()
 

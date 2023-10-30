@@ -24,7 +24,8 @@ import setproctitle
 
 from interceptor import __version__ as intxr_version
 from interceptor import packagefinder
-from interceptor.connector.connector import Connector, Reader, Collector
+from interceptor.connector.connector import Connector, Collector
+from interceptor.connector.ai_worker import AIWorker
 
 
 class ExpandPresets(argparse.Action):
@@ -190,16 +191,16 @@ def entry_point():
                 if args.broker:
                     script = Connector(comm=comm_world, args=args, localhost=localhost)
                 else:
-                    script = Reader(comm=comm_world, args=args, localhost=localhost)
+                    script = AIWorker(comm=comm_world, args=args, localhost=localhost)
             else:
-                script = Reader(comm=comm_world, args=args, localhost=localhost)
+                script = AIWorker(comm=comm_world, args=args, localhost=localhost)
             comm_world.barrier()
             script.run()
     else:
         if args.rank == 0:
             script = Collector(args=args, localhost=localhost)
         else:
-            script = Reader(args=args, localhost=localhost)
+            script = AIWorker(args=args, localhost=localhost)
         script.run()
 
 

@@ -12,12 +12,13 @@ import shutil
 import pytest
 
 from interceptor import packagefinder
-from interceptor.connector.connector import Reader, Collector
+from interceptor.connector.connector import Collector
+from interceptor.connector.ai_worker import AIWorker
 from interceptor.command_line.connector_run import parse_command_args
 args, _ = parse_command_args().parse_known_args()
 
 
-class MinimalReader(Reader):
+class MinimalReader(AIWorker):
     def __init__(self, name='test', args=None):
         super(MinimalReader, self).__init__(name=name, args=args)
 

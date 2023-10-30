@@ -12,7 +12,9 @@ import argparse
 from time import time
 from interceptor import __version__ as intxr_version
 from interceptor import packagefinder, read_config_file
-from interceptor.connector.processor import FileProcessor, AIProcessor, FastProcessor
+from interceptor.connector.processor import FileProcessor
+from interceptor.connector.fp_worker import FastProcessor
+from interceptor.connector.ai_worker import AIProcessor
 from interceptor.connector import make_result_string, print_to_stdout
 
 def parse_command_args():

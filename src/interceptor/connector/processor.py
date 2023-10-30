@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
+from interceptor.connector.ai_worker import AIScorer
+
 """
 Author      : Lyubimov, A.Y.
 Created     : 03/31/2020
@@ -12,12 +14,11 @@ import numpy as np
 import importlib
 import json
 
-from cctbx import sgtbx, crystal
+from cctbx import sgtbx
 from iotbx import phil as ip
 
 from dials.array_family import flex
 from dials.algorithms.spot_finding import per_image_analysis
-from dials.algorithms.indexing.indexer import Indexer, DialsIndexError
 from dxtbx.model.experiment_list import ExperimentListFactory
 from dxtbx.imageset import ImageSet, ImageSetData, MemReader
 
@@ -31,7 +32,6 @@ from iota.utils.utils import Capturing
 from interceptor.format import extract_data
 
 #AI Stuff
-from resonet.utils.predict_fabio import ImagePredictFabio
 
 
 # Custom PHIL for processing with DIALS stills processor
@@ -90,90 +90,12 @@ significance_filter {
 custom_phil = ip.parse(custom_param_string, process_includes=True)
 custom_params = dials_scope.fetch(source=custom_phil).extract()
 
+
 class MemReaderNamedPath(MemReader):
 
   def __init__(self, path,  *args, **kwargs):
     self.dummie_path_name = path
     super(MemReaderNamedPath, self).__init__(*args, **kwargs)
-
-
-class AIScorer(object):
-    """
-    A wrapper class for the neural network image evaluator(s), which will hopefully find a) resolution,
-    b) split spots / multiple lattices, c) scattering rings
-    """
-    def __init__(self, config):
-        self.cfg = config
-        self.hres = -999
-        self.n_ice_rings = 0
-        self.split = False
-
-        # Check for custom models and architectures
-        reso_model = self.cfg.getstr('resolution_model')
-        reso_arch = self.cfg.getstr('resolution_architecture')
-        multi_model = self.cfg.getstr('multilattice_model')
-        multi_arch = self.cfg.getstr('multilattice_architecture')
-
-        # Generate predictor
-        assert reso_model is not None
-        assert multi_model is not None
-        self.predictor = ImagePredictFabio(
-            reso_model=reso_model,
-            reso_arch=reso_arch,
-            multi_model=multi_model,
-            multi_arch=multi_arch,
-            ice_model=None,
-            ice_arch=None
-        )
-
-    def estimate_resolution(self):
-        res = self.predictor.detect_resolution()
-        if np.isnan(res):
-            res = 99.0
-        return res
-
-    def find_rings(self):
-        return 0
-
-    def find_multilattice(self):
-        return self.predictor.detect_multilattice_scattering(binary=self.cfg.getboolean('multilattice_binary'))*100
-
-    def calculate_score(self):
-        score = 0
-        self.hres = self.estimate_resolution()
-        res_score = [
-            (20, 1),
-            (8, 2),
-            (5, 3),
-            (4, 4),
-            (3.2, 5),
-            (2.7, 7),
-            (2.4, 8),
-            (2.0, 10),
-            (1.7, 12),
-            (1.5, 14),
-        ]
-        if self.hres > 20:
-            score -= 2
-        else:
-            increment = 0
-            for res, inc in res_score:
-                if self.hres < res:
-                    increment = inc
-            score += increment
-
-        # evaluate ice ring presence
-        self.n_ice_rings = self.find_rings()
-        if self.n_ice_rings >= 4:
-            score -= 3
-        elif 4 > self.n_ice_rings >= 2:
-            score -= 2
-        elif self.n_ice_rings == 1:
-            score -= 1
-
-        # evaluate splitting
-        self.split = self.find_multilattice()
-        return score
 
 
 class ImageScorer(object):
@@ -532,69 +454,6 @@ class InterceptorBaseProcessor(object):
             return experiments, e_time
 
 
-class AIProcessor(InterceptorBaseProcessor):
-    def __init__(
-            self,
-            run_mode='file',
-            configfile=None,
-            test=False,
-            verbose=False,
-    ):
-        self.verbose = verbose
-        InterceptorBaseProcessor.__init__(self, run_mode=run_mode,
-                                          configfile=configfile, test=test)
-
-        # generate AI scorer
-        self.scorer = AIScorer(config=self.cfg)
-
-    def process(self, filename, info):
-
-        info["n_spots"] = 0
-        info["n_overloads"] = 0
-        info["score"] = 0
-        info["hres"] = -999
-        info["n_ice_rings"] = 0
-        info["mean_shape_ratio"] = 1
-        info["sg"] = None
-        info["uc"] = None
-
-        try:
-            load_start = time.time()
-            # TODO: CHANGE TO ACTUAL HEADER READING
-            self.scorer.predictor.load_image_from_file_or_array(
-                image_file=filename,
-                detdist=250,
-                pixsize=0.075,
-                wavelen=0.979,
-            )
-            print ("LOAD TIME: {}".format(time.time() - load_start))
-
-            start = time.time()
-            score = self.scorer.calculate_score()
-            print ('SCORING TIME: {}'.format(time.time() - start))
-            info['score'] = score
-        except Exception as err:
-            import traceback
-            traceback.print_exc()
-            spf_tb = traceback.format_exc()
-            info["spf_error"] = "SPF ERROR: {}".format(str(err))
-            info['spf_error_tback'] = spf_tb
-            return info
-        else:
-            info['n_spots'] = 0
-            info["hres"] = self.scorer.hres
-            info["n_ice_rings"] = self.scorer.n_ice_rings
-            info["split"] = self.scorer.split
-            info['spf_error'] = 'SPLITTING = {}'.format(self.scorer.split)
-        return info
-
-    def run(self, filename, info):
-        start = time.time()
-        info = self.process(filename, info)
-        info['proc_time'] = time.time() - start
-        return info
-
-
 class FileProcessor(InterceptorBaseProcessor):
     def __init__(
             self,
@@ -726,230 +585,6 @@ class FileProcessor(InterceptorBaseProcessor):
         info['proc_time'] = time.time() - start
         return info
 
-
-    def create_integrator(self, experiments, indexed, params):
-        from dials.algorithms.integration.integrator import create_integrator
-        from dials.algorithms.profile_model.factory import ProfileModelFactory
-        from dxtbx.model.experiment_list import ExperimentList
-
-        experiments = ProfileModelFactory.create(params, experiments, indexed)
-        new_experiments = ExperimentList()
-        new_reflections = flex.reflection_table()
-        for expt_id, expt in enumerate(experiments):
-            if (
-                    params.profile.gaussian_rs.parameters.sigma_b_cutoff is None
-                    or expt.profile.sigma_b()
-                    < params.profile.gaussian_rs.parameters.sigma_b_cutoff
-            ):
-                refls = indexed.select(indexed["id"] == expt_id)
-                refls["id"] = flex.int(len(refls), len(new_experiments))
-                del refls.experiment_identifiers()[expt_id]
-                refls.experiment_identifiers()[len(new_experiments)] = expt.identifier
-                new_reflections.extend(refls)
-                new_experiments.append(expt)
-        experiments = new_experiments
-        indexed = new_reflections
-
-        if len(experiments) == 0:
-            raise RuntimeError("No experiments after filtering by sigma_b")
-
-        predicted = flex.reflection_table.from_predictions_multi(
-            experiments,
-            dmin=params.prediction.d_min,
-            dmax=params.prediction.d_max,
-            margin=params.prediction.margin,
-            force_static=params.prediction.force_static,
-        )
-        predicted.match_with_reference(indexed)
-        integrator = create_integrator(params, experiments, predicted)
-        return integrator, predicted
-
-    def process_reference(self, reference):
-        """Load the reference spots."""
-        if reference is None:
-            return None, None
-        st = time.time()
-        assert "miller_index" in reference
-        assert "id" in reference
-        mask = reference.get_flags(reference.flags.indexed)
-        rubbish = reference.select(~mask)
-        if mask.count(False) > 0:
-            reference.del_selected(~mask)
-        if len(reference) == 0:
-            print(f"Invalid input for reference reflections. Expected > {0} indexed spots, got {len(reference)}")
-        mask = reference["miller_index"] == (0, 0, 0)
-        if mask.count(True) > 0:
-            rubbish.extend(reference.select(mask))
-            reference.del_selected(mask)
-        mask = reference["id"] < 0
-        if mask.count(True) > 0:
-            print(f"Invalid input for reference reflections. {mask.count(True)} reference spots have an invalid experiment id ")
-        return reference, rubbish
-
-
-class FastProcessor(InterceptorBaseProcessor):
-    def __init__(
-            self,
-            run_mode='fast',
-            configfile=None,
-            test=False,
-            verbose=False,
-    ):
-        self.verbose = verbose
-        self.processing_mode = "integration"
-        InterceptorBaseProcessor.__init__(self, run_mode=run_mode,
-                                          configfile=configfile, test=test)
-
-    def process(self, info, filename=None, data=None, detector=None):
-        info["phil"] = self.dials_phil.as_str()
-
-        # Make ExperimentList object
-        experiments, e_time = self.make_experiments(filename=filename, data=data, detector=detector)
-        print (f"MAKING EXPERIMENTLIST OBJECT TIME = {e_time:.4f} seconds")
-
-        # Spotfinding
-        try:
-            spf_time = time.time()
-            observed = self.processor.find_spots(experiments)
-            print(f"SPOTFINDING COMPLETE! FOUND {len(observed)} spots")
-            print(f'SPOTFINDING TIME = {time.time() - spf_time:.4f} seconds')
-        except Exception as err:
-            import traceback
-            spf_tb = traceback.format_exc()
-            info["spf_error"] = "SPF ERROR: {}".format(str(err))
-            info['spf_error_tback'] = spf_tb
-            return info
-        else:
-            if observed.size() >= self.cfg.getint('min_Bragg_peaks'):
-                start = time.time()
-                scorer = ImageScorer(experiments=experiments, observed=observed, config=self.cfg)
-                try:
-                    if self.cfg.getboolean('spf_calculate_score'):
-                        info["score"] = scorer.calculate_score(verbose=self.verbose)
-                    else:
-                        info["score"] = -999
-                        scorer.calculate_stats()
-                except Exception as e:
-                    info["n_spots"] = 0
-                    info["scr_error"] = "SCORING ERROR: {}".format(e)
-                else:
-                    info["n_spots"] = scorer.n_spots
-                    info["hres"] = scorer.hres
-                    info["n_ice_rings"] = scorer.n_ice_rings
-                    info["n_overloads"] = scorer.n_overloads
-                    info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
-                print(f"SCORING TIME = {time.time() - start:.4f} seconds")
-            else:
-                info["n_spots"] = observed.size()
-
-        # Doing it here because scoring can reject spots within ice rings, which can
-        # drop the number below the minimal limit
-        if info['n_spots'] < self.cfg.getint('min_Bragg_peaks'):
-            info[
-                "spf_error"] = "Too few ({}) spots found!".format(
-                observed.size())
-        if info["n_spots"] <= self.cfg.getint('min_Bragg_peaks'):
-            return info
-        else:
-            exposure_time_cutoff = self.cfg.getfloat('exposure_time_cutoff')
-            if exposure_time_cutoff > info['exposure_time']:
-                return info
-
-        # Indexing
-        start_idx = time.time()
-        params, self.dials_phil = self.generate_params()
-        params.indexing.method = 'fft1d'
-        params.indexing.stills.candidate_outlier_rejection = True
-        params.indexing.stills.refine_all_candidates = True
-        observed.centroid_px_to_mm(experiments)
-        observed.map_centroids_to_reciprocal_space(experiments)
-        try:
-            idxr = Indexer.from_parameters(observed, experiments, params=params)
-            idxr.index()
-            indexed = idxr.refined_reflections
-            experiments = idxr.refined_experiments
-        except (AssertionError, DialsIndexError, Exception) as err:
-            indexed = []
-            print (err)
-            pass
-
-        print (f"INDEXING FINISHED! FOUND {len(indexed)} indexed reflections!")
-        print (f"INDEXING TIME = {time.time() - start_idx:.4f} seconds")
-
-        # Reindex if possible
-        rdx_time = time.time()
-        try:
-            solution = self.processor.refine_bravais_settings(indexed, experiments)
-            if solution is not None:
-                experiments, indexed = self.processor.reindex(indexed, experiments, solution)
-            else:
-                info[
-                    "rix_error"] = "reindex error: symmetry solution not found!"
-            if len(indexed) == 0:
-                info["idx_error"] = "index error: no indexed reflections!"
-        except Exception as err:
-            info["idx_error"] = "index error: {}".format(str(err))
-            indexed = []
-            print(f"reindex error: {str(err)}")
-            #return info
-        else:
-            if indexed:
-                lat = experiments[0].crystal.get_space_group().info()
-                sg = str((lat)).replace(" ", "")
-                unit_cell = experiments[0].crystal.get_unit_cell().parameters()
-                uc = " ".join(["{:.2f}".format(i) for i in unit_cell])
-                info["n_indexed"] = len(indexed)
-                info["sg"] = sg
-                info["uc"] = uc
-
-        print(f"RE-INDEXING TIME = {time.time() - rdx_time:.4f} seconds")
-
-        # **** Integration **** #
-        int_time = time.time()
-
-        # process reference
-        indexed, _  = self.process_reference(reference=indexed)
-
-        # create integrator
-        start = time.time()
-        integrator, predicted = self.create_integrator(experiments=experiments, indexed=indexed, params=params)
-        print (f"*** DEBUG: integrator creation time = {time.time() - start:.05f} sec")
-        integrated = predicted
-
-        # Full integration, keeping here just in case
-        # try:
-        #     integrated = integrator.integrate()
-        # except Exception as err:
-        #     info["int_error"] = "integration error: {}".format(str(err))
-        #     import traceback
-        #     traceback.print_exc()
-        #     integrated = []
-        # else:
-        #     info["int_error"] = '{} integrated'.format(integrated.size())
-
-        # old slow integrator (i.e. complete from DIALS)
-        # with Capturing() as int_output:
-        #     try:
-        #         experiments, indexed = self.processor.refine(experiments, indexed)
-        #         integrated = self.processor.integrate(experiments, indexed)
-        #     except Exception as err:
-        #         info["int_error"] = "integration error: {}".format(str(err))
-        #         import traceback
-        #         traceback.print_exc()
-        #         # return info
-        #     else:
-        #         info["int_error"] = '{} integrated'.format(integrated.size())
-        print (f"INTEGRATION TIME = {time.time() - int_time:.4f} seconds")
-
-        if integrated:
-            info['n_integrated'] = integrated.size()
-        return info
-
-    def run(self, info, filename=None, data=None, detector=None):
-        start = time.time()
-        info = self.process(filename=filename, info=info, data=data, detector=detector)
-        info['proc_time'] = time.time() - start
-        return info
 
     def create_integrator(self, experiments, indexed, params):
         from dials.algorithms.integration.integrator import create_integrator
