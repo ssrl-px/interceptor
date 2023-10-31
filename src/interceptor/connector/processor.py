@@ -1,7 +1,5 @@
 from __future__ import absolute_import, division, print_function
 
-from interceptor.connector.ai_worker import AIScorer
-
 """
 Author      : Lyubimov, A.Y.
 Created     : 03/31/2020
@@ -583,6 +581,7 @@ class FileProcessor(InterceptorBaseProcessor):
         start = time.time()
         info = self.process(filename, info)
         info['proc_time'] = time.time() - start
+        print(f"TOTAL PROCESSING TIME = {info['proc_time']:0.4f} seconds")
         return info
 
 
@@ -657,7 +656,6 @@ class ZMQProcessor(InterceptorBaseProcessor):
         InterceptorBaseProcessor.__init__(self, run_mode=run_mode,
                                           configfile=configfile,
                                           test=test)
-        self.ai_scorer = AIScorer(config=self.cfg)
 
         try:
             self.sp_scorer = ImageScorer(config=self.cfg)
@@ -706,37 +704,6 @@ class ZMQProcessor(InterceptorBaseProcessor):
                 else:
                     info["n_spots"] = observed.size()
 
-            # Perform additional analysis via AI (note: this will take over the whole process someday)
-            if self.cfg.getboolean('use_ai'):
-                if self.ai_scorer is None:
-                    info['ai_error'] = 'AI_ERROR: XRAIS FAILED TO INITIALIZE'
-                    return info
-                try:
-                    encoding_info = json.loads(data.get("streamfile_2", ""))
-                    raw_bytes = data.get("streamfile_3", "")
-                    header = json.loads(data.get("header2", ""))
-
-                    raw_data = extract_data(info=encoding_info, data=raw_bytes)
-                    if raw_data.dtype != np.float32:
-                        raw_data = raw_data.astype(np.float32)
-
-                    self.ai_scorer.predictor.load_image_from_file_or_array(
-                        raw_image=raw_data,
-                        detdist=header['detector_distance'] * 1000,
-                        pixsize=header['x_pixel_size'] * 1000,
-                        wavelen=header['wavelength'],
-                    )
-                    score = self.ai_scorer.calculate_score()  # Once the score works, will replace
-                except Exception as err:
-                    import traceback
-                    traceback.print_exc()
-                    spf_tb = traceback.format_exc()
-                    info["spf_error"] = "SPF ERROR: {}".format(str(err))
-                    info['spf_error_tback'] = spf_tb
-                    return info
-                else:
-                    info["hres"] = self.ai_scorer.hres
-                    info["split"] = self.ai_scorer.split
 
         # Doing it here because scoring can reject spots within ice rings, which can
         # drop the number below the minimal limit

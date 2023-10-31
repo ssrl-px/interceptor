@@ -118,6 +118,7 @@ def entry_point():
     p_configfile = cfg['processing_config_file']
 
     # initialize processor
+    init_time = time()
     if args.processing_mode == 'ai':
         processor = AIProcessor(
             run_mode=args.processing_mode,
@@ -136,6 +137,7 @@ def entry_point():
             configfile=p_configfile,
             verbose=args.verbose,
         )
+    print(f"INITIALIZED PROCESSOR IN {time() - init_time:0.4f} seconds")
 
     for img_path in paths:
         # initialize info dictionary object
@@ -166,6 +168,6 @@ def entry_point():
         ui_msg = make_result_string(info, cfg)
         print_to_stdout(counter=0, info=info, ui_msg=ui_msg, clip=True)
 
-    print (f'TOTAL TIME = {time() - start:.4f} seconds\n*****\n\n')
+    print (f"TOTAL TIME = {time() - start:.4f} seconds\n*****\n\n")
 
 # --> end

@@ -8,7 +8,7 @@ import zmq
 from interceptor import packagefinder
 from interceptor.connector import utils, make_result_string
 from interceptor.connector.connector import ZMQProcessBase
-from interceptor.connector.processor import InterceptorBaseProcessor, ZMQProcessor
+from interceptor.connector.processor import InterceptorBaseProcessor
 from resonet.utils.predict_fabio import ImagePredictFabio
 
 
@@ -47,12 +47,13 @@ class AIProcessor(InterceptorBaseProcessor):
                 pixsize=0.075,
                 wavelen=0.979,
             )
-            print ("LOAD TIME: {}".format(time.time() - load_start))
+            print (f"LOAD TIME: {time.time() - load_start:0.4f} seconds")
 
-            start = time.time()
+            score_start = time.time()
             score = self.scorer.calculate_score()
-            print ('SCORING TIME: {}'.format(time.time() - start))
             info['score'] = score
+            print (f"TOTAL AI ANALYSIS TIME: {time.time() - score_start:0.4f} seconds")
+
         except Exception as err:
             import traceback
             traceback.print_exc()
@@ -72,6 +73,7 @@ class AIProcessor(InterceptorBaseProcessor):
         start = time.time()
         info = self.process(filename, info)
         info['proc_time'] = time.time() - start
+        print(f"TOTAL PROCESSING TIME = {info['proc_time']:0.4f} seconds")
         return info
 
 
@@ -111,26 +113,48 @@ class AIScorer(object):
             ice_arch=None,
             counts_model=spf_model,
             counts_arch=spf_arch,
+            dev="cuda:0",
         )
 
     def count_spots(self):
-        return self.predictor.count_spots()
+        start = time.time()
+        n_spots = int(self.predictor.count_spots())
+        print(f"SPOTFINDING COMPLETE! FOUND {n_spots} SPOTS!")
+        print(f"AI SPOTFINDING TIME = {time.time() - start:0.4f} seconds")
+        return n_spots
 
     def estimate_resolution(self):
+        start = time.time()
         res = self.predictor.detect_resolution()
         if np.isnan(res):
             res = 99.0
+        print(f"AI RESOLUTION ESTIMATE TIME = {time.time() - start:0.4f} seconds")
         return res
 
     def find_rings(self):
         return 0
 
     def find_multilattice(self):
-        return self.predictor.detect_multilattice_scattering(binary=self.cfg.getboolean('multilattice_binary'))*100
+        start = time.time()
+        ml_probs =  self.predictor.detect_multilattice_scattering(binary=self.cfg.getboolean('multilattice_binary'))*100
+        print(f"AI MULTILATTICE PREDICTION TIME = {time.time() - start:0.4f} seconds")
+        return ml_probs
 
     def calculate_score(self):
-        score = 0
+        # count spots
+        self.n_spots = self.count_spots()
+
+        # estimate resolution
         self.hres = self.estimate_resolution()
+
+        # evaluate splitting
+        self.split = self.find_multilattice()
+
+        # find ice
+        self.n_ice_rings = self.find_rings()
+
+        start = time.time()
+        score = 0
         res_score = [
             (20, 1),
             (8, 2),
@@ -153,7 +177,6 @@ class AIScorer(object):
             score += increment
 
         # evaluate ice ring presence
-        self.n_ice_rings = self.find_rings()
         if self.n_ice_rings >= 4:
             score -= 3
         elif 4 > self.n_ice_rings >= 2:
@@ -161,11 +184,7 @@ class AIScorer(object):
         elif self.n_ice_rings == 1:
             score -= 1
 
-        # evaluate splitting
-        self.split = self.find_multilattice()
-
-        # count spots
-        self.n_spots = self.count_spots()
+        print (f'AI SCORING TIME: {time.time() - start:0.5f} seconds')
 
         return score
 
@@ -204,7 +223,7 @@ class AIWorker(ZMQProcessBase):
             return None
 
     def generate_processor(self, run_mode='DEFAULT'):
-        self.processor = ZMQProcessor(
+        self.processor = AIProcessor(
             run_mode=run_mode,
             configfile=self.cfg.getstr('processing_config_file'),
             test=self.args.test,
