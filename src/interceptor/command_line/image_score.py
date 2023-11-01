@@ -102,7 +102,8 @@ def entry_point():
         if os.path.isfile(args.path[0]):
             paths = args.path
         elif os.path.isdir(args.path[0]):
-            paths = [os.path.join((os.path.abspath(os.curdir)), f) for f in os.listdir(args.path[0])]
+            datadir = args.path[0]
+            paths = [os.path.join((os.path.abspath(datadir)), f) for f in os.listdir(datadir)]
         else:
             print(f"{args.path} is not a valid path")
 
@@ -169,5 +170,8 @@ def entry_point():
         print_to_stdout(counter=0, info=info, ui_msg=ui_msg, clip=True)
 
     print (f"TOTAL TIME = {time() - start:.4f} seconds\n*****\n\n")
+
+if __name__ == "__main__":
+	entry_point()
 
 # --> end
