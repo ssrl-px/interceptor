@@ -248,8 +248,6 @@ class FormatPilatusStream(FormatMultiImage, Format):
         data = np.array(data, ndmin=3)  # handle data, must be 3 dim
         data = data.reshape(data.shape[1:3]).astype("int32")
 
-        print("Get raw data")
-
         if info["type"] == "uint16":
             bad_sel = data == 2 ** 16 - 1
             data[bad_sel] = -1

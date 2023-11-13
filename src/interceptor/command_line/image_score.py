@@ -100,7 +100,8 @@ def entry_point():
         if os.path.isfile(args.path[0]):
             paths = args.path
         elif os.path.isdir(args.path[0]):
-            paths = [os.path.join((os.path.abspath(os.curdir)), f) for f in os.listdir(args.path[0])]
+            datadir = args.path[0]
+            paths = [os.path.join((os.path.abspath(datadir)), f) for f in os.listdir(datadir)]
         else:
             print(f"{args.path} is not a valid path")
 
