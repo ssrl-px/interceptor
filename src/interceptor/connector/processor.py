@@ -113,6 +113,10 @@ class AIScorer(object):
         reso_arch = self.cfg.getstr('resolution_architecture')
         multi_model = self.cfg.getstr('multilattice_model')
         multi_arch = self.cfg.getstr('multilattice_architecture')
+        if self.cfg.getboolean('use_b_to_d'):
+            b2d_model = self.cfg.getstr('b_to_d_model')
+        else:
+            b2d_model = None
 
         # Generate predictor
         assert reso_model is not None
@@ -123,8 +127,13 @@ class AIScorer(object):
             multi_model=multi_model,
             multi_arch=multi_arch,
             ice_model=None,
-            ice_arch=None
+            ice_arch=None,
+            B_to_d=b2d_model,
         )
+
+        #TODO: add to config
+        self.predictor.quads = list(map(int, self.cfg.getstr('detector_quadrants').split(',')))
+        print(f"DEBUG: QUADS -> {self.predictor.quads}")
 
     def estimate_resolution(self):
         res = self.predictor.detect_resolution()
@@ -140,7 +149,9 @@ class AIScorer(object):
 
     def calculate_score(self):
         score = 0
+        start = time.time()
         self.hres = self.estimate_resolution()
+        print (f"AI RESOLUTION = {self.hres} ({time.time() - start:0.5f} seconds)")
         res_score = [
             (20, 1),
             (8, 2),
@@ -608,6 +619,12 @@ class FileProcessor(InterceptorBaseProcessor):
         InterceptorBaseProcessor.__init__(self, run_mode=run_mode,
                                           configfile=configfile, test=test)
 
+        self.ai_scorer = AIScorer(config=self.cfg)
+        try:
+            self.sp_scorer = ImageScorer(config=self.cfg)
+        except AssertionError:
+            self.sp_scorer = None
+
     def process(self, filename, info):
         info["phil"] = self.dials_phil.as_str()
 
@@ -617,40 +634,73 @@ class FileProcessor(InterceptorBaseProcessor):
         print (f"MAKING EXPERIMENTLIST OBJECT TIME = {time.time() - exp_time:.4f} seconds")
 
         # Spotfinding
+        spf_time = time.time()
         try:
-            spf_time = time.time()
             observed = self.processor.find_spots(experiments)
-            print(f"SPOTFINDING COMPLETE! FOUND {len(observed)} spots")
-            print(f'SPOTFINDING TIME = {time.time() - spf_time:.4f} seconds')
         except Exception as err:
-            import traceback
-            spf_tb = traceback.format_exc()
-            info["spf_error"] = "SPF ERROR: {}".format(str(err))
-            info['spf_error_tback'] = spf_tb
+            # import traceback
+            # spf_tb = traceback.format_exc()
+            info["spf_error"] = "SPF ERROR: {}".format(err)
+            # info['spf_error_tback'] = spf_tb
             return info
         else:
-            start = time.time()
             if observed.size() >= self.cfg.getint('min_Bragg_peaks'):
-                scorer = ImageScorer(experiments=experiments, observed=observed, config=self.cfg)
-                try:
-                    if self.cfg.getboolean('spf_calculate_score'):
-                        info["score"] = scorer.calculate_score(verbose=self.verbose)
-                    else:
-                        info["score"] = -999
-                        scorer.calculate_stats()
-                except Exception as e:
-                    info["n_spots"] = 0
-                    info["scr_error"] = "SCORING ERROR: {}".format(e)
+                self.sp_scorer.initialize(experiments=experiments, observed=observed)
+                if self.sp_scorer is None:
+                    info['scr_error'] = "SCORING ERROR: SCORER NOT INITIALIZED"
+                    info["n_spots"] = observed.size()
                 else:
-                    info["n_spots"] = scorer.n_spots
-                    info["hres"] = scorer.hres
-                    info["n_ice_rings"] = scorer.n_ice_rings
-                    info["n_overloads"] = scorer.n_overloads
-                    info["mean_shape_ratio"] = scorer.mean_spot_shape_ratio
+                    try:
+                        if self.cfg.getboolean('spf_calculate_score'):
+                            info["score"] = self.sp_scorer.calculate_score()
+                        else:
+                            info["score"] = -999
+                            self.sp_scorer.calculate_stats()
+                    except Exception as e:
+                        info["n_spots"] = 0
+                        info["scr_error"] = "SCORING ERROR: {}".format(e)
+                    else:
+                        info["n_spots"] = self.sp_scorer.n_spots
+                        info["hres"] = self.sp_scorer.hres
+                        info["n_ice_rings"] = self.sp_scorer.n_ice_rings
+                        info["n_overloads"] = self.sp_scorer.n_overloads
+                        info["mean_shape_ratio"] = self.sp_scorer.mean_spot_shape_ratio
             else:
                 info["n_spots"] = observed.size()
-            print(f"SCORING TIME = {time.time() - start:.4f} seconds")
+            print(f"SCORING TIME = {time.time() - spf_time:.4f} seconds")
 
+
+            # Perform additional analysis via AI (note: this will take over the whole process someday)
+            if self.cfg.getboolean('use_ai'):
+                try:
+                    load_start = time.time()
+                    # TODO: CHANGE TO ACTUAL HEADER READING
+                    self.scorer.predictor.load_image_from_file_or_array(
+                        image_file=filename,
+                        detdist=250,
+                        pixsize=0.075,
+                        wavelen=0.979,
+                    )
+                    print ("LOAD TIME: {}".format(time.time() - load_start))
+
+                    start = time.time()
+                    score = self.scorer.calculate_score()
+                    print ('SCORING TIME: {}'.format(time.time() - start))
+                    info['score'] = score
+                except Exception as err:
+                    import traceback
+                    traceback.print_exc()
+                    spf_tb = traceback.format_exc()
+                    info["spf_error"] = "SPF ERROR: {}".format(str(err))
+                    info['spf_error_tback'] = spf_tb
+                    return info
+                else:
+                    info['n_spots'] = 0
+                    info["hres"] = self.scorer.hres
+                    info["n_ice_rings"] = self.scorer.n_ice_rings
+                    info["split"] = self.scorer.split
+                    info['spf_error'] = 'SPLITTING = {}'.format(self.scorer.split)
+                return info
 
         # Doing it here because scoring can reject spots within ice rings, which can
         # drop the number below the minimal limit
@@ -876,6 +926,10 @@ class FastProcessor(InterceptorBaseProcessor):
         print (f"INDEXING FINISHED! FOUND {len(indexed)} indexed reflections!")
         print (f"INDEXING TIME = {time.time() - start_idx:.4f} seconds")
 
+        # check for indexing success
+        if len(indexed) == 0:
+            return info
+
         # Reindex if possible
         rdx_time = time.time()
         try:
@@ -1037,71 +1091,71 @@ class ZMQProcessor(InterceptorBaseProcessor):
         experiments, e_time = self.make_experiments(data=data, detector=detector, filename=filename)
 
         # Spotfinding
-        with Capturing() as spf_output:
+        # with Capturing() as spf_output:
+        try:
+            observed = self.processor.find_spots(experiments)
+        except Exception as err:
+            # import traceback
+            # spf_tb = traceback.format_exc()
+            info["spf_error"] = "SPF ERROR: {}".format(err)
+            # info['spf_error_tback'] = spf_tb
+            return info
+        else:
+            if observed.size() >= self.cfg.getint('min_Bragg_peaks'):
+                self.sp_scorer.initialize(experiments=experiments, observed=observed)
+                if self.sp_scorer is None:
+                    info['scr_error'] = "SCORING ERROR: SCORER NOT INITIALIZED"
+                    info["n_spots"] = observed.size()
+                else:
+                    try:
+                        if self.cfg.getboolean('spf_calculate_score'):
+                            info["score"] = self.sp_scorer.calculate_score()
+                        else:
+                            info["score"] = -999
+                            self.sp_scorer.calculate_stats()
+                    except Exception as e:
+                        info["n_spots"] = 0
+                        info["scr_error"] = "SCORING ERROR: {}".format(e)
+                    else:
+                        info["n_spots"] = self.sp_scorer.n_spots
+                        info["hres"] = self.sp_scorer.hres
+                        info["n_ice_rings"] = self.sp_scorer.n_ice_rings
+                        info["n_overloads"] = self.sp_scorer.n_overloads
+                        info["mean_shape_ratio"] = self.sp_scorer.mean_spot_shape_ratio
+            else:
+                info["n_spots"] = observed.size()
+
+        # Perform additional analysis via AI (note: this will take over the whole process someday)
+        if self.cfg.getboolean('use_ai'):
+            # if self.ai_scorer is None:
+                # info['ai_error'] = 'AI_ERROR: XRAIS FAILED TO INITIALIZE'
+                # return info
             try:
-                observed = self.processor.find_spots(experiments)
+                encoding_info = json.loads(data.get("streamfile_2", ""))
+                raw_bytes = data.get("streamfile_3", "")
+                header = json.loads(data.get("header2", ""))
+
+                raw_data = extract_data(info=encoding_info, data=raw_bytes)
+                if raw_data.dtype != np.float32:
+                    raw_data = raw_data.astype(np.float32)
+
+                self.ai_scorer.predictor.load_image_from_file_or_array(
+                    raw_image=raw_data,
+                    detdist=header['detector_distance'] * 1000,
+                    pixsize=header['x_pixel_size'] * 1000,
+                    wavelen=header['wavelength'],
+                )
+                score = self.ai_scorer.calculate_score()  # Once the score works, will replace
             except Exception as err:
-                # import traceback
-                # spf_tb = traceback.format_exc()
-                info["spf_error"] = "SPF ERROR: {}".format(err)
-                # info['spf_error_tback'] = spf_tb
+                import traceback
+                traceback.print_exc()
+                spf_tb = traceback.format_exc()
+                info["spf_error"] = "SPF ERROR: {}".format(str(err))
+                info['spf_error_tback'] = spf_tb
                 return info
             else:
-                if observed.size() >= self.cfg.getint('min_Bragg_peaks'):
-                    self.sp_scorer.initialize(experiments=experiments, observed=observed)
-                    if self.sp_scorer is None:
-                        info['scr_error'] = "SCORING ERROR: SCORER NOT INITIALIZED"
-                        info["n_spots"] = observed.size()
-                    else:
-                        try:
-                            if self.cfg.getboolean('spf_calculate_score'):
-                                info["score"] = self.sp_scorer.calculate_score()
-                            else:
-                                info["score"] = -999
-                                self.sp_scorer.calculate_stats()
-                        except Exception as e:
-                            info["n_spots"] = 0
-                            info["scr_error"] = "SCORING ERROR: {}".format(e)
-                        else:
-                            info["n_spots"] = self.sp_scorer.n_spots
-                            info["hres"] = self.sp_scorer.hres
-                            info["n_ice_rings"] = self.sp_scorer.n_ice_rings
-                            info["n_overloads"] = self.sp_scorer.n_overloads
-                            info["mean_shape_ratio"] = self.sp_scorer.mean_spot_shape_ratio
-                else:
-                    info["n_spots"] = observed.size()
-
-            # Perform additional analysis via AI (note: this will take over the whole process someday)
-            if self.cfg.getboolean('use_ai'):
-                if self.ai_scorer is None:
-                    info['ai_error'] = 'AI_ERROR: XRAIS FAILED TO INITIALIZE'
-                    return info
-                try:
-                    encoding_info = json.loads(data.get("streamfile_2", ""))
-                    raw_bytes = data.get("streamfile_3", "")
-                    header = json.loads(data.get("header2", ""))
-
-                    raw_data = extract_data(info=encoding_info, data=raw_bytes)
-                    if raw_data.dtype != np.float32:
-                        raw_data = raw_data.astype(np.float32)
-
-                    self.ai_scorer.predictor.load_image_from_file_or_array(
-                        raw_image=raw_data,
-                        detdist=header['detector_distance'] * 1000,
-                        pixsize=header['x_pixel_size'] * 1000,
-                        wavelen=header['wavelength'],
-                    )
-                    score = self.ai_scorer.calculate_score()  # Once the score works, will replace
-                except Exception as err:
-                    import traceback
-                    traceback.print_exc()
-                    spf_tb = traceback.format_exc()
-                    info["spf_error"] = "SPF ERROR: {}".format(str(err))
-                    info['spf_error_tback'] = spf_tb
-                    return info
-                else:
-                    info["hres"] = self.ai_scorer.hres
-                    info["split"] = self.ai_scorer.split
+                info["hres"] = self.ai_scorer.hres
+                info["split"] = self.ai_scorer.split
 
         # Doing it here because scoring can reject spots within ice rings, which can
         # drop the number below the minimal limit
