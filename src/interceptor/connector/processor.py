@@ -133,7 +133,6 @@ class AIScorer(object):
 
         #TODO: add to config
         self.predictor.quads = list(map(int, self.cfg.getstr('detector_quadrants').split(',')))
-        print(f"DEBUG: QUADS -> {self.predictor.quads}")
 
     def estimate_resolution(self):
         res = self.predictor.detect_resolution()
@@ -151,7 +150,6 @@ class AIScorer(object):
         score = 0
         start = time.time()
         self.hres = self.estimate_resolution()
-        print (f"AI RESOLUTION = {self.hres} ({time.time() - start:0.5f} seconds)")
         res_score = [
             (20, 1),
             (8, 2),
