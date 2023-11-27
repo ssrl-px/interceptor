@@ -27,7 +27,7 @@ class AIProcessor(InterceptorBaseProcessor):
         # generate AI scorer
         self.scorer = AIScorer(config=self.cfg)
 
-    def process(self, filename, info):
+    def process(self, info, data=None, filename=None):
 
         info["n_spots"] = 0
         info["n_overloads"] = 0
@@ -37,43 +37,60 @@ class AIProcessor(InterceptorBaseProcessor):
         info["mean_shape_ratio"] = 1
         info["sg"] = None
         info["uc"] = None
+        info["cnn_error"] = None
 
         try:
             load_start = time.time()
-            # TODO: CHANGE TO ACTUAL HEADER READING
+            if data is None:
+                assert filename is not None
+                raw_data = None
+                detdist = 250
+                pixsize = 0.075
+                wavelen = 0.979     # These values for testing purposes only
+            else:
+                filename = None
+                encoding_info = json.loads(data.get("streamfile_2", ""))
+                raw_bytes = data.get("streamfile_3", "")
+                header = json.loads(data.get("header2", ""))
+
+                raw_data = extract_data(info=encoding_info, data=raw_bytes)
+                if raw_data.dtype != np.float32:
+                    raw_data = raw_data.astype(np.float32)
+
+                detdist = header['detector_distance'] * 1000
+                pixsize = header['x_pixel_size'] * 1000
+                wavelen = header['wavelength']
+
+            # Initialize CNN scorer
             self.scorer.predictor.load_image_from_file_or_array(
                 image_file=filename,
-                detdist=250,
-                pixsize=0.075,
-                wavelen=0.979,
+                raw_image=raw_data,
+                detdist=detdist,
+                pixsize=pixsize,
+                wavelen=wavelen,
             )
-            print (f"LOAD TIME: {time.time() - load_start:0.4f} seconds")
 
             score_start = time.time()
             score = self.scorer.calculate_score()
             info['score'] = score
-            print (f"TOTAL AI ANALYSIS TIME: {time.time() - score_start:0.4f} seconds")
-
         except Exception as err:
             import traceback
             traceback.print_exc()
             spf_tb = traceback.format_exc()
-            info["spf_error"] = "SPF ERROR: {}".format(str(err))
-            info['spf_error_tback'] = spf_tb
+            info["cnn_error"] = "NN ERROR: {}".format(str(err))
+            info['cnn_error_tback'] = spf_tb
             return info
         else:
             info['n_spots'] = self.scorer.n_spots
             info["hres"] = self.scorer.hres
             info["n_ice_rings"] = self.scorer.n_ice_rings
             info["split"] = self.scorer.split
-            info['spf_error'] = 'SPLITTING = {}'.format(self.scorer.split)
         return info
 
     def run(self, filename, info):
         start = time.time()
         info = self.process(filename, info)
         info['proc_time'] = time.time() - start
-        print(f"TOTAL PROCESSING TIME = {info['proc_time']:0.4f} seconds")
         return info
 
 
@@ -98,12 +115,14 @@ class AIScorer(object):
         spf_arch = self.cfg.getstr('spotfinding_architecture')
         use_b2d = self.cfg.getstr('use_b_to_d')
         b2d_model = self.cfg.getstr('b_to_d_model')
-
+        dev = self.cfg.getstr('device')
 
         # Generate predictor
         assert reso_model is not None
         assert multi_model is not None
-        assert spf_arch is not None
+        assert spf_model is not None
+        if use_b2d.lower() == "True":
+            assert b2d_model is not None
         self.predictor = ImagePredictFabio(
             reso_model=reso_model,
             reso_arch=reso_arch,
@@ -113,14 +132,12 @@ class AIScorer(object):
             ice_arch=None,
             counts_model=spf_model,
             counts_arch=spf_arch,
-            dev="cuda:0",
+            dev=dev,
         )
 
     def count_spots(self):
         start = time.time()
         n_spots = int(self.predictor.count_spots())
-        print(f"SPOTFINDING COMPLETE! FOUND {n_spots} SPOTS!")
-        print(f"AI SPOTFINDING TIME = {time.time() - start:0.4f} seconds")
         return n_spots
 
     def estimate_resolution(self):
@@ -128,7 +145,6 @@ class AIScorer(object):
         res = self.predictor.detect_resolution()
         if np.isnan(res):
             res = 99.0
-        print(f"AI RESOLUTION ESTIMATE TIME = {time.time() - start:0.4f} seconds")
         return res
 
     def find_rings(self):
@@ -137,7 +153,6 @@ class AIScorer(object):
     def find_multilattice(self):
         start = time.time()
         ml_probs =  self.predictor.detect_multilattice_scattering(binary=self.cfg.getboolean('multilattice_binary'))*100
-        print(f"AI MULTILATTICE PREDICTION TIME = {time.time() - start:0.4f} seconds")
         return ml_probs
 
     def calculate_score(self):
@@ -183,8 +198,6 @@ class AIScorer(object):
             score -= 2
         elif self.n_ice_rings == 1:
             score -= 1
-
-        print (f'AI SCORING TIME: {time.time() - start:0.5f} seconds')
 
         return score
 
@@ -352,7 +365,7 @@ class AIWorker(ZMQProcessBase):
             self.generate_processor(run_mode=info['run_mode'])
 
         # process image
-        info = self.processor.run(data=frame, info=info, detector=self.detector)
+        info = self.processor.run(data=frame, info=info)
         info["proc_time"] = time.time() - s_proc
         return info
 
