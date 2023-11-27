@@ -246,6 +246,8 @@ def make_result_string(info, cfg):
     info['split'] = 0
     results = (f'{info["n_spots"]} {info["split"]} {info["score"]} {info["hres"]:.2f} {info["n_ice_rings"]} '
                f'{info["mean_shape_ratio"]:.2f} {info["sg"]} {info["uc"]} {{{errors}}}')
+    if cfg.getstr('send_to_ui') == 'False':
+        results += f" ({info['proc_time']})"
 
     # read out config format (if no path specified, read from default config file)
     if cfg.getstr('output_delimiter') is not None:
