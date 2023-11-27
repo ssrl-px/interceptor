@@ -5,12 +5,13 @@ import time
 import numpy as np
 import os
 import zmq
+import json
 from interceptor import packagefinder
 from interceptor.connector import utils, make_result_string
 from interceptor.connector.connector import ZMQProcessBase
 from interceptor.connector.processor import InterceptorBaseProcessor
+from interceptor.format import extract_data
 from resonet.utils.predict_fabio import ImagePredictFabio
-
 
 class AIProcessor(InterceptorBaseProcessor):
     def __init__(
@@ -87,9 +88,9 @@ class AIProcessor(InterceptorBaseProcessor):
             info["split"] = self.scorer.split
         return info
 
-    def run(self, filename, info):
+    def run(self, info, data=None, filename=None):
         start = time.time()
-        info = self.process(filename, info)
+        info = self.process(info, data, filename)
         info['proc_time'] = time.time() - start
         return info
 
@@ -358,14 +359,14 @@ class AIWorker(ZMQProcessBase):
 
         return data, info
 
-    def process(self, info, frame):
+    def process(self, info, data):
         s_proc = time.time()
         # regenerate processor if necessary
         if info['run_mode'] != self.processor.run_mode:
             self.generate_processor(run_mode=info['run_mode'])
 
         # process image
-        info = self.processor.run(data=frame, info=info)
+        info = self.processor.run(info=info, data=data)
         info["proc_time"] = time.time() - s_proc
         return info
 
@@ -470,9 +471,14 @@ class AIWorker(ZMQProcessBase):
                         continue
                     # normal processing info
                     elif info["state"] == "process":
-                        info = self.process(info, frame=data)
-                        time_info["total_time"] = time.time() - start
-                        info.update(time_info)
+                        try:
+                            info = self.process(info=info, data=data)
+                            time_info["total_time"] = time.time() - start
+                            info.update(time_info)
+                        except Exception as e:
+                            import traceback
+                            traceback.print_exc()
+                            print ("debug: data = ", data)
                     # end-of-series signal (sleep for four seconds... maybe obsolete)
                     elif info["state"] == "series-end":
                         time.sleep(self.detector['timeout'])
