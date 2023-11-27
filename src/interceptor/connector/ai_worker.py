@@ -38,7 +38,7 @@ class AIProcessor(InterceptorBaseProcessor):
         info["mean_shape_ratio"] = 1
         info["sg"] = None
         info["uc"] = None
-        info["cnn_error"] = None
+        info["cnn_error"] = ''
 
         try:
             load_start = time.time()
