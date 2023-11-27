@@ -207,7 +207,7 @@ class Reader(ZMQProcessBase):
 
     def generate_processor(self, run_mode='DEFAULT'):
         self.processor = ZMQProcessor(
-            run_mode=run_mode,
+            run_mode='DEFAULT',    # todo: figure out how to use properly
             configfile=self.cfg.getstr('processing_config_file'),
             test=self.args.test,
         )
@@ -330,9 +330,9 @@ class Reader(ZMQProcessBase):
 
     def process(self, info, frame):
         s_proc = time.time()
-        # regenerate processor if necessary
-        if info['run_mode'] != self.processor.run_mode:
-            self.generate_processor(run_mode=info['run_mode'])
+        # regenerate processor if necessary - turned it off because we don't use it
+        # if info['run_mode'] != self.processor.run_mode:
+        #     self.generate_processor(run_mode=info['run_mode'])
 
         # process image
         info = self.processor.run(data=frame, info=info, detector=self.detector)
