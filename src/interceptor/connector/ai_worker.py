@@ -16,13 +16,12 @@ from resonet.utils.predict_fabio import ImagePredictFabio
 class AIProcessor(InterceptorBaseProcessor):
     def __init__(
             self,
-            run_mode='file',
             configfile=None,
             test=False,
             verbose=False,
     ):
         self.verbose = verbose
-        InterceptorBaseProcessor.__init__(self, run_mode=run_mode,
+        InterceptorBaseProcessor.__init__(self, run_mode='DEFAULT',
                                           configfile=configfile, test=test)
 
         # generate AI scorer
@@ -214,7 +213,7 @@ class AIWorker(ZMQProcessBase):
         super(AIWorker, self).__init__(
             name=name, comm=comm, args=args, localhost=localhost
         )
-        self.name = "ZMQ_{:03d}".format(self.rank)
+        self.name = "NN_{:03d}".format(self.rank)
         self.detector = self.find_detector()
         self.generate_processor()
 
@@ -242,8 +241,8 @@ class AIWorker(ZMQProcessBase):
             configfile=self.cfg.getstr('processing_config_file'),
             test=self.args.test,
         )
-        if self.rank == 2:
-            self.processor.print_params()
+        # if self.rank == 2:
+        #     self.processor.print_params()
 
     def convert_from_stream(self, frames):
         img_info = {
@@ -361,11 +360,6 @@ class AIWorker(ZMQProcessBase):
 
     def process(self, info, data):
         s_proc = time.time()
-        # regenerate processor if necessary
-        if info['run_mode'] != self.processor.run_mode:
-            self.generate_processor(run_mode=info['run_mode'])
-
-        # process image
         info = self.processor.run(info=info, data=data)
         info["proc_time"] = time.time() - s_proc
         return info
