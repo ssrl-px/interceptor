@@ -16,6 +16,7 @@ from resonet.utils.predict_fabio import ImagePredictFabio
 class AIProcessor(InterceptorBaseProcessor):
     def __init__(
             self,
+            run_mode='DEFAULT',
             configfile=None,
             test=False,
             verbose=False,
