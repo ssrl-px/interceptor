@@ -64,25 +64,42 @@ conda install -c cctbx -y bitshuffle --no-deps
 conda deactivate
 ```
 
+7. If step #6 doesn't work:
+```
+libtbx.pip install bitshuffle
+```
+
+### Install AI-related packages
+
+8. Resonet - code for interpreting images, training models and generating new models (also AI API)
+```
+git clone https://github.com/dermen/resonet.git
+```
+
+10. Fabio and Pytorch:
+```
+libtbx.pip install fabio torch torchvision
+```
+
 ### Installing Interceptor:
 
-7. At this stage, install interceptor directly from GitHub; it’s recommended to install an editable version under the modules/ subfolder under the DIALS install folder. From the same DIALS install folder, issue:
+11. At this stage, install interceptor directly from GitHub; it’s recommended to install an editable version under the modules/ subfolder under the DIALS install folder. From the same DIALS install folder, issue:
 ```
 libtbx.pip install -e git+https://github.com/ssrl-px/interceptor.git#egg=intxr --src=modules
 ```
 
-8. Set up developer version of Interceptor:
+12. Set up developer version of Interceptor:
 ```
 cd modules/intxr/
 libtbx.python setup.py develop
 ```
 
-9. Incorporate Interceptor into DIALS configuration:
+13. Incorporate Interceptor into DIALS configuration:
 ```
 libtbx.configure intxr
 ```
 
-10. At this point you might have to repeat step 4, to make sure that the Interceptor launch shortcuts are available. These are as follows:
+14. At this point you might have to repeat step 4, to make sure that the Interceptor launch shortcuts are available. These are as follows:
 ```
 intxr.connect     # launches a single instance
 intxr.connect_mpi # launch the full program with MPI
