@@ -73,7 +73,8 @@ libtbx.pip install bitshuffle
 
 8. Resonet - code for interpreting images, training models and generating new models (also AI API)
 ```
-git clone https://github.com/dermen/resonet.git
+cd modules
+git clone https://github.com/ssrl-px/resonet
 ```
 
 10. Fabio and Pytorch:
