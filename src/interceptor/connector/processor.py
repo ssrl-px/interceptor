@@ -7,6 +7,7 @@ Last Changed: 05/15/2020
 Description : Streaming stills processor for live data analysis
 """
 import time  # noqa: F401; keep around for testing
+import os
 
 import numpy as np
 import importlib
@@ -119,6 +120,13 @@ class AIScorer(object):
             b2d_model = None
 
         # Generate predictor
+        # Check if in Testing mode that we can optionally load models
+        if reso_model is None:
+            reso_model = os.environ.get("INTXR_TEST_RESO_MODEL")
+            reso_arch = os.environ.get("INTXR_TEST_RESO_ARCH")
+        if multi_model is None:
+            multi_model = os.environ.get("INTXR_TEST_MULTI_MODEL")
+            multi_arch = os.environ.get("INTXR_TEST_MULTI_ARCH")
         assert reso_model is not None
         assert multi_model is not None
         self.predictor = ImagePredictFabio(
@@ -1083,6 +1091,7 @@ class ZMQProcessor(InterceptorBaseProcessor):
 
     def process(self, data, detector, info):
         #info["phil"] = self.dials_phil.as_str()
+        from IPython import embed;embed()
         filename = info['full_path']
 
         # Make ExperimentList object
@@ -1136,13 +1145,22 @@ class ZMQProcessor(InterceptorBaseProcessor):
                 raw_data = extract_data(info=encoding_info, data=raw_bytes)
                 if raw_data.dtype != np.float32:
                     raw_data = raw_data.astype(np.float32)
+                beam_x = header["beam_center_x"]
+                beam_y = header["beam_center_y"]
+                detdist = header["deteector_distance"]*1000
+                wavelen = header["wavelength"]
+                pixsize = header["x_pixel_size"]*1000
 
                 self.ai_scorer.predictor.load_image_from_file_or_array(
                     raw_image=raw_data,
-                    detdist=header['detector_distance'] * 1000,
-                    pixsize=header['x_pixel_size'] * 1000,
-                    wavelen=header['wavelength'],
+                    detdist=detdist,
+                    pixsize=pixsize,
+                    wavelen=wavelen,
                 )
+                slow_dim, fast_dim = raw_data.shape
+                simple_geom = {"wavelength_Ang": wavelen, "distance_mm": detdist, "pixsize_mm": pixsize,
+                               "beam_x": beam_x, "beam_y": beam_y, "fast_dim":fast_dim, "slow_dim": slow_dim}
+                self.ai_scorer.predictor.set_ice_mask(simple_geom=simple_geom)
                 score = self.ai_scorer.calculate_score()  # Once the score works, will replace
             except Exception as err:
                 import traceback
