@@ -518,12 +518,11 @@ class InterceptorBaseProcessor(object):
     def make_experiments(filename=None, data=None, detector=None):
         # make experiments
         e_start = time.time()
+        experiments = None
         if data is None:
             # Regular ExperimentList creation with regular files
             assert filename is not None
             experiments = ExperimentListFactory.from_filenames([filename])
-            e_time = time.time() - e_start
-            return experiments, e_time
 
         elif data is not None:
             # ExperimentList creation with ZeroMQ format classes
@@ -545,8 +544,9 @@ class InterceptorBaseProcessor(object):
 
             # Create an ExperimentList object from imageset
             experiments = ExperimentListFactory.from_stills_and_crystal(imageset, crystal=None, load_models=load_models)
-            e_time = time.time() - e_start
-            return experiments, e_time
+
+        e_time = time.time() - e_start
+        return experiments, e_time
 
 
 class AIProcessor(InterceptorBaseProcessor):
@@ -1091,7 +1091,6 @@ class ZMQProcessor(InterceptorBaseProcessor):
 
     def process(self, data, detector, info):
         #info["phil"] = self.dials_phil.as_str()
-        from IPython import embed;embed()
         filename = info['full_path']
 
         # Make ExperimentList object
@@ -1138,29 +1137,46 @@ class ZMQProcessor(InterceptorBaseProcessor):
                 # info['ai_error'] = 'AI_ERROR: XRAIS FAILED TO INITIALIZE'
                 # return info
             try:
-                encoding_info = json.loads(data.get("streamfile_2", ""))
-                raw_bytes = data.get("streamfile_3", "")
-                header = json.loads(data.get("header2", ""))
+                if experiments is not None:
+                    panel = experiments[0].detector[0]
+                    beam = experiments[0].beam
+                    try:
+                        raw_data = experiments[0].imageset.get_raw_data()
+                    except:
+                        raw_data = experiments[0].imageset.get_raw_data(0)
+                    if isinstance(raw_data, tuple):
+                        raw_data = raw_data[0]
+                    raw_data = raw_data.as_numpy_array()
+                    if not raw_data.dtype==np.float32:
+                        raw_data = raw_data.astype(np.float32)
+                    detdist = panel.get_distance()
+                    beam_x, beam_y = panel.get_beam_centre_px(beam.get_unit_s0())
+                    pixsize = panel.get_pixel_size()[0]
+                    wavelen = beam.get_wavelength()
 
-                raw_data = extract_data(info=encoding_info, data=raw_bytes)
-                if raw_data.dtype != np.float32:
-                    raw_data = raw_data.astype(np.float32)
-                beam_x = header["beam_center_x"]
-                beam_y = header["beam_center_y"]
-                detdist = header["deteector_distance"]*1000
-                wavelen = header["wavelength"]
-                pixsize = header["x_pixel_size"]*1000
+                else:
+                    assert data is not None
+                    encoding_info = json.loads(data.get("streamfile_2", ""))
+                    raw_bytes = data.get("streamfile_3", "")
+                    header = json.loads(data.get("header2", ""))
+
+                    raw_data = extract_data(info=encoding_info, data=raw_bytes)
+                    if raw_data.dtype != np.float32:
+                        raw_data = raw_data.astype(np.float32)
+                    beam_x = header["beam_center_x"]
+                    beam_y = header["beam_center_y"]
+                    detdist = header["deteector_distance"]*1000
+                    wavelen = header["wavelength"]
+                    pixsize = header["x_pixel_size"]*1000
 
                 self.ai_scorer.predictor.load_image_from_file_or_array(
                     raw_image=raw_data,
                     detdist=detdist,
                     pixsize=pixsize,
                     wavelen=wavelen,
+                    beam_center=(beam_x, beam_y),
+                    use_ice_mask=self.cfg.getboolean("resonet_mask_ice_rings")
                 )
-                slow_dim, fast_dim = raw_data.shape
-                simple_geom = {"wavelength_Ang": wavelen, "distance_mm": detdist, "pixsize_mm": pixsize,
-                               "beam_x": beam_x, "beam_y": beam_y, "fast_dim":fast_dim, "slow_dim": slow_dim}
-                self.ai_scorer.predictor.set_ice_mask(simple_geom=simple_geom)
                 score = self.ai_scorer.calculate_score()  # Once the score works, will replace
             except Exception as err:
                 import traceback
