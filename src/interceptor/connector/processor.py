@@ -120,13 +120,6 @@ class AIScorer(object):
             b2d_model = None
 
         # Generate predictor
-        # Check if in Testing mode that we can optionally load models
-        if reso_model is None:
-            reso_model = os.environ.get("INTXR_TEST_RESO_MODEL")
-            reso_arch = os.environ.get("INTXR_TEST_RESO_ARCH")
-        if multi_model is None:
-            multi_model = os.environ.get("INTXR_TEST_MULTI_MODEL")
-            multi_arch = os.environ.get("INTXR_TEST_MULTI_ARCH")
         assert reso_model is not None
         assert multi_model is not None
         self.predictor = ImagePredictFabio(
@@ -1134,10 +1127,10 @@ class ZMQProcessor(InterceptorBaseProcessor):
         # Perform additional analysis via AI (note: this will take over the whole process someday)
         if self.cfg.getboolean('use_ai'):
             # if self.ai_scorer is None:
-                # info['ai_error'] = 'AI_ERROR: XRAIS FAILED TO INITIALIZE'
+                # info['ai_error'] = 'AI_ERROR: RESONET FAILED TO INITIALIZE'
                 # return info
             try:
-                if experiments is not None:
+                if data is None:
                     panel = experiments[0].detector[0]
                     beam = experiments[0].beam
                     try:
@@ -1165,7 +1158,7 @@ class ZMQProcessor(InterceptorBaseProcessor):
                         raw_data = raw_data.astype(np.float32)
                     beam_x = header["beam_center_x"]
                     beam_y = header["beam_center_y"]
-                    detdist = header["deteector_distance"]*1000
+                    detdist = header["detector_distance"]*1000
                     wavelen = header["wavelength"]
                     pixsize = header["x_pixel_size"]*1000
 
