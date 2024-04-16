@@ -391,7 +391,7 @@ class Reader(ZMQProcessBase):
                 "proc_url": proc_url,
                 "state": "connected",
             }
-            self.r_socket.send_json(info)
+            # self.r_socket.send_json(info)
 
     def read_stream(self):
         # Start listening for ZMQ stream
