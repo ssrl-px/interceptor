@@ -249,7 +249,7 @@ class ImageScorer(object):
 
         # Estimate resolution by spots that aren't ice (susceptible to poor ice ring
         # location)
-        if self.n_spots > 10:
+        if self.n_spots >= self.cfg.getint('min_Bragg_peaks'):
             self.hres = per_image_analysis.estimate_resolution_limit(spots_no_ice)
         else:
             self.hres = 99.9
@@ -1125,7 +1125,7 @@ class ZMQProcessor(InterceptorBaseProcessor):
                 info["n_spots"] = observed.size()
 
         # Perform additional analysis via AI (note: this will take over the whole process someday)
-        if self.cfg.getboolean('use_ai'):
+        if self.cfg.getboolean('use_ai') and info["n_spots"] >= self.cfg.getint('min_Bragg_peaks'):
             # if self.ai_scorer is None:
                 # info['ai_error'] = 'AI_ERROR: RESONET FAILED TO INITIALIZE'
                 # return info
@@ -1186,7 +1186,7 @@ class ZMQProcessor(InterceptorBaseProcessor):
         # drop the number below the minimal limit
         if info['n_spots'] < self.cfg.getint('min_Bragg_peaks'):
             info["spf_error"] = "Too few ({}) spots found!".format(
-                observed.size())
+                info['n_spots'])
 
         # if last stage was selected to be "spotfinding", stop here; otherwise
         # perform a speed check before proceeding to indexing
