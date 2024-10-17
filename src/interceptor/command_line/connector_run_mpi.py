@@ -11,6 +11,7 @@ import setproctitle
 import os
 import time
 import procrunner
+import subprocess
 
 from interceptor.command_line.connector_run import parse_command_args
 
@@ -98,6 +99,7 @@ def make_mpi_command_line(args):
 
 
 def entry_point():
+   
     # parse command-line args
     args, _ = parse_command_args().parse_known_args()
 
@@ -108,6 +110,7 @@ def entry_point():
         setproctitle.setproctitle('i-{}'.format(args.beamline))
 
     command = make_mpi_command_line(args)
+    
     # run mpi
     print(" ".join(command))
     if not args.dry_run:
@@ -117,9 +120,14 @@ def entry_point():
                 callback = get_total_time
             else:
                 callback = None
-            result = procrunner.run(
-                command, callback_stdout=callback, working_directory=os.curdir
-            )
+            print(1212121)
+            print(command)
+            if "OMP_NUM_THREADS" in os.environ:
+                print("OMP_NUM_THREADS:", os.environ["OMP_NUM_THREADS"], flush=True)
+            subprocess.run(command)
+            #result = procrunner.run(
+            #    command, callback_stdout=callback, working_directory=os.curdir
+            #)
         except KeyboardInterrupt:
             curdir = os.path.abspath(os.curdir)
             temp_files = [

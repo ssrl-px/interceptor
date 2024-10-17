@@ -72,7 +72,7 @@ class ZMQProcessBase:
             port=None,
             url=None,
             bind=False,
-            verbose=False,
+            verbose=True,
     ):
         assert (host and port) or url
 
@@ -192,6 +192,7 @@ class Reader(ZMQProcessBase):
 
     def find_detector(self):
         import json
+        print(f"Finding detector; {self.rank}")
         try:
             det_file = self.cfg.getstr('detector_registry_file')
             if det_file is None:
@@ -206,13 +207,19 @@ class Reader(ZMQProcessBase):
             return None
 
     def generate_processor(self, run_mode='DEFAULT'):
+        print(f"Gen processor; {self.rank}")
+        num_gpu = self.cfg.getint("num_devices")
+        if num_gpu > 0:
+            dev_id = (self.rank-1) % num_gpu
+            dev = f"cuda:{dev_id}"
+        else:
+            dev = "cpu"
         self.processor = ZMQProcessor(
             run_mode='DEFAULT',    # todo: figure out how to use properly
             configfile=self.cfg.getstr('processing_config_file'),
             test=self.args.test,
+            dev=dev,
         )
-        if self.rank == 2:
-            self.processor.print_params()
 
     def convert_from_stream(self, frames):
         img_info = {
@@ -340,9 +347,11 @@ class Reader(ZMQProcessBase):
         return info
 
     def initialize_zmq_sockets(self, init_r_socket=True):
+        print(f"Init sockets; {self.rank}")
         try:
             # If the Connector is active, connect the Reader socket to the Connector;
             # if not, connect the Reader socket to the Splitter
+            print(111)
             if self.args.broker:
                 dhost = self.localhost
                 dport = "6{}".format(str(self.cfg.getstr('port'))[1:])
@@ -354,9 +363,10 @@ class Reader(ZMQProcessBase):
                 wid=self.name,
                 host=dhost,
                 port=dport,
-                verbose=self.args.verbose,
+                verbose=True, #self.args.verbose,
             )
             proc_url = "tcp://{}:{}".format(dhost, dport)
+            print("proc_url!!!!!!!!", proc_url)
 
             if init_r_socket:
                 # make r_socket either collector socket or UI socket
@@ -383,7 +393,7 @@ class Reader(ZMQProcessBase):
                     )
                     self.r_socket.setsockopt(zmq.SNDTIMEO, 1000)
         except Exception as e:
-            print("SOCKET ERROR: {}".format(e))
+            print("SOCKET ERROR: {}".format(e), flush=True)
             exit()
         else:
             info = {
@@ -391,6 +401,7 @@ class Reader(ZMQProcessBase):
                 "proc_url": proc_url,
                 "state": "connected",
             }
+            print("info", info)
             # self.r_socket.send_json(info)
 
     def read_stream(self):
@@ -688,6 +699,7 @@ class Collector(ZMQProcessBase):
                     print('\n\n\n', flush=True)
 
     def run(self):
+        #os.environ["OMP_NUM_THREADS"] = "1" 
         report_thread = Thread(target=self.collect_results)
         monitor_thread = Thread(target=self.monitor_splitter_messages)
         report_thread.start()

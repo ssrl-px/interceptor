@@ -12,6 +12,7 @@ from threading import Thread
 import zmq
 import numpy as np
 import wx
+import os
 
 
 class Receiver(Thread):

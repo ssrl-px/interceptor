@@ -203,30 +203,3 @@ def entry_point():
         script.run()
 
 
-if __name__ == "__main__":
-    try:
-        from line_profiler import LineProfiler
-    except ImportError:
-        LineProfiler = None
-
-    RUN = entry_point
-    lp = None
-
-    from interceptor.connector.processor import ZMQProcessor
-
-    if LineProfiler is not None:
-        lp = LineProfiler()
-        lp.add_function(ZMQProcessor.process)
-        RUN = lp(entry_point)
-
-    try:
-        RUN()
-    except KeyboardInterrupt:
-        if lp is not None:
-            stats = lp.get_stats()
-            from utils import print_profile
-
-            print_profile(stats,
-                          ["process"])
-
-# -- end
